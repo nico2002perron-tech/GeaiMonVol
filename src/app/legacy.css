@@ -46,6 +46,7 @@
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
+    position: relative;
 }
 
 /* ======== LOADER ======== */
