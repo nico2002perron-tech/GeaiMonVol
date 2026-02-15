@@ -2541,10 +2541,16 @@
         min-width: 100%
     }
 }
+
 /* Animated dashed arcs */
 @keyframes arcFlow {
-    0% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: -20; }
+    0% {
+        stroke-dashoffset: 0;
+    }
+
+    100% {
+        stroke-dashoffset: -20;
+    }
 }
 
 #map-svg path[stroke-dasharray] {
@@ -2553,14 +2559,28 @@
 
 /* Geai Bubble Animation */
 @keyframes bubbleIn {
-    0% { opacity: 0; transform: translateY(10px) scale(0.9); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 /* Live Blink Animation */
 @keyframes liveBlink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
 }
 
 /* Deal Strip Hover Effects */
@@ -2582,3 +2602,20 @@
     transition: transform 0.4s ease;
 }
 
+
+/* Region hover highlight */
+#map-svg .land-path.region-hover {
+    fill: rgba(46, 125, 219, 0.25);
+    stroke: rgba(46, 125, 219, 0.5);
+    stroke-width: 0.8;
+    filter: drop-shadow(0 2px 8px rgba(46, 125, 219, 0.15));
+    transition: fill 0.3s ease, stroke 0.3s ease;
+    cursor: pointer;
+}
+
+/* Dim non-hovered regions */
+#map-svg .land-path.region-dimmed {
+    fill: #EDF3F8;
+    stroke: rgba(194, 216, 234, 0.3);
+    transition: fill 0.3s ease, stroke 0.3s ease;
+}

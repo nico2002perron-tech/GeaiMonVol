@@ -87,9 +87,36 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                 .enter().append("path")
                 .attr("class", "land-path")
                 .attr("d", path as any)
-                // .attr("data-region", d => getRegionForCountry(d.properties.name)) // Need real getRegion impl
-                .on("click", (event, d: any) => {
-                    const region = getRegionForCountry(d.properties.name);
+                .attr("data-name", (d: any) => d.properties?.name || '')
+                .attr("data-region", (d: any) => {
+                    const name = d.properties?.name || '';
+                    return getRegionForCountry(name) || '';
+                })
+                .on("mouseenter", function (event: any, d: any) {
+                    const countryName = d.properties?.name || '';
+                    const region = getRegionForCountry(countryName);
+                    if (!region) return;
+
+                    // Highlight ALL countries in the same region
+                    g.selectAll(".land-path").each(function () {
+                        const el = d3.select(this);
+                        const elRegion = el.attr("data-region");
+                        if (elRegion === region) {
+                            el.classed("region-hover", true);
+                        } else {
+                            el.classed("region-dimmed", true);
+                        }
+                    });
+                })
+                .on("mouseleave", function () {
+                    // Remove all highlights
+                    g.selectAll(".land-path")
+                        .classed("region-hover", false)
+                        .classed("region-dimmed", false);
+                })
+                .on("click", (event: any, d: any) => {
+                    const countryName = d.properties?.name || '';
+                    const region = getRegionForCountry(countryName);
                     if (region) onRegionSelect(region);
                 });
 
