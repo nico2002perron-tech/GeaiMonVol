@@ -1,7 +1,11 @@
 'use client';
 import { useState } from 'react';
 
-export default function MapTopbar() {
+interface MapTopbarProps {
+    onOpenHowItWorks?: () => void;
+}
+
+export default function MapTopbar({ onOpenHowItWorks }: MapTopbarProps) {
     const [dateOpen, setDateOpen] = useState(false);
 
     return (
@@ -10,8 +14,30 @@ export default function MapTopbar() {
             <div className="logo" style={{ pointerEvents: 'auto' }}>
                 <div className="logo-mark"><svg viewBox="0 0 24 24"><path d="M3.64 14.26c-.24-.24-.24-.63 0-.87l6.36-6.36c.48-.48 1.12-.74 1.8-.74s1.32.26 1.8.74l3.06 3.06.18-2.04c.08-.72.64-1.28 1.36-1.36.72-.08 1.38.32 1.6 1l2.2 6.8c.16.48.06 1-.24 1.38-.3.38-.76.58-1.24.52l-7.08-1.08c-.72-.1-1.28-.66-1.36-1.38-.08-.72.32-1.38 1-1.6l2.14-.74-2.42-2.42c-.24-.24-.56-.36-.88-.36s-.64.12-.88.36L4.68 14.53c-.24.24-.63.24-.87 0l-.17-.27z" /></svg></div>
                 Geai<span>Mon</span>Vol
-                <button className="how-btn" id="howBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                <button
+                    className="how-btn"
+                    onClick={() => onOpenHowItWorks?.()}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '7px 16px',
+                        borderRadius: 100,
+                        background: 'rgba(255,255,255,0.9)',
+                        border: '1px solid rgba(46,125,219,0.12)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#2E7DDB',
+                        cursor: 'pointer',
+                        fontFamily: "'Outfit', sans-serif",
+                        backdropFilter: 'blur(8px)',
+                    }}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
                     Comment ça marche?
                 </button>
                 <div style={{

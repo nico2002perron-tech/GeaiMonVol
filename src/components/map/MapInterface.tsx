@@ -54,7 +54,7 @@ export default function MapInterface() {
                         }}
                     />
 
-                    <MapTopbar />
+                    <MapTopbar onOpenHowItWorks={() => setModalOpen(true)} />
 
                     <HoverCard
                         deal={hoveredDeal}
