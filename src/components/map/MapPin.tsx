@@ -15,8 +15,7 @@ interface MapPinProps {
 }
 
 export default function MapPin({ deal, regionKey, x, y, index, onMouseEnter, onMouseLeave, onClick }: MapPinProps) {
-    const isMega = deal.price < 400; // Simplified logic, adapt based on 'disc' if available
-    // Note: Legacy code used deal.disc >= 52 for mega. We'll need disc in Flight interface if used.
+    const isMega = deal.disc >= 52;
 
     const style = {
         left: `${x}px`,
@@ -33,7 +32,14 @@ export default function MapPin({ deal, regionKey, x, y, index, onMouseEnter, onM
             onMouseLeave={onMouseLeave}
             onClick={() => onClick(regionKey)}
         >
-            <div className="pin-pill">-{/*Placeholder for disc*/}%</div>
+            <div className="pin-pill">
+                {deal.disc >= 52 && (
+                    <span className="fire">
+                        <svg viewBox="0 0 24 24"><path d="M12 23c5.5 0 8-4.5 8-8.5 0-4-4-8.5-6-10.5-.5 2-2 4-4 4 0-3-2-7-3-8 0 3-3 7-3 11 0 1 0 2 .5 3-2-2-2.5-4-2.5-6-1 2-2 4-2 6.5C0 18.5 6.5 23 12 23z" /></svg>
+                    </span>
+                )}
+                -{deal.disc}%
+            </div>
             <div className="pin-stem"></div>
             <div className="pin-dot"></div>
         </div>

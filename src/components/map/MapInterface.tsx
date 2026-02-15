@@ -6,7 +6,6 @@ import DealStrip from '@/components/deals/DealStrip';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
 import HowItWorksModal from '@/components/ui/HowItWorksModal';
-import Loader from './Loader';
 import MapTopbar from './MapTopbar';
 import HoverCard from './HoverCard';
 import GeaiAssistant from './GeaiAssistant';
@@ -15,19 +14,18 @@ export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [bookingOpen, setBookingOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    const [appReady, setAppReady] = useState(false);
+    const [appReady, setAppReady] = useState(true);
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null); // State for booking
 
     useEffect(() => {
-        // Simulate app ready after loader
-        const timer = setTimeout(() => setAppReady(true), 2500);
-        return () => clearTimeout(timer);
+        // App is ready immediately
+        setAppReady(true);
     }, []);
 
     return (
         <>
-            <Loader />
+
 
             <div id="map-app">
                 <div id="app" className={appReady ? 'show' : ''} style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden' }}>
