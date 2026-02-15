@@ -1,35 +1,15 @@
-import type { Metadata } from "next";
-import { DM_Sans, Fraunces } from "next/font/google";
-import "./globals.css";
-
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  display: "swap",
-});
+import { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "GeaiMonVol — Vols, Hôtels & Activités à Prix Cassés",
-  description: "Vols, hôtels et activités aux meilleurs prix. Notre algorithme trouve ce que vous ne trouverez pas.",
+  title: 'GeaiMonVol — Deals voyage depuis Montréal',
+  description: 'Trouvez les meilleurs prix sur les vols depuis Montréal. Carte interactive des deals en temps réel.',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${dmSans.variable} ${fraunces.variable}`}>
-      <body>
-        {children}
-      </body>
+    <html lang="fr">
+      <body>{children}</body>
     </html>
   );
 }

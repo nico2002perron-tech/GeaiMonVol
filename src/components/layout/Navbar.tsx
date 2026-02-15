@@ -22,7 +22,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
 
             {/* Desktop menu */}
             <ul className="nav-menu">
-                <li><Link href="/map">Carte</Link></li>
+                {/* Map is now home, so no link needed or it can trigger something else */}
                 <li><Link href="#deals">Aubaines</Link></li>
                 <li>
                     <button onClick={(e) => { e.preventDefault(); onOpenHowItWorks?.(); }} className="nav-link-btn">
@@ -48,7 +48,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
             {/* Mobile menu */}
             {menuOpen && (
                 <div className="nav-mobile-menu">
-                    <Link href="/map" onClick={() => setMenuOpen(false)}>Carte interactive</Link>
+                    <Link href="/" onClick={() => setMenuOpen(false)}>Carte interactive</Link>
                     <Link href="#deals" onClick={() => setMenuOpen(false)}>Aubaines</Link>
                     <button onClick={() => { onOpenHowItWorks?.(); setMenuOpen(false); }} className="nav-link-btn">
                         Comment ça marche
