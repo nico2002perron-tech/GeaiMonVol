@@ -583,6 +583,64 @@
     animation: megaGlow 3.5s ease-in-out infinite
 }
 
+/* Pulse ring autour des mega deals */
+.pin.mega .pin-dot::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: rgba(232, 70, 106, .15);
+    animation: megaPulse 2s ease-out infinite;
+}
+
+@keyframes megaPulse {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Subtle float animation on all pins */
+.pin.visible {
+    animation: pinDrop .45s cubic-bezier(.34, 1.56, .64, 1) forwards,
+        pinFloat 3s ease-in-out infinite 1s;
+}
+
+@keyframes pinFloat {
+
+    0%,
+    100% {
+        transform: translate(-50%, -100%) translateY(0);
+    }
+
+    50% {
+        transform: translate(-50%, -100%) translateY(-3px);
+    }
+}
+
+/* Stagger the float animation so pins don't all move in sync */
+.pin:nth-child(odd) .pin-pill {
+    animation-delay: 0s;
+}
+
+.pin:nth-child(even) .pin-pill {
+    animation-delay: 1.5s;
+}
+
+.pin:nth-child(3n) .pin-pill {
+    animation-delay: 0.8s;
+}
+
 @keyframes megaGlow {
 
     0%,
@@ -2483,3 +2541,44 @@
         min-width: 100%
     }
 }
+/* Animated dashed arcs */
+@keyframes arcFlow {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -20; }
+}
+
+#map-svg path[stroke-dasharray] {
+    animation: arcFlow 2s linear infinite;
+}
+
+/* Geai Bubble Animation */
+@keyframes bubbleIn {
+    0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Live Blink Animation */
+@keyframes liveBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Deal Strip Hover Effects */
+.scard {
+    transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), box-shadow .3s, border-color .3s;
+}
+
+.scard:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(26, 43, 66, 0.12);
+    border-color: #2E7DDB;
+}
+
+.scard:hover .scard-img {
+    transform: scale(1.06);
+}
+
+.scard-img {
+    transition: transform 0.4s ease;
+}
+

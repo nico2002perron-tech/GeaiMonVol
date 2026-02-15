@@ -119,6 +119,66 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                 });
             });
             setPins(newPins);
+
+            // Draw flight arcs from Montreal
+            const montrealCoords: [number, number] = [-73.5674, 45.5019];
+            const montrealPos = projection(montrealCoords);
+
+            if (montrealPos) {
+                // Draw Montreal marker
+                g.append("circle")
+                    .attr("cx", montrealPos[0])
+                    .attr("cy", montrealPos[1])
+                    .attr("r", 4)
+                    .attr("fill", "#2E7DDB")
+                    .attr("stroke", "#fff")
+                    .attr("stroke-width", 2);
+
+                g.append("text")
+                    .attr("x", montrealPos[0])
+                    .attr("y", montrealPos[1] - 10)
+                    .attr("text-anchor", "middle")
+                    .attr("font-size", "9px")
+                    .attr("font-weight", "700")
+                    .attr("fill", "#2E7DDB")
+                    .attr("font-family", "'DM Sans', sans-serif")
+                    .text("YUL");
+
+                // Draw arcs to each destination
+                newPins.forEach((p: any) => {
+                    const destPos = projection([p.deal.lon, p.deal.lat]);
+                    if (!destPos || !montrealPos) return;
+
+                    // Calculate a curved path (quadratic bezier)
+                    const midX = (montrealPos[0] + destPos[0]) / 2;
+                    const midY = (montrealPos[1] + destPos[1]) / 2;
+                    // Curve upward — the offset creates the arc effect
+                    const dx = destPos[0] - montrealPos[0];
+                    const dy = destPos[1] - montrealPos[1];
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const curveOffset = Math.min(dist * 0.2, 80);
+                    const controlX = midX;
+                    const controlY = midY - curveOffset;
+
+                    const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${controlX},${controlY} ${destPos[0]},${destPos[1]}`;
+
+                    // Background arc (thicker, very subtle)
+                    g.append("path")
+                        .attr("d", pathData)
+                        .attr("fill", "none")
+                        .attr("stroke", "rgba(46, 125, 219, 0.06)")
+                        .attr("stroke-width", 2);
+
+                    // Main arc (dashed, animated)
+                    g.append("path")
+                        .attr("d", pathData)
+                        .attr("fill", "none")
+                        .attr("stroke", p.deal.disc >= 52 ? "rgba(232, 70, 106, 0.25)" : "rgba(46, 125, 219, 0.2)")
+                        .attr("stroke-width", 1)
+                        .attr("stroke-dasharray", "4 6")
+                        .style("animation", "arcFlow 2s linear infinite");
+                });
+            }
         });
 
     }, [projection]); // Re-run when projection changes (resize)

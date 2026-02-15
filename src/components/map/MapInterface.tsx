@@ -18,6 +18,10 @@ export default function MapInterface() {
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null); // State for booking
 
+    const [hoveredDeal, setHoveredDeal] = useState<any>(null);
+    const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
+    const [hoverVisible, setHoverVisible] = useState(false);
+
     useEffect(() => {
         // App is ready immediately
         setAppReady(true);
@@ -37,33 +41,12 @@ export default function MapInterface() {
                             setSidebarOpen(true);
                         }}
                         onHoverDeal={(deal, e) => {
-                            // Logic to show hover card
-                            const el = document.getElementById('hcard');
-                            if (el && document.getElementById('hcCity')) {
-                                // Populate hover card manually or via state if HoverCard was fully controlled
-                                // For now, adapting legacy direct manipulation:
-                                const hcImg = document.getElementById('hcImg') as HTMLImageElement;
-                                if (hcImg) hcImg.src = deal.img || ''; // Handle potential missing prop
-
-                                const setTxt = (id: string, val: string) => {
-                                    const t = document.getElementById(id);
-                                    if (t) t.textContent = val;
-                                };
-                                setTxt('hcCity', deal.city || ''); // Assuming deal matches Flight interface
-                                setTxt('hcCountry', deal.country || '');
-                                setTxt('hcPrice', (deal.price || 0) + ' $');
-
-                                // Positioning logic
-                                // This part is tricky without the ref to the specific pin element.
-                                // Pass coordinates or ref from MapPin if needed.
-                                // For now, using mouse event as approximation or legacy logic needs element rect
-
-                                el.classList.add('show');
-                                // Position update skipped for brevity - strongly suggest fully React-ifying HoverCard in next step
-                            }
+                            setHoveredDeal(deal);
+                            setHoverPos({ x: e.clientX, y: e.clientY });
+                            setHoverVisible(true);
                         }}
                         onLeaveDeal={() => {
-                            document.getElementById('hcard')?.classList.remove('show');
+                            setHoverVisible(false);
                         }}
                         onSelectDeal={(deal) => { // Added onSelectDeal prop
                             setSelectedFlight(deal);
@@ -73,7 +56,12 @@ export default function MapInterface() {
 
                     <MapTopbar />
 
-                    <HoverCard />
+                    <HoverCard
+                        deal={hoveredDeal}
+                        x={hoverPos.x}
+                        y={hoverPos.y}
+                        visible={hoverVisible}
+                    />
 
                     <PremiumBanner />
                     <DealStrip />

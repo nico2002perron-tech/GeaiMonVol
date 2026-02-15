@@ -1,10 +1,34 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { HOTELS } from '@/lib/data/hotels';
 import { REGIONS } from '@/lib/data/regions';
 
 export default function DealStrip() {
     const [activeTab, setActiveTab] = useState<'flights' | 'hotels'>('flights');
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [isHovering, setIsHovering] = useState(false);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        let animationId: number;
+        let scrollSpeed = 0.5; // pixels per frame
+
+        const scroll = () => {
+            if (!isHovering && el) {
+                el.scrollLeft += scrollSpeed;
+                // Reset to beginning when reaching the end
+                if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 1) {
+                    el.scrollLeft = 0;
+                }
+            }
+            animationId = requestAnimationFrame(scroll);
+        };
+
+        animationId = requestAnimationFrame(scroll);
+        return () => cancelAnimationFrame(animationId);
+    }, [isHovering]);
 
     const sortedHotels = [...HOTELS].sort((a, b) => b.disc - a.disc);
 
@@ -47,7 +71,13 @@ export default function DealStrip() {
 
             {/* Panel Vols */}
             <div className={`strip-panel ${activeTab === 'flights' ? 'show' : ''}`}>
-                <div className="strip-row" id="stripRow">
+                <div
+                    className="strip-row"
+                    id="stripRow"
+                    ref={scrollRef}
+                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseLeave={() => setIsHovering(false)}
+                >
                     {allDeals.slice(0, 7).map((deal, i) => (
                         <div key={deal.id || i} className="scard">
                             <img
@@ -64,7 +94,19 @@ export default function DealStrip() {
                                 <div className="scard-city">{deal.city}</div>
                                 <div className="scard-route">{deal.route}</div>
                                 <div className="scard-row">
-                                    <span className="scard-price">{deal.price} $</span>
+                                    <div>
+                                        <span className="scard-price">{deal.price} $</span>
+                                        {deal.oldPrice && (
+                                            <span style={{
+                                                fontSize: 11,
+                                                color: '#8FA3B8',
+                                                textDecoration: 'line-through',
+                                                marginLeft: 6,
+                                            }}>
+                                                {deal.oldPrice} $
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="scard-disc">-{deal.disc}%</span>
                                 </div>
                             </div>

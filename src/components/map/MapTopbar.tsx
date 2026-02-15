@@ -14,6 +14,32 @@ export default function MapTopbar() {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                     Comment ça marche?
                 </button>
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '5px 14px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    border: '1px solid rgba(46, 125, 219, 0.12)',
+                    borderRadius: 100,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#2E7DDB',
+                    marginLeft: 12,
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 2px 8px rgba(26, 43, 66, 0.06)',
+                    pointerEvents: 'auto',
+                }}>
+                    <span style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: '#16A34A',
+                        animation: 'liveBlink 2s infinite',
+                        flexShrink: 0,
+                    }} />
+                    3 nouvelles offres détectées
+                </div>
             </div>
 
             {/* Nav */}
