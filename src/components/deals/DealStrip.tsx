@@ -1,7 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { HOTELS } from '@/lib/data/hotels';
-import { REGIONS } from '@/lib/data/regions';
+import { FLIGHTS } from '@/lib/data/flights';
 
 export default function DealStrip() {
     const [activeTab, setActiveTab] = useState<'flights' | 'hotels'>('flights');
@@ -32,11 +32,7 @@ export default function DealStrip() {
 
     const sortedHotels = [...HOTELS].sort((a, b) => b.disc - a.disc);
 
-    const allDeals: any[] = [];
-    Object.values(REGIONS).forEach((r: any) => {
-        if (r.deals) r.deals.forEach((d: any) => allDeals.push(d));
-    });
-    allDeals.sort((a, b) => b.disc - a.disc);
+    const allDeals = [...FLIGHTS].sort((a, b) => b.disc - a.disc);
 
     return (
         <div className="strip">

@@ -253,6 +253,43 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
 
     // Touch events would be similar... skipped for brevity but should be added
 
+    const lastPinchDist = useRef<number | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            lastPos.current = { x: touch.clientX, y: touch.clientY };
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (e.touches.length === 1 && lastPos.current) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - lastPos.current.x;
+            const dy = touch.clientY - lastPos.current.y;
+            setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+            lastPos.current = { x: touch.clientX, y: touch.clientY };
+        }
+        // Pinch zoom with 2 fingers
+        if (e.touches.length === 2) {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (lastPinchDist.current) {
+                const delta = (dist - lastPinchDist.current) * 0.005;
+                const newScale = Math.min(4, Math.max(1, transform.k + delta));
+                setTransform(prev => ({ ...prev, k: newScale }));
+            }
+            lastPinchDist.current = dist;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        lastPos.current = null;
+        lastPinchDist.current = null;
+    };
+
     return (
         <>
             <div
@@ -262,7 +299,10 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
-                style={{ cursor: lastPos.current ? 'grabbing' : 'grab' }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ cursor: lastPos.current ? 'grabbing' : 'grab', touchAction: 'none' }}
             >
                 <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
                     <g className="map-content">
