@@ -1,4 +1,5 @@
 'use client';
+// Force rebuild for Vercel
 import { useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import Hero from '@/components/layout/Hero';
