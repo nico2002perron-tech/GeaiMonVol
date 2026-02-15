@@ -73,7 +73,7 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
         const path = d3.geoPath().projection(projection);
 
         d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
-            const countries = topojson.feature(world, world.objects.countries).features;
+            const countries = (topojson.feature(world, world.objects.countries) as any).features;
 
             const graticule = d3.geoGraticule().step([20, 20]);
             g.append("path")
@@ -85,7 +85,7 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                 .data(countries)
                 .enter().append("path")
                 .attr("class", "land-path")
-                .attr("d", path)
+                .attr("d", path as any)
                 // .attr("data-region", d => getRegionForCountry(d.properties.name)) // Need real getRegion impl
                 .on("click", (event, d: any) => {
                     const region = getRegionForCountry(d.properties.name);
@@ -196,7 +196,7 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                             x={0} // Position handled by parent div for transform
                             y={0}
                             index={p.index}
-                            onMouseEnter={onHoverDeal}
+                            onMouseEnter={(e: any, d: any) => onHoverDeal(d || p.deal, e)}
                             onMouseLeave={onLeaveDeal}
                             onClick={onRegionSelect}
                         />

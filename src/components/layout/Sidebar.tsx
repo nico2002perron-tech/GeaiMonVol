@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { REGIONS } from '../data/regions';
-import { HOTELS } from '../data/hotels';
+import { REGIONS } from '@/lib/data/regions';
+import { HOTELS } from '@/lib/data/hotels';
 
 const REGION_CITIES: { [key: string]: string[] } = {
     "North America": ["Cancun"],
