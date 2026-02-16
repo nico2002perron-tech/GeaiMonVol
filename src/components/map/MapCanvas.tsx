@@ -9,8 +9,52 @@ import MapPin from './MapPin';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
+const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
+    // Canada
+    'Toronto': { lat: 43.65, lng: -79.38 },
+    'Ottawa': { lat: 45.42, lng: -75.69 },
+    'Vancouver': { lat: 49.28, lng: -123.12 },
+    'Calgary': { lat: 51.05, lng: -114.07 },
+    'Edmonton': { lat: 53.55, lng: -113.49 },
+    'Winnipeg': { lat: 49.90, lng: -97.14 },
+    'Halifax': { lat: 44.65, lng: -63.57 },
+    'Québec': { lat: 46.81, lng: -71.21 },
+    // International
+    'Paris': { lat: 48.86, lng: 2.35 },
+    'Cancún': { lat: 21.16, lng: -86.85 },
+    'Punta Cana': { lat: 18.58, lng: -68.37 },
+    'Cuba (Varadero)': { lat: 23.15, lng: -81.25 },
+    'La Havane': { lat: 23.11, lng: -82.37 },
+    'Fort Lauderdale': { lat: 26.12, lng: -80.14 },
+    'New York': { lat: 40.71, lng: -74.01 },
+    'Barcelone': { lat: 41.39, lng: 2.17 },
+    'Lisbonne': { lat: 38.72, lng: -9.14 },
+    'Rome': { lat: 41.90, lng: 12.50 },
+    'Londres': { lat: 51.51, lng: -0.13 },
+    'Marrakech': { lat: 31.63, lng: -8.01 },
+    'Bangkok': { lat: 13.76, lng: 100.50 },
+    'Tokyo': { lat: 35.68, lng: 139.69 },
+    'Bogota': { lat: 4.71, lng: -74.07 },
+    'Lima': { lat: -12.05, lng: -77.04 },
+    'São Paulo': { lat: -23.55, lng: -46.63 },
+    'Bali': { lat: -8.34, lng: 115.09 },
+    'Miami': { lat: 25.76, lng: -80.19 },
+    'Los Angeles': { lat: 34.05, lng: -118.24 },
+    'Reykjavik': { lat: 64.15, lng: -21.94 },
+    'Athènes': { lat: 37.98, lng: 23.73 },
+    'Dublin': { lat: 53.35, lng: -6.26 },
+    'Amsterdam': { lat: 52.37, lng: 4.90 },
+    'Porto': { lat: 41.16, lng: -8.63 },
+    'Madrid': { lat: 40.42, lng: -3.70 },
+    'Montego Bay': { lat: 18.47, lng: -77.89 },
+    'San José': { lat: 9.93, lng: -84.08 },
+    'Cartagena': { lat: 10.39, lng: -75.51 },
+    'Buenos Aires': { lat: -34.60, lng: -58.38 },
+    'Ho Chi Minh': { lat: 10.82, lng: 106.63 },
+};
+
 interface MapCanvasProps {
-    deals?: any[]; // Added deals prop
+    deals?: any[];
     mapView?: 'world' | 'canada';
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
@@ -25,7 +69,6 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
     const lastPos = useRef<{ x: number, y: number } | null>(null);
     const [pins, setPins] = useState<any[]>([]);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-    const [badgeRotation, setBadgeRotation] = useState(0);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -35,132 +78,19 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
             const h = window.innerHeight;
             setDimensions({ width: w, height: h });
 
-            // Updated projection to center on Atlantic and cut Antarctica
             const proj = d3.geoNaturalEarth1()
                 .scale(w < 768 ? w / 4 : w / 5.5)
                 .translate([w / 2, w < 768 ? h * 0.42 : h * 0.44])
-                .center([10, 20]); // Center on longitude 10 (Atlantic) and latitude 20
+                .center([10, 20]);
             setProjection(() => proj);
         };
 
         window.addEventListener('resize', updateDimensions);
         updateDimensions();
-
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setBadgeRotation(prev => prev + 1);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const maxVisible = 4;
-    const discountedDealsCount = pins.filter(p => p.deal.disc > 0).length;
-
-    const isBadgeVisible = (index: number) => {
-        if (discountedDealsCount === 0) return false;
-        const start = badgeRotation % discountedDealsCount;
-        for (let i = 0; i < maxVisible; i++) {
-            if ((start + i) % discountedDealsCount === index) return true;
-        }
-        return false;
-    };
-
-    useEffect(() => {
-        if (!svgRef.current || !projection) return;
-
-        const w = svgRef.current.clientWidth || dimensions.width || 800;
-        const h = svgRef.current.clientHeight || dimensions.height || 500;
-        const svg = d3.select(svgRef.current);
-        const pathGenerator = d3.geoPath().projection(projection);
-
-        if (mapView === 'canada') {
-            projection
-                .center([-96, 56])
-                .scale(w < 768 ? w * 1.2 : w * 0.8)
-                .translate([w / 2, h / 2]);
-        } else {
-            projection
-                .center([10, 20])
-                .scale(w < 768 ? w / 4.5 : w / 5.5)
-                .translate([w / 2, h / 2]);
-        }
-
-        // Re-render paths with transition
-        svg.selectAll('path.land-path')
-            .transition()
-            .duration(800)
-            .ease(d3.easeCubicInOut)
-            .attr('d', pathGenerator as any);
-
-        // Re-render graticule
-        svg.selectAll('path.graticule')
-            .transition()
-            .duration(800)
-            .ease(d3.easeCubicInOut)
-            .attr('d', pathGenerator as any);
-
-        // Visibility transition for pins, badges, and lines
-        svg.selectAll('.deal-pin, .deal-pin-pulse, .discount-badge-container, .flight-arc-bg, .flight-arc-flow')
-            .transition()
-            .duration(400)
-            .attr('opacity', (d: any) => {
-                if (!d || !d.deal) return 0;
-                const isCanadian = CANADA_CODES.includes(d.deal.code || d.deal.destination_code);
-                if (mapView === 'canada') return isCanadian ? (d.isPulse ? 0.3 : 0.9) : 0;
-                return isCanadian ? 0 : (d.isPulse ? 0.3 : 0.9);
-            });
-
-        // Final opacity for badges needs to consider isBadgeVisible too, 
-        // but we handle that in the rotation effect or re-render.
-        // For zoom transition, we just re-position everything.
-
-        svg.selectAll('.deal-pin, .deal-pin-pulse')
-            .transition()
-            .duration(800)
-            .ease(d3.easeCubicInOut)
-            .attr('cx', (d: any) => {
-                const pos = projection([d.deal.lon || 0, d.deal.lat || 0]);
-                return pos ? pos[0] : 0;
-            })
-            .attr('cy', (d: any) => {
-                const pos = projection([d.deal.lon || 0, d.deal.lat || 0]);
-                return pos ? pos[1] : 0;
-            });
-
-        svg.selectAll('.discount-badge-container')
-            .transition()
-            .duration(800)
-            .ease(d3.easeCubicInOut)
-            .attr('transform', (d: any) => {
-                const pos = projection([d.deal.lon || 0, d.deal.lat || 0]);
-                return pos ? `translate(${pos[0]}, ${pos[1] - 20})` : 'translate(0,0)';
-            });
-
-        svg.selectAll('.flight-arc-bg, .flight-arc-flow')
-            .transition()
-            .duration(800)
-            .ease(d3.easeCubicInOut)
-            .attr('d', (d: any) => {
-                const source = projection([-73.5674, 45.5019]);
-                const target = projection([d.deal.lon || 0, d.deal.lat || 0]);
-                if (!source || !target) return '';
-                const midX = (source[0] + target[0]) / 2;
-                const midY = (source[1] + target[1]) / 2 - Math.min(Math.sqrt(Math.pow(target[0] - source[0], 2) + Math.pow(target[1] - source[1], 2)) * 0.2, 80);
-                return `M${source[0]},${source[1]} Q${midX},${midY} ${target[0]},${target[1]}`;
-            });
-
-    }, [mapView, projection, dimensions]);
-
-    useEffect(() => {
-        if (!svgRef.current) return;
-        const svg = d3.select(svgRef.current);
-        svg.selectAll('.discount-badge-container')
-            .classed('visible', (d: any, i: number) => isBadgeVisible(i));
-    }, [badgeRotation, pins]);
-
+    // Main SVG Render
     useEffect(() => {
         if (!svgRef.current || !projection) return;
 
@@ -170,6 +100,7 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
             g = svg.append('g').attr('class', 'map-content');
         }
 
+        g.selectAll('*').remove();
         const path = d3.geoPath().projection(projection);
 
         d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
@@ -179,14 +110,19 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
 
             // 1. Graticule
             const graticule = d3.geoGraticule().step([20, 20]);
-            const gratPath = g.selectAll(".graticule").data([graticule()]);
-            gratPath.enter().append("path").attr("class", "graticule").merge(gratPath as any).attr("d", path);
+            g.append("path")
+                .datum(graticule())
+                .attr("class", "graticule")
+                .attr("d", path);
 
             // 2. Land paths
-            const land = g.selectAll(".land-path").data(countries);
-            land.enter()
-                .append("path")
+            g.selectAll(".land-path")
+                .data(countries)
+                .enter().append("path")
                 .attr("class", "land-path")
+                .attr("d", path as any)
+                .attr("data-name", (d: any) => d.properties?.name || '')
+                .attr("data-region", (d: any) => getRegionForCountry(d.properties?.name || '') || '')
                 .on("mouseenter", function (event: any, d: any) {
                     const countryName = d.properties?.name || '';
                     const region = getRegionForCountry(countryName);
@@ -209,37 +145,38 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                     const countryName = d.properties?.name || '';
                     const region = getRegionForCountry(countryName);
                     if (region) onRegionSelect(region);
-                })
-                .merge(land as any)
-                .attr("d", path as any)
-                .attr("data-name", (d: any) => d.properties?.name || '')
-                .attr("data-region", (d: any) => getRegionForCountry(d.properties?.name || '') || '');
+                });
 
-            // 3. Process pin data
+            // 3. Process pin data (With fixed coordinates)
             const newPins: any[] = [];
-            if (deals && deals.length > 0) {
-                deals.forEach((deal: any, idx: number) => {
-                    const staticFlight = FLIGHTS.find(f => f.city === deal.destination);
-                    const lon = deal.lon || staticFlight?.lon || 0;
-                    const lat = deal.lat || staticFlight?.lat || 0;
-                    const pos = projection([lon, lat]);
+            const activeDeals = deals && deals.length > 0 ? deals : [];
+
+            if (activeDeals.length > 0) {
+                activeDeals.forEach((deal: any, idx: number) => {
+                    // Precise Mapping or Fallback
+                    const coords = CITY_COORDINATES[deal.city] || {
+                        lat: deal.lat || 0,
+                        lng: deal.lon || deal.lng || 0
+                    };
+
+                    const pos = projection([coords.lng, coords.lat]);
                     if (!pos) return;
+
                     newPins.push({
-                        deal: { ...deal, disc: deal.disc || 0, lon, lat },
+                        deal: { ...deal, disc: deal.disc || 0, lon: coords.lng, lat: coords.lat },
                         x: pos[0],
                         y: pos[1],
                         index: idx
                     });
                 });
             } else {
-                let idx = 0;
+                // Secondary fallback to static regions
                 Object.entries(REGIONS).forEach(([regionKey, regionData]: [string, any]) => {
                     if (!regionData.deals) return;
-                    regionData.deals.forEach((deal: any) => {
+                    regionData.deals.forEach((deal: any, idx: number) => {
                         const pos = projection([deal.lon, deal.lat]);
                         if (!pos) return;
                         newPins.push({ deal, x: pos[0], y: pos[1], index: idx });
-                        idx++;
                     });
                 });
             }
@@ -249,134 +186,88 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
             const montrealCoords: [number, number] = [-73.5674, 45.5019];
             const montrealPos = projection(montrealCoords);
             if (montrealPos) {
-                const yul = g.selectAll(".yul-marker").data([montrealPos]);
-                const yulEnter = yul.enter().append("g").attr("class", "yul-marker");
-                yulEnter.append("circle").attr("r", 4).attr("fill", "#2E7DDB").attr("stroke", "#fff").attr("stroke-width", 2);
-                yulEnter.append("text").attr("y", -10).attr("text-anchor", "middle").attr("font-size", "9px").attr("font-weight", "700").attr("fill", "#2E7DDB").attr("font-family", "'DM Sans', sans-serif").text("YUL");
-                yulEnter.merge(yul as any).attr("transform", d => `translate(${d[0]}, ${d[1]})`);
+                const yul = g.append("g").attr("class", "yul-marker")
+                    .attr("transform", `translate(${montrealPos[0]}, ${montrealPos[1]})`);
+                yul.append("circle").attr("r", 4).attr("fill", "#2E7DDB").attr("stroke", "#fff").attr("stroke-width", 2);
+                yul.append("text").attr("y", -10).attr("text-anchor", "middle").attr("font-size", "9px").attr("font-weight", "700").attr("fill", "#2E7DDB").attr("font-family", "'DM Sans', sans-serif").text("YUL");
             }
 
             // 5. Flight Arcs
             if (montrealPos) {
-                const arcs = g.selectAll(".flight-arc-group").data(newPins, (d: any) => d.deal.city || d.index);
-                const arcsEnter = arcs.enter().append("g").attr("class", "flight-arc-group");
+                newPins.forEach(p => {
+                    const midX = (montrealPos[0] + p.x) / 2;
+                    const midY = (montrealPos[1] + p.y) / 2 - Math.min(Math.sqrt(Math.pow(p.x - montrealPos[0], 2) + Math.pow(p.y - montrealPos[1], 2)) * 0.2, 80);
+                    const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${midX},${midY} ${p.x},${p.y}`;
 
-                arcsEnter.append("path").attr("class", "flight-arc-bg").attr("fill", "none").attr("stroke", "rgba(46, 125, 219, 0.06)").attr("stroke-width", 2);
-                arcsEnter.append("path").attr("class", "flight-arc-flow").attr("fill", "none").attr("stroke-width", 1).attr("stroke-dasharray", "4 6").style("animation", "arcFlow 2s linear infinite");
-
-                const allArcs = arcsEnter.merge(arcs as any);
-                allArcs.select(".flight-arc-bg").attr("d", d => {
-                    const midX = (montrealPos[0] + d.x) / 2;
-                    const midY = (montrealPos[1] + d.y) / 2 - Math.min(Math.sqrt(Math.pow(d.x - montrealPos[0], 2) + Math.pow(d.y - montrealPos[1], 2)) * 0.2, 80);
-                    return `M${montrealPos[0]},${montrealPos[1]} Q${midX},${midY} ${d.x},${d.y}`;
+                    g.append("path").attr("d", pathData).attr("fill", "none").attr("stroke", "rgba(46, 125, 219, 0.06)").attr("stroke-width", 2);
+                    g.append("path")
+                        .attr("d", pathData)
+                        .attr("fill", "none")
+                        .attr("stroke", p.deal.disc >= 52 ? "rgba(232, 70, 106, 0.25)" : "rgba(46, 125, 219, 0.2)")
+                        .attr("stroke-width", 1)
+                        .attr("stroke-dasharray", "4 6")
+                        .style("animation", "arcFlow 2s linear infinite");
                 });
-                allArcs.select(".flight-arc-flow")
-                    .attr("stroke", d => d.deal.disc >= 52 ? "rgba(232, 70, 106, 0.25)" : "rgba(46, 125, 219, 0.2)")
-                    .attr("d", d => {
-                        const midX = (montrealPos[0] + d.x) / 2;
-                        const midY = (montrealPos[1] + d.y) / 2 - Math.min(Math.sqrt(Math.pow(d.x - montrealPos[0], 2) + Math.pow(d.y - montrealPos[1], 2)) * 0.2, 80);
-                        return `M${montrealPos[0]},${montrealPos[1]} Q${midX},${midY} ${d.x},${d.y}`;
-                    });
-                arcs.exit().remove();
             }
 
-            // 6. Halos (Pulse)
-            const halos = g.selectAll(".deal-pin-pulse").data(newPins, (d: any) => d.deal.city || d.index);
-            halos.enter()
-                .append("circle")
-                .attr("class", "deal-pin-pulse")
-                .attr("r", 8)
-                .attr("fill", "#2E7DDB")
-                .merge(halos as any)
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y)
-                .attr("opacity", d => {
-                    const isCanadian = CANADA_CODES.includes(d.deal.code || d.deal.destination_code);
-                    if (mapView === 'canada') return isCanadian ? 0.3 : 0;
-                    return isCanadian ? 0 : 0.3;
-                })
-                .property("isPulse", true);
-            halos.exit().remove();
+            // 6. Pins & Badges
+            newPins.forEach(p => {
+                // Pin
+                g.append("circle")
+                    .attr("cx", p.x)
+                    .attr("cy", p.y)
+                    .attr("r", 4)
+                    .attr("fill", "#2E7DDB")
+                    .attr("opacity", 0.9)
+                    .style("cursor", "pointer")
+                    .on("mouseenter", (e) => onHoverDeal(p.deal, e))
+                    .on("mouseleave", onLeaveDeal)
+                    .on("click", (e) => onSelectDeal?.(p.deal, e));
 
-            // 7. Pins
-            const pinCircles = g.selectAll(".deal-pin").data(newPins, (d: any) => d.deal.city || d.index);
-            pinCircles.enter()
-                .append("circle")
-                .attr("class", "deal-pin")
-                .attr("r", 4)
-                .attr("fill", "#2E7DDB")
-                .on("mouseenter", (e, d) => onHoverDeal(d.deal, e))
-                .on("mouseleave", onLeaveDeal)
-                .on("click", (e, d) => onSelectDeal?.(d.deal, e))
-                .merge(pinCircles as any)
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y)
-                .attr("opacity", d => {
-                    const isCanadian = CANADA_CODES.includes(d.deal.code || d.deal.destination_code);
-                    if (mapView === 'canada') return isCanadian ? 0.9 : 0;
-                    return isCanadian ? 0 : 0.9;
-                });
-            pinCircles.exit().remove();
+                // Discount Badge (Permanent)
+                if (p.deal.disc > 0) {
+                    const badge = g.append("g")
+                        .attr("transform", `translate(${p.x}, ${p.y - 20})`)
+                        .style("cursor", "pointer")
+                        .on("mouseenter", (e) => onHoverDeal(p.deal, e))
+                        .on("mouseleave", onLeaveDeal)
+                        .on("click", (e) => onSelectDeal?.(p.deal, e));
 
-            // 8. Badges
-            const badges = g.selectAll(".discount-badge-container").data(newPins.filter(p => p.deal.disc > 0), (d: any) => d.deal.city || d.index);
-            const badgesEnter = badges.enter()
-                .append("g")
-                .attr("class", (d, i) => `discount-badge-container ${isBadgeVisible(i) ? 'visible' : ''}`)
-                .on("mouseenter", (e, d) => onHoverDeal(d.deal, e))
-                .on("mouseleave", onLeaveDeal)
-                .on("click", (e, d) => onSelectDeal?.(d.deal, e));
+                    badge.append("rect")
+                        .attr("x", -15)
+                        .attr("y", -10)
+                        .attr("width", 30)
+                        .attr("height", 16)
+                        .attr("rx", 8)
+                        .attr("fill", p.deal.disc >= 52 ? "#E8466A" : "#2E7DDB");
 
-            badgesEnter.append("rect")
-                .attr("x", -15)
-                .attr("y", -10)
-                .attr("width", 30)
-                .attr("height", 16)
-                .attr("rx", 8)
-                .attr("fill", d => d.deal.disc >= 52 ? "#E8466A" : "#2E7DDB");
-
-            badgesEnter.append("text")
-                .attr("text-anchor", "middle")
-                .attr("alignment-baseline", "middle")
-                .attr("font-size", "9px")
-                .attr("font-weight", "bold")
-                .attr("fill", "#fff")
-                .text(d => `-${d.deal.disc}%`);
-
-            badgesEnter.merge(badges as any)
-                .attr("transform", d => `translate(${d.x}, ${d.y - 20})`)
-                .attr("opacity", d => {
-                    const isCanadian = CANADA_CODES.includes(d.deal.code || d.deal.destination_code);
-                    if (mapView === 'canada') return isCanadian ? 1 : 0;
-                    return isCanadian ? 0 : 1;
-                });
-            badges.exit().remove();
+                    badge.append("text")
+                        .attr("text-anchor", "middle")
+                        .attr("alignment-baseline", "middle")
+                        .attr("font-size", "9px")
+                        .attr("font-weight", "bold")
+                        .attr("fill", "#fff")
+                        .text(`-${p.deal.disc}%`);
+                }
+            });
         });
 
     }, [projection, deals]);
 
-    // Pan/Zoom Handlers
+    // Pan/Zoom Handlers (Simple)
     useEffect(() => {
         const container = document.getElementById('map-container');
         if (!container) return;
-
         const wheelHandler = (e: WheelEvent) => {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.15 : 0.15;
-            setTransform(prev => ({
-                ...prev,
-                k: Math.min(6, Math.max(1, prev.k + delta))
-            }));
+            setTransform(prev => ({ ...prev, k: Math.min(6, Math.max(1, prev.k + delta)) }));
         };
-
         container.addEventListener('wheel', wheelHandler, { passive: false });
         return () => container.removeEventListener('wheel', wheelHandler);
     }, []);
 
-    const handleMouseDown = (e: React.MouseEvent) => {
-        lastPos.current = { x: e.clientX, y: e.clientY };
-    };
-
+    const handleMouseDown = (e: React.MouseEvent) => { lastPos.current = { x: e.clientX, y: e.clientY }; };
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!lastPos.current) return;
         const dx = e.clientX - lastPos.current.x;
@@ -384,46 +275,7 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
         lastPos.current = { x: e.clientX, y: e.clientY };
     };
-
-    const handleMouseUp = () => {
-        lastPos.current = null;
-    };
-
-    const lastPinchDist = useRef<number | null>(null);
-
-    const handleTouchStart = (e: React.TouchEvent) => {
-        if (e.touches.length === 1) {
-            const touch = e.touches[0];
-            lastPos.current = { x: touch.clientX, y: touch.clientY };
-        }
-    };
-
-    const handleTouchMove = (e: React.TouchEvent) => {
-        if (e.touches.length === 1 && lastPos.current) {
-            const touch = e.touches[0];
-            const dx = touch.clientX - lastPos.current.x;
-            const dy = touch.clientY - lastPos.current.y;
-            setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-            lastPos.current = { x: touch.clientX, y: touch.clientY };
-        }
-        if (e.touches.length === 2) {
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (lastPinchDist.current) {
-                const delta = (dist - lastPinchDist.current) * 0.005;
-                const newScale = Math.min(4, Math.max(1, transform.k + delta));
-                setTransform(prev => ({ ...prev, k: newScale }));
-            }
-            lastPinchDist.current = dist;
-        }
-    };
-
-    const handleTouchEnd = () => {
-        lastPos.current = null;
-        lastPinchDist.current = null;
-    };
+    const handleMouseUp = () => { lastPos.current = null; };
 
     return (
         <div
@@ -432,16 +284,17 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
             style={{ cursor: lastPos.current ? 'grabbing' : 'grab', touchAction: 'none' }}
         >
-            <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
-                <g className="map-content">
-                    {/* D3 content will be appended here */}
-                </g>
-            </svg>
+            <div className="map-transform-wrapper" style={{
+                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
+                transformOrigin: '0 0',
+                transition: 'transform 0.1s ease-out'
+            }}>
+                <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
+                    <g className="map-content" />
+                </svg>
+            </div>
         </div>
     );
 }
