@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { scanFlightPrices, calculateDiscount } from '@/lib/services/flights';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-export const maxDuration = 60;
+export const maxDuration = 60; // Force Phase 2 Push
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
