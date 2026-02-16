@@ -86,6 +86,8 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
 
 
 
+    const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
+
     // Filter deals based on tab
     const allMappedDeals = deals.length > 0
         ? deals.map(p => ({
@@ -108,13 +110,21 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
             lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
             id: p.destination_code
         }))
-        : [...FLIGHTS].sort((a, b) => b.disc - a.disc);
+        : [...FLIGHTS].sort((a, b) => b.disc - a.disc).map(f => ({
+            ...f,
+            code: f.route.split(' – ')[1] || ''
+        }));
 
-    const displayDeals = allMappedDeals.filter(d => {
-        const isCanada = d.country === 'Canada';
-        if (activeTab === 'canada') return isCanada;
-        return !isCanada;
+    const filteredDeals = allMappedDeals.filter(deal => {
+        const code = deal.code || '';
+        if (activeTab === 'canada') {
+            return CANADA_CODES.includes(code);
+        } else {
+            return !CANADA_CODES.includes(code);
+        }
     });
+
+    const displayDeals = filteredDeals;
 
 
     return (
@@ -122,7 +132,13 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
             <div className="strip-head">
                 <div className="strip-head-left">
                     <div className="strip-title">
-                        Meilleurs deals <em>du moment</em>
+                        <span style={{ fontWeight: 700, color: '#1A2B42' }}>
+                            {activeTab === 'international' ? 'Meilleurs deals' : 'Vols à travers le'}
+                        </span>
+                        {' '}
+                        <span style={{ fontWeight: 700, color: '#2E7DDB' }}>
+                            {activeTab === 'international' ? 'internationaux' : 'Canada'}
+                        </span>
                     </div>
                     <div className="strip-tabs">
                         {/* Onglet International */}

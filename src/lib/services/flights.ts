@@ -78,6 +78,14 @@ const PRIORITY_DESTINATIONS = [
     { city: 'Cartagena', code: 'CTG', country: 'Colombie' },
     { city: 'Buenos Aires', code: 'EZE', country: 'Argentine' },
     { city: 'Ho Chi Minh', code: 'SGN', country: 'Vietnam' },
+    { city: 'Toronto', code: 'YYZ', country: 'Canada' },
+    { city: 'Ottawa', code: 'YOW', country: 'Canada' },
+    { city: 'Vancouver', code: 'YVR', country: 'Canada' },
+    { city: 'Calgary', code: 'YYC', country: 'Canada' },
+    { city: 'Edmonton', code: 'YEG', country: 'Canada' },
+    { city: 'Winnipeg', code: 'YWG', country: 'Canada' },
+    { city: 'Halifax', code: 'YHZ', country: 'Canada' },
+    { city: 'Québec', code: 'YQB', country: 'Canada' },
 ];
 
 const API_KEY = process.env.SERPAPI_KEY;
