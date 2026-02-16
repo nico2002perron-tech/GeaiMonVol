@@ -140,9 +140,9 @@
     height: 100vh;
     position: relative;
     overflow: hidden;
-    background: var(--bg);
+    background: #F4F8FB;
     opacity: 0;
-    transition: opacity .8s ease;
+    transition: opacity 0.8s ease;
 }
 
 #app.show {
@@ -437,17 +437,16 @@
 }
 
 #map-svg .land-path {
-    fill: var(--land);
-    stroke: var(--land-stroke);
-    stroke-width: .4;
+    fill: #DCEAF5;
+    stroke: #C2D8EA;
+    stroke-width: 0.4;
     cursor: pointer;
-    transition: fill .35s ease, stroke .35s ease, filter .35s ease;
-    filter: drop-shadow(0 1px 2px rgba(46, 125, 219, 0.03));
+    transition: fill 0.3s ease, stroke 0.3s ease;
 }
 
 #map-svg .land-path:hover {
-    fill: var(--land-hover);
-    stroke: var(--land-stroke-hover)
+    fill: #C7E0F2;
+    stroke: #A8CBE2;
 }
 
 #map-svg .land-path.hovered {
@@ -829,34 +828,22 @@
     color: var(--green)
 }
 
-/* ======== BOTTOM STRIP ======== */
+/* ======== BOTTOM STRIP — REFINED ======== */
 .strip {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     z-index: 100;
-    background: linear-gradient(0deg, rgba(244, 248, 251, .98) 50%, rgba(244, 248, 251, 0));
-    padding: 40px 0 0;
-    max-height: 240px;
-    animation: stripIn .6s cubic-bezier(.22, 1, .36, 1) .5s both;
-}
-
-@keyframes stripIn {
-    from {
-        transform: translateY(100%)
-    }
-
-    to {
-        transform: translateY(0)
-    }
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.98) 70%, rgba(255, 255, 255, 0));
+    padding: 24px 0 0;
 }
 
 .strip-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px 12px
+    padding: 0 24px 12px;
 }
 
 .strip-head-left {
@@ -867,46 +854,50 @@
 
 .strip-title {
     font-family: 'Fredoka', sans-serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text)
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A2B42;
 }
 
 .strip-title em {
     font-style: normal;
-    color: var(--accent);
-    font-weight: 700
+    color: #2E7DDB;
+    font-weight: 700;
 }
 
 .strip-more {
-    font-size: 13px;
-    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    color: #2E7DDB;
     background: none;
     border: none;
     cursor: pointer;
-    transition: color .2s
+    transition: opacity 0.2s;
 }
 
 .strip-more:hover {
-    color: var(--accent)
+    opacity: 0.7;
 }
 
 .strip-tabs {
     display: flex;
-    gap: 4px
+    gap: 2px;
+    background: rgba(26, 43, 66, 0.04);
+    border-radius: 100px;
+    padding: 3px;
 }
 
 .strip-tab {
-    padding: 5px 14px;
-    border-radius: var(--radius-pill);
+    padding: 6px 16px;
+    border-radius: 100px;
     font-family: 'Outfit', sans-serif;
     font-size: 12px;
     font-weight: 600;
-    color: var(--text-dim);
+    color: #8FA3B8;
     background: none;
-    border: 1px solid transparent;
+    border: none;
     cursor: pointer;
-    transition: all .25s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -919,18 +910,17 @@
     fill: none;
     stroke-width: 2;
     stroke-linecap: round;
-    stroke-linejoin: round
+    stroke-linejoin: round;
 }
 
 .strip-tab:hover {
-    color: var(--text-secondary);
-    background: rgba(46, 125, 219, .04)
+    color: #5A7089;
 }
 
 .strip-tab.on {
-    color: var(--accent);
-    background: var(--accent-soft);
-    border-color: rgba(46, 125, 219, .1)
+    color: #1A2B42;
+    background: white;
+    box-shadow: 0 1px 4px rgba(26, 43, 66, 0.08);
 }
 
 .strip-panel {
@@ -944,27 +934,26 @@
 .strip-row {
     display: flex;
     gap: 12px;
-    padding: 0 28px 18px;
+    padding: 0 24px 20px;
     overflow-x: auto;
     scroll-behavior: smooth;
-    scrollbar-width: none
+    scrollbar-width: none;
 }
 
 .strip-row::-webkit-scrollbar {
     display: none
 }
 
+/* ======== DEAL CARDS — CLEAN ======== */
 .scard {
-    flex: 0 0 188px;
-    min-width: 188px;
-    background: var(--bg-white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    flex: 0 0 190px;
+    min-width: 190px;
+    background: white;
+    border: 1px solid rgba(26, 43, 66, 0.06);
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.4s cubic-bezier(.34, 1.56, .64, 1),
-        box-shadow 0.4s,
-        border-color 0.3s;
+    transition: all 0.3s cubic-bezier(.34, 1.56, .64, 1);
     animation: scardUp .45s cubic-bezier(.34, 1.56, .64, 1) both;
     transform-style: preserve-3d;
     perspective: 800px;
@@ -1027,10 +1016,9 @@
 }
 
 .scard:hover {
-    transform: translateY(-6px) scale(1.03) rotateX(2deg);
-    box-shadow: 0 16px 40px rgba(26, 43, 66, 0.15),
-        0 0 0 1px rgba(46, 125, 219, 0.15);
-    border-color: rgba(46, 125, 219, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 28px rgba(26, 43, 66, 0.1);
+    border-color: rgba(46, 125, 219, 0.15);
 }
 
 .scard:hover::before {
@@ -1039,27 +1027,25 @@
 
 .scard-img {
     width: 100%;
-    height: 92px;
+    height: 100px;
     object-fit: cover;
     display: block;
-    transition: transform 0.5s cubic-bezier(.22, 1, .36, 1), filter 0.5s;
-    filter: brightness(.95);
+    transition: transform 0.4s ease;
 }
 
 .scard:hover .scard-img {
-    transform: scale(1.08);
-    filter: brightness(1.02);
+    transform: scale(1.05);
 }
 
 /* Discount badge glow on hover */
 .scard-disc {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: var(--radius-pill);
-    background: var(--green-soft);
-    color: var(--green);
-    transition: all 0.3s;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: linear-gradient(135deg, #DC2626, #EF4444);
+    color: #fff;
+    letter-spacing: 0.3px;
 }
 
 .scard:hover .scard-disc {
@@ -1079,6 +1065,43 @@
     100% {
         transform: scale(1);
     }
+}
+
+.scard-body {
+    padding: 10px 13px 14px;
+}
+
+.scard-city {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1A2B42;
+    margin-bottom: 1px;
+}
+
+.scard-route {
+    font-size: 11px;
+    color: #8FA3B8;
+    margin-bottom: 8px;
+}
+
+.scard-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.scard-price {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #2E7DDB, #1E5FA8);
+    padding: 3px 10px;
+    border-radius: 8px;
+    display: inline-block;
+    line-height: 1.2;
+    box-shadow: 0 2px 8px rgba(46, 125, 219, 0.2);
 }
 
 /* ======== SIDEBAR ======== */
@@ -2797,4 +2820,64 @@
     align-items: center;
     justify-content: space-between;
     margin-top: 4px;
+}
+@media(max-width:768px) {
+    /* Topbar compact */
+    .topbar, div[style*='position: absolute'][style*='top: 0'] {
+        padding: 10px 14px !important;
+    }
+
+    /* Strip */
+    .strip {
+        padding: 16px 0 0 !important;
+    }
+
+    .strip-head {
+        padding: 0 14px 8px !important;
+    }
+
+    .strip-row {
+        padding: 0 14px 16px !important;
+        gap: 10px !important;
+    }
+
+    .scard {
+        flex: 0 0 165px !important;
+        min-width: 165px !important;
+    }
+
+    .scard-img {
+        height: 85px !important;
+    }
+
+    .scard-body {
+        padding: 8px 10px 12px !important;
+    }
+
+    .scard-city {
+        font-size: 14px !important;
+    }
+
+    .scard-price {
+        font-size: 16px !important;
+    }
+
+    /* Pins smaller */
+    .pin-pill {
+        padding: 4px 10px !important;
+        font-size: 11px !important;
+    }
+
+    /* GeaiAssistant */
+    .geai-btn, button[aria-label='Assistant voyage'] {
+        bottom: 14px !important;
+        right: 14px !important;
+        width: 42px !important;
+        height: 42px !important;
+    }
+
+    /* Hover card off on mobile */
+    .hcard {
+        display: none !important;
+    }
 }

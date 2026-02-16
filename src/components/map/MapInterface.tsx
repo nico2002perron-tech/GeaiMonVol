@@ -12,6 +12,7 @@ import GeaiAssistant from './GeaiAssistant';
 // import SocialTicker from './SocialTicker';
 // import DealOfTheDay from './DealOfTheDay';
 import Confetti from './Confetti';
+import Onboarding from './Onboarding';
 
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -61,7 +62,8 @@ export default function MapInterface() {
                         }}
                     />
 
-                    <MapTopbar onOpenHowItWorks={() => setModalOpen(true)} />
+                    <MapTopbar />
+                    <Onboarding />
 
                     <HoverCard
                         deal={hoveredDeal}
