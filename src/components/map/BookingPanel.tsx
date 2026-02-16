@@ -68,7 +68,7 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
         const f = selectedFlight;
         const h = selectedHotel;
         const subject = encodeURIComponent('GeaiMonVol - Guide IA - ' + f.city);
-        const prefsText = prefs.map(p => {
+        const prefsText = (prefs || []).map(p => {
             const cat = PREF_CATEGORIES.find(c => c.id === p);
             return cat ? cat.icon + ' ' + cat.label : p;
         }).join(', ');

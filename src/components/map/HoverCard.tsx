@@ -59,7 +59,7 @@ export default function HoverCard({ deal, x, y, visible }: HoverCardProps) {
                         <span>{deal.dates}</span>
                     </div>
                     <div className="hcard-tags">
-                        {deal.tags.map((tag, i) => (
+                        {(deal.tags || []).map((tag, i) => (
                             <span
                                 key={i}
                                 className={`hcard-tag ${tag === 'Hot' ? 't-hot' :

@@ -62,7 +62,7 @@ export default function Sidebar({ isOpen, onClose, selectedRegion, onSelectFligh
             <div className="sb-content">
                 <div className={`sb-panel ${activeTab === 'flights' ? 'show' : ''}`} data-sbtab="flights">
                     <div className="sb-list" id="sbList">
-                        {regionDeals && regionDeals.map((deal: any, i: number) => (
+                        {(regionDeals || []).map((deal: any, i: number) => (
                             <div key={i} className="sb-deal">
                                 <img
                                     className="sb-deal-img"
@@ -81,7 +81,7 @@ export default function Sidebar({ isOpen, onClose, selectedRegion, onSelectFligh
                                     </div>
                                     <div className="sb-deal-info">{deal.dates} · {deal.route} · -{deal.disc}%</div>
                                     <div className="sb-deal-tags">
-                                        {deal.tags.map((t: string) => {
+                                        {(deal.tags || []).map((t: string) => {
                                             if (t === 'hot') return <span key={t} className="t-hot">Hot Deal</span>;
                                             if (t === 'direct') return <span key={t} className="t-direct">Vol Direct</span>;
                                             if (t === 'eco') return <span key={t} className="t-eco">Eco</span>;

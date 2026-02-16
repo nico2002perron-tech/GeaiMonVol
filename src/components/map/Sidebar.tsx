@@ -16,10 +16,10 @@ export default function Sidebar({ isOpen, onClose, selectedRegion, onSelectFligh
             <div className="sb-head">
                 <button className="sb-close" onClick={onClose}>✕</button>
                 <div className="sb-region">{region?.name || 'Sélectionnez une région'}</div>
-                <div className="sb-count">{region?.deals.length || 0} deals trouvés</div>
+                <div className="sb-count">{(region?.deals || []).length} deals trouvés</div>
             </div>
             <div className="sb-list">
-                {region?.deals.map((deal, i) => (
+                {(region?.deals || []).map((deal: any, i: number) => (
                     <div key={deal.id} className="sb-deal" onClick={() => onSelectFlight?.(deal)}>
                         <img
                             className="sb-deal-img"
