@@ -1,23 +1,40 @@
+'use client';
+import React, { useState } from 'react';
+
 export default function PremiumBanner() {
+    const [dismissed, setDismissed] = useState(false);
+
+    if (dismissed) return null;
+
     return (
-        <div style={{
-            position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 100, background: 'linear-gradient(135deg, #1E40AF, #2E7DDB)',
-            borderRadius: 12, padding: '10px 24px',
-            display: 'flex', alignItems: 'center', gap: 16,
-            color: 'white', fontSize: 13, fontWeight: 500,
-            boxShadow: '0 4px 20px rgba(46,125,219,0.3)', pointerEvents: 'auto',
-        }}>
-            <span style={{ fontWeight: 700 }}>Voyageur Premium</span>
-            <span style={{ opacity: 0.8 }}>Alertes perso, packs Vol + Hôtel, Guide IA gratuit</span>
-            <span style={{ fontWeight: 800, fontSize: 16 }}>5$/mois</span>
-            <button style={{
-                background: 'white', color: '#1E40AF', border: 'none',
-                borderRadius: 8, padding: '6px 16px', fontWeight: 700,
-                fontSize: 12, cursor: 'pointer',
-            }}>
-                Découvrir
-            </button>
+        <div className="premium-banner">
+            <button className="premium-banner-close" onClick={() => setDismissed(true)}>✕</button>
+
+            <div className="premium-banner-mascot">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+            </div>
+
+            <div className="premium-banner-body">
+                <div className="premium-banner-title">
+                    Voyageur Premium
+                    <span className="premium-banner-save">ÉCONOMISE 45%</span>
+                </div>
+                <div className="premium-banner-desc">
+                    Alertes perso, packs Vol + Hôtel, Guide IA gratuit à chaque réservation.
+                </div>
+            </div>
+
+            <div className="premium-banner-right">
+                <div className="premium-banner-price-wrap">
+                    <div className="premium-banner-price">5 $</div>
+                    <div className="premium-banner-period">/ mois</div>
+                </div>
+                <a href="#" className="premium-banner-cta">
+                    Découvrir
+                </a>
+            </div>
         </div>
     );
 }

@@ -9,6 +9,9 @@ import HowItWorksModal from '@/components/ui/HowItWorksModal';
 import MapTopbar from './MapTopbar';
 import HoverCard from './HoverCard';
 import GeaiAssistant from './GeaiAssistant';
+import SocialTicker from './SocialTicker';
+import DealOfTheDay from './DealOfTheDay';
+import Confetti from './Confetti';
 
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,6 +24,8 @@ export default function MapInterface() {
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
     const [hoverVisible, setHoverVisible] = useState(false);
+    const [confettiTrigger, setConfettiTrigger] = useState(0);
+    const [confettiPos, setConfettiPos] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         // App is ready immediately
@@ -48,9 +53,11 @@ export default function MapInterface() {
                         onLeaveDeal={() => {
                             setHoverVisible(false);
                         }}
-                        onSelectDeal={(deal) => { // Added onSelectDeal prop
+                        onSelectDeal={(deal: any, e: any) => { // Added explicit types
                             setSelectedFlight(deal);
                             setBookingOpen(true);
+                            setConfettiPos({ x: e.clientX, y: e.clientY });
+                            setConfettiTrigger(prev => prev + 1);
                         }}
                     />
 
@@ -64,6 +71,8 @@ export default function MapInterface() {
                     />
 
                     <PremiumBanner />
+                    <DealOfTheDay />
+                    <SocialTicker />
                     <DealStrip />
                     <Sidebar
                         isOpen={sidebarOpen}
@@ -84,6 +93,8 @@ export default function MapInterface() {
                     <HowItWorksModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
                     <GeaiAssistant onOpen={() => setBookingOpen(true)} />
+
+                    <Confetti trigger={confettiTrigger} x={confettiPos.x} y={confettiPos.y} />
 
                 </div>
             </div>

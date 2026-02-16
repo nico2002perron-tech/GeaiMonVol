@@ -11,7 +11,7 @@ interface MapPinProps {
     index: number;
     onMouseEnter: (e: React.MouseEvent, deal: Flight) => void;
     onMouseLeave: () => void;
-    onClick: (regionKey: string) => void;
+    onClick?: (deal: Flight, e: React.MouseEvent) => void;
 }
 
 export default function MapPin({ deal, regionKey, x, y, index, onMouseEnter, onMouseLeave, onClick }: MapPinProps) {
@@ -30,7 +30,7 @@ export default function MapPin({ deal, regionKey, x, y, index, onMouseEnter, onM
             style={style}
             onMouseEnter={(e) => onMouseEnter(e, deal)}
             onMouseLeave={onMouseLeave}
-            onClick={() => onClick(regionKey)}
+            onClick={(e) => onClick?.(deal, e)}
         >
             <div className="pin-pill">
                 {deal.disc >= 52 && (

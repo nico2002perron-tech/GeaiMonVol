@@ -11,7 +11,7 @@ interface MapCanvasProps {
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void; // Using any for deal temporarily
     onLeaveDeal: () => void;
-    onSelectDeal?: (deal: any) => void;
+    onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
 }
 
 export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
@@ -326,7 +326,7 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                             index={p.index}
                             onMouseEnter={(e: any, d: any) => onHoverDeal(d || p.deal, e)}
                             onMouseLeave={onLeaveDeal}
-                            onClick={onRegionSelect}
+                            onClick={onSelectDeal}
                         />
                     </div>
                 ))}
