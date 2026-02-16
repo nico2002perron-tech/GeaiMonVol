@@ -102,6 +102,7 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
             oldPrice: p.avgPrice || 0,
             dealLevel: p.dealLevel,
             priceLevel: p.priceLevel,
+            source: p.source,
             img: FLIGHTS.find(f => f.city === p.destination)?.img || '',
             imgSmall: FLIGHTS.find(f => f.city === p.destination)?.imgSmall || '',
             country: FLIGHTS.find(f => f.city === p.destination)?.country || '',
@@ -112,15 +113,16 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
         }))
         : [...FLIGHTS].sort((a, b) => b.disc - a.disc).map(f => ({
             ...f,
-            code: f.route.split(' – ')[1] || ''
+            code: f.route.split(' – ')[1] || '',
+            source: 'static'
         }));
 
     const filteredDeals = allMappedDeals.filter(deal => {
         const code = deal.code || '';
         if (activeTab === 'canada') {
-            return CANADA_CODES.includes(code);
+            return CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
         } else {
-            return !CANADA_CODES.includes(code);
+            return !CANADA_CODES.includes(code) && deal.source !== 'google_flights_canada';
         }
     });
 
