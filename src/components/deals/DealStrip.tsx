@@ -30,7 +30,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                 .from('watchlist')
                 .select('destination')
                 .eq('user_id', user.id);
-            if (data) setWatchedDeals(data.map(w => w.destination));
+            if (data) setWatchedDeals((data || []).map((w: any) => w.destination));
         };
         loadWatchlist();
     }, [user]);
@@ -90,8 +90,8 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
     const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
     // Filter deals based on tab
-    const allMappedDeals = deals.length > 0
-        ? deals.map(p => ({
+    const allMappedDeals = (deals || []).length > 0
+        ? (deals || []).map(p => ({
             city: p.destination,
             code: p.destination_code,
             price: p.price,
@@ -112,13 +112,13 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
             lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
             id: p.destination_code
         }))
-        : [...FLIGHTS].sort((a, b) => b.disc - a.disc).map(f => ({
+        : [...FLIGHTS].sort((a, b) => (b.disc || 0) - (a.disc || 0)).map(f => ({
             ...f,
             code: f.route.split(' – ')[1] || '',
             source: 'static'
         }));
 
-    const filteredDeals = allMappedDeals.filter(deal => {
+    const filteredDeals = (allMappedDeals || []).filter(deal => {
         const code = deal.code || '';
         if (activeTab === 'canada') {
             return CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
@@ -273,7 +273,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
                 >
-                    {displayDeals.slice(0, 7).map((deal, i) => (
+                    {(displayDeals || []).slice(0, 7).map((deal: any, i: number) => (
                         <div key={deal.id || i} className="scard">
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img

@@ -181,7 +181,7 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
 
                     const yulCoords = projection([-73.74, 45.47]); // Montréal-Trudeau (YUL)
 
-                    deals.forEach((deal: any, idx: number) => {
+                    (deals || []).forEach((deal: any, idx: number) => {
                         if (!deal) return;
                         const coords = getCoords(deal);
                         if (!coords) return;

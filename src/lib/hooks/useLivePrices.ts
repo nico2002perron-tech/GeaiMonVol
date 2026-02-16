@@ -27,9 +27,9 @@ export function useLivePrices() {
                 const res = await fetch('/api/prices');
                 const data = await res.json();
 
-                if (data.prices && data.prices.length > 0) {
-                    setPrices(data.prices);
-                    setLastUpdated(data.updatedAt);
+                if (data) {
+                    setPrices(data.prices || (Array.isArray(data) ? data : []));
+                    setLastUpdated(data.updatedAt || new Date().toISOString());
                 }
             } catch (error) {
                 console.error('Failed to fetch live prices:', error);
