@@ -28,7 +28,7 @@ const CITY_IMAGES: Record<string, string> = {
     'Marrakech': 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=250&fit=crop',
     'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=250&fit=crop',
     'Miami': 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&h=250&fit=crop',
-    'Fort Lauderdale': 'https://images.unsplash.com/photo-1570213489059-0aac6626cade?w=400&h=250&fit=crop',
+    'Fort Lauderdale': 'https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?w=400&h=250&fit=crop',
     'Punta Cana': 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?w=400&h=250&fit=crop',
     'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570299437522-25057f1bec96?w=400&h=250&fit=crop',
     'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400&h=250&fit=crop',
