@@ -4,8 +4,20 @@ import { useEffect, useState } from 'react';
 export default function Loader() {
     const [done, setDone] = useState(false);
     const [phase, setPhase] = useState(0);
+    const [stars, setStars] = useState<any[]>([]);
 
     useEffect(() => {
+        setStars(
+            Array.from({ length: 30 }).map((_, i) => ({
+                w: Math.random() * 3 + 1,
+                h: Math.random() * 3 + 1,
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.2,
+                duration: Math.random() * 3 + 2,
+                delay: Math.random() * 2,
+            }))
+        );
         setTimeout(() => setPhase(1), 300);   // Logo appears
         setTimeout(() => setPhase(2), 1200);  // Plane flies
         setTimeout(() => setPhase(3), 2200);  // Text appears
@@ -23,17 +35,17 @@ export default function Loader() {
         }}>
             {/* Stars background */}
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-                {Array.from({ length: 30 }).map((_, i) => (
+                {stars.map((star, i) => (
                     <div key={i} style={{
                         position: 'absolute',
-                        width: Math.random() * 3 + 1,
-                        height: Math.random() * 3 + 1,
+                        width: star.w,
+                        height: star.h,
                         background: 'white',
                         borderRadius: '50%',
-                        top: `${Math.random() * 100}%`,
-                        left: `${Math.random() * 100}%`,
-                        opacity: Math.random() * 0.5 + 0.2,
-                        animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite ${Math.random() * 2}s`,
+                        top: star.top,
+                        left: star.left,
+                        opacity: star.opacity,
+                        animation: `twinkle ${star.duration}s ease-in-out infinite ${star.delay}s`,
                     }} />
                 ))}
             </div>

@@ -21,7 +21,20 @@ export default function Sidebar({ isOpen, onClose, selectedRegion, onSelectFligh
             <div className="sb-list">
                 {region?.deals.map((deal, i) => (
                     <div key={deal.id} className="sb-deal" onClick={() => onSelectFlight?.(deal)}>
-                        <img className="sb-deal-img" src={deal.img} alt={deal.city} />
+                        <img
+                            className="sb-deal-img"
+                            src={deal.img}
+                            alt={deal.city}
+                            onError={(e) => {
+                                const target = e.currentTarget;
+                                if (!target.dataset.failed) {
+                                    target.dataset.failed = 'true';
+                                    target.src = 'data:image/svg+xml,' + encodeURIComponent(
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
+                                    );
+                                }
+                            }}
+                        />
                         <div className="sb-deal-body">
                             <div className="sb-deal-top">
                                 <div className="sb-deal-city">{deal.city}</div>

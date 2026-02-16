@@ -29,7 +29,20 @@ export default function HoverCard({ deal, x, y, visible }: HoverCardProps) {
             }}
         >
             <div className="hcard-inner">
-                <img className="hcard-img" src={deal.img} alt={deal.city} />
+                <img
+                    className="hcard-img"
+                    src={deal.img}
+                    alt={deal.city}
+                    onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.dataset.failed) {
+                            target.dataset.failed = 'true';
+                            target.src = 'data:image/svg+xml,' + encodeURIComponent(
+                                '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
+                            );
+                        }
+                    }}
+                />
                 <div className="hcard-body">
                     <div className="hcard-top">
                         <div>
@@ -50,8 +63,8 @@ export default function HoverCard({ deal, x, y, visible }: HoverCardProps) {
                             <span
                                 key={i}
                                 className={`hcard-tag ${tag === 'Hot' ? 't-hot' :
-                                        tag === 'Direct' ? 't-direct' :
-                                            tag === 'Eco' ? 't-eco' : ''
+                                    tag === 'Direct' ? 't-direct' :
+                                        tag === 'Eco' ? 't-eco' : ''
                                     }`}
                             >
                                 {tag}
