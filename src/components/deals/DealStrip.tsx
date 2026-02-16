@@ -7,6 +7,50 @@ import { HOTELS } from '@/lib/data/hotels';
 import { FLIGHTS } from '@/lib/data/flights';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 
+const CITY_IMAGES: Record<string, string> = {
+    'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400&h=250&fit=crop',
+    'Ottawa': 'https://images.unsplash.com/photo-1569025743873-ea3a9ber0f70?w=400&h=250&fit=crop',
+    'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=400&h=250&fit=crop',
+    'Calgary': 'https://images.unsplash.com/photo-1476820865390-c52aeebb9891?w=400&h=250&fit=crop',
+    'Edmonton': 'https://images.unsplash.com/photo-1608408843596-b3119af79a66?w=400&h=250&fit=crop',
+    'Winnipeg': 'https://images.unsplash.com/photo-1604537466608-109fa2f16c3b?w=400&h=250&fit=crop',
+    'Halifax': 'https://images.unsplash.com/photo-1575320181282-9afab399332c?w=400&h=250&fit=crop',
+    'Québec': 'https://images.unsplash.com/photo-1545396280-acdb7441dd2e?w=400&h=250&fit=crop',
+    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=250&fit=crop',
+    'Cancún': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=250&fit=crop',
+    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=250&fit=crop',
+    'Barcelone': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&h=250&fit=crop',
+    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=250&fit=crop',
+    'Lisbonne': 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=400&h=250&fit=crop',
+    'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=250&fit=crop',
+    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=250&fit=crop',
+    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=250&fit=crop',
+    'Marrakech': 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=250&fit=crop',
+    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=250&fit=crop',
+    'Miami': 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&h=250&fit=crop',
+    'Fort Lauderdale': 'https://images.unsplash.com/photo-1570213489059-0aac6626cade?w=400&h=250&fit=crop',
+    'Punta Cana': 'https://images.unsplash.com/photo-1580237072617-771c3ecc4a24?w=400&h=250&fit=crop',
+    'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570299437522-25057f1bec96?w=400&h=250&fit=crop',
+    'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400&h=250&fit=crop',
+    'Bogota': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400&h=250&fit=crop',
+    'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400&h=250&fit=crop',
+    'São Paulo': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400&h=250&fit=crop',
+    'Buenos Aires': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=400&h=250&fit=crop',
+    'Amsterdam': 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=250&fit=crop',
+    'Dublin': 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=400&h=250&fit=crop',
+    'Athènes': 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=400&h=250&fit=crop',
+    'Reykjavik': 'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=400&h=250&fit=crop',
+    'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=250&fit=crop',
+    'Madrid': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=400&h=250&fit=crop',
+    'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&h=250&fit=crop',
+    'Montego Bay': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400&h=250&fit=crop',
+    'San José': 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=400&h=250&fit=crop',
+    'Cartagena': 'https://images.unsplash.com/photo-1583997052103-b4a1cb974ce5?w=400&h=250&fit=crop',
+    'Ho Chi Minh': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400&h=250&fit=crop',
+};
+
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
+
 interface DealStripProps {
     deals?: any[];
     loading?: boolean;
@@ -278,7 +322,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img
                                     className="scard-img"
-                                    src={deal.imgSmall || deal.img}
+                                    src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city}
                                     loading="lazy"
                                     onError={(e) => {
