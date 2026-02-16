@@ -10,9 +10,10 @@ import { useLivePrices } from '@/lib/hooks/useLivePrices';
 interface DealStripProps {
     deals?: any[];
     loading?: boolean;
+    onViewChange?: (view: 'world' | 'canada') => void;
 }
 
-export default function DealStrip({ deals = [], loading = false }: DealStripProps) {
+export default function DealStrip({ deals = [], loading = false, onViewChange }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -145,7 +146,10 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                     <div className="strip-tabs">
                         {/* Onglet International */}
                         <button
-                            onClick={() => setActiveTab('international')}
+                            onClick={() => {
+                                setActiveTab('international');
+                                onViewChange?.('world');
+                            }}
                             style={{
                                 padding: '6px 14px',
                                 borderRadius: 100,
@@ -165,7 +169,10 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
 
                         {/* Onglet Canada */}
                         <button
-                            onClick={() => setActiveTab('canada')}
+                            onClick={() => {
+                                setActiveTab('canada');
+                                onViewChange?.('canada');
+                            }}
                             style={{
                                 padding: '6px 14px',
                                 borderRadius: 100,

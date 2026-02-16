@@ -22,6 +22,7 @@ export default function MapInterface() {
     const [appReady, setAppReady] = useState(true);
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null); // State for booking
+    const [mapView, setMapView] = useState<'world' | 'canada'>('world');
 
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
@@ -45,6 +46,7 @@ export default function MapInterface() {
 
                     <MapCanvas
                         deals={prices} // Pass live prices to map
+                        mapView={mapView}
                         onRegionSelect={(region) => {
                             console.log("Selected region:", region);
                             setSelectedRegion(region); // New state needed
@@ -80,7 +82,11 @@ export default function MapInterface() {
                     {/* <DealOfTheDay /> */}
                     {/* <SocialTicker /> */}
                     {/* <SocialTicker /> */}
-                    <DealStrip deals={prices} loading={pricesLoading} />
+                    <DealStrip
+                        deals={prices}
+                        loading={pricesLoading}
+                        onViewChange={setMapView}
+                    />
                     <Sidebar
                         isOpen={sidebarOpen}
                         onClose={() => setSidebarOpen(false)}

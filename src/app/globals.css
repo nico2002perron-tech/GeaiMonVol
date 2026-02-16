@@ -2093,3 +2093,13 @@ a {
     display: flex;
   }
 }
+
+/* Map Pin Pill Animations */
+.pin-pill {
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out !important;
+}
+
+.pin-pill.visible {
+  opacity: 1 !important;
+}

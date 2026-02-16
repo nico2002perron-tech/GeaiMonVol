@@ -9,19 +9,21 @@ import MapPin from './MapPin';
 
 interface MapCanvasProps {
     deals?: any[]; // Added deals prop
+    mapView?: 'world' | 'canada';
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
     onLeaveDeal: () => void;
     onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
 }
 
-export default function MapCanvas({ deals = [], onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
+export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
     const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
     const lastPos = useRef<{ x: number, y: number } | null>(null);
     const [pins, setPins] = useState<any[]>([]);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [visibleBadges, setVisibleBadges] = useState<Set<number>>(new Set());
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -53,6 +55,52 @@ export default function MapCanvas({ deals = [], onRegionSelect, onHoverDeal, onL
 
         g.attr('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`);
     }, [transform]);
+
+    useEffect(() => {
+        if (!svgRef.current) return;
+        const svg = d3.select(svgRef.current);
+        const g = svg.select('g.map-content');
+
+        if (mapView === 'canada') {
+            const w = svgRef.current?.clientWidth || dimensions.width || 800;
+            const h = svgRef.current?.clientHeight || dimensions.height || 500;
+
+            const canadaScale = w < 768 ? w / 1.8 : w / 2.5;
+            const canadaX = w < 768 ? w * 1.5 : w * 1.6;
+            const canadaY = w < 768 ? h * 1.8 : h * 1.6;
+
+            g.transition()
+                .duration(800)
+                .ease(d3.easeCubicInOut)
+                .attr('transform', `translate(${canadaX}, ${canadaY}) scale(${canadaScale / (w < 768 ? w / 4.5 : w / 5.5)})`);
+        } else {
+            g.transition()
+                .duration(800)
+                .ease(d3.easeCubicInOut)
+                .attr('transform', 'translate(0, 0) scale(1)');
+        }
+    }, [mapView, dimensions]);
+
+    useEffect(() => {
+        const totalWithDeals = pins.length;
+        if (totalWithDeals === 0) return;
+
+        const maxVisible = Math.min(4, totalWithDeals);
+        let currentIndex = 0;
+
+        const rotate = () => {
+            const newVisible = new Set<number>();
+            for (let i = 0; i < maxVisible; i++) {
+                newVisible.add((currentIndex + i) % totalWithDeals);
+            }
+            setVisibleBadges(newVisible);
+            currentIndex = (currentIndex + 1) % totalWithDeals;
+        };
+
+        rotate();
+        const interval = setInterval(rotate, 3000);
+        return () => clearInterval(interval);
+    }, [pins]);
 
     useEffect(() => {
         if (!svgRef.current || !projection) return;
@@ -341,6 +389,7 @@ export default function MapCanvas({ deals = [], onRegionSelect, onHoverDeal, onL
                             x={0}
                             y={0}
                             index={p.index}
+                            showBadge={visibleBadges.has(i)}
                             onMouseEnter={(e: any, d: any) => onHoverDeal(d || p.deal, e)}
                             onMouseLeave={onLeaveDeal}
                             onClick={onSelectDeal}
