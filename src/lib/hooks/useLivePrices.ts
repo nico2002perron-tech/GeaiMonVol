@@ -10,6 +10,10 @@ interface LivePrice {
     departure_date: string;
     return_date: string;
     scanned_at: string;
+    discount?: number;
+    avgPrice?: number;
+    dealLevel?: string;
+    priceLevel?: string;
 }
 
 export function useLivePrices() {

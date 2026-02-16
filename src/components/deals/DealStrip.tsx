@@ -101,8 +101,10 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
             stops: p.stops,
             route: `YUL – ${p.destination_code}`,
             dates: `${p.departure_date} → ${p.return_date}`,
-            disc: 0,
-            oldPrice: 0,
+            disc: p.discount || 0,
+            oldPrice: p.avgPrice || 0,
+            dealLevel: p.dealLevel,
+            priceLevel: p.priceLevel,
             img: FLIGHTS.find(f => f.city === p.destination)?.img || '',
             imgSmall: FLIGHTS.find(f => f.city === p.destination)?.imgSmall || '',
             country: FLIGHTS.find(f => f.city === p.destination)?.country || '',
@@ -210,15 +212,48 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                                     </svg>
                                 </button>
+                                {(deal.dealLevel === 'lowest_ever' || deal.dealLevel === 'incredible') && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        left: 8,
+                                        background: 'rgba(255,255,255,0.9)',
+                                        borderRadius: '12px',
+                                        padding: '2px 6px',
+                                        fontSize: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '2px',
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                                        backdropFilter: 'blur(4px)',
+                                    }}>
+                                        🔥
+                                    </div>
+                                )}
                             </div>
                             <div className="scard-body">
-                                <div className="scard-city">{deal.city}</div>
+                                <div className="scard-city">
+                                    {deal.city}
+                                    {deal.priceLevel === 'low' && (
+                                        <span style={{
+                                            fontSize: '10px',
+                                            color: '#10B981',
+                                            background: '#ECFDF5',
+                                            padding: '1px 4px',
+                                            borderRadius: '4px',
+                                            marginLeft: '6px',
+                                            fontWeight: '600'
+                                        }}>
+                                            Prix bas
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="scard-route">{deal.route}</div>
                                 <div className="scard-row">
                                     <span className="scard-price">{deal.price} $</span>
-                                    <span className="scard-disc">-{deal.disc}%</span>
+                                    {deal.disc > 0 && <span className="scard-disc">-{deal.disc}%</span>}
                                 </div>
-                                {deal.oldPrice && (
+                                {deal.oldPrice > 0 && deal.disc > 0 && (
                                     <div style={{
                                         fontSize: 11,
                                         color: '#8FA3B8',

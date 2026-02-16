@@ -14,6 +14,8 @@ export interface Flight {
     img: string;
     imgSmall: string;
     fallbackSmall?: string;
+    dealLevel?: string;
+    priceLevel?: string;
 }
 
 export const FLIGHTS: Flight[] = [

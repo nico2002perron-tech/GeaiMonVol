@@ -43,6 +43,34 @@ export async function GET() {
                 history || []
             );
 
+            // Fallback : si pas assez d'historique (discount 0), utiliser les price_insights de Google
+            if (discountInfo.discount === 0 && (price as any).raw_data?.price_insights) {
+                const insights = (price as any).raw_data.price_insights;
+                const typicalRange = insights.typical_price_range;
+
+                if (typicalRange && typicalRange.length >= 2) {
+                    const typicalAvg = Math.round((typicalRange[0] + typicalRange[1]) / 2);
+                    const currentPrice = (price as any).price;
+
+                    if (typicalAvg > currentPrice) {
+                        const googleDiscount = Math.round(((typicalAvg - currentPrice) / typicalAvg) * 100);
+
+                        enrichedPrices.push({
+                            ...(price as any),
+                            discount: googleDiscount,
+                            avgPrice: typicalAvg,
+                            lowestEver: currentPrice,
+                            isGoodDeal: googleDiscount >= 15,
+                            dealLevel: insights.price_level === 'low' ? 'great'
+                                : insights.price_level === 'typical' ? 'normal'
+                                    : 'normal',
+                            priceLevel: insights.price_level, // "low", "typical", "high"
+                        });
+                        continue;
+                    }
+                }
+            }
+
             enrichedPrices.push({
                 ...(price as any),
                 discount: discountInfo.discount,
