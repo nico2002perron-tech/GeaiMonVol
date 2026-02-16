@@ -215,24 +215,23 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
     // The previous implementation calculated 'x' and 'y' once based on projection.
     // Now 'left' should be x * k + tx, 'top' should be y * k + ty.
 
-    const handleWheel = (e: React.WheelEvent) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.08 : 0.08;
-        const newScale = Math.min(4, Math.max(1, transform.k + delta));
+    // Native wheel listener to allow preventDefault
+    useEffect(() => {
+        const container = document.getElementById('map-container');
+        if (!container) return;
 
-        if (newScale !== transform.k) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const mx = e.clientX - rect.left;
-            const my = e.clientY - rect.top;
-            const ratio = newScale / transform.k;
+        const wheelHandler = (e: WheelEvent) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.15 : 0.15;
+            setTransform(prev => ({
+                ...prev,
+                k: Math.min(6, Math.max(1, prev.k + delta))
+            }));
+        };
 
-            setTransform({
-                k: newScale,
-                x: mx - ratio * (mx - transform.x),
-                y: my - ratio * (my - transform.y)
-            });
-        }
-    };
+        container.addEventListener('wheel', wheelHandler, { passive: false });
+        return () => container.removeEventListener('wheel', wheelHandler);
+    }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         // checks if target is not pin/sidebar etc handled by CSS pointer-events or stopPropagation
@@ -294,7 +293,6 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
         <>
             <div
                 id="map-container"
-                onWheel={handleWheel}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
