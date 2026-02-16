@@ -91,16 +91,54 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
+    // Filter deals based on mapView
+    const visibleDeals = (deals || []).filter(deal => {
+        const code = deal.destination_code || deal.code || '';
+        const isCanadian = CANADA_CODES.includes(code);
+        if (mapView === 'canada') return isCanadian;
+        return !isCanadian;
+    });
+
+    // Zoom effect when mapView changes
+    useEffect(() => {
+        if (!svgRef.current || !projection) return;
+
+        const svg = d3.select(svgRef.current);
+        const w = svgRef.current.clientWidth || 800;
+        const h = svgRef.current.clientHeight || 500;
+
+        try {
+            if (mapView === 'canada') {
+                // Coordonnées du centre du Canada projeté
+                const canadaCenter = projection([-96, 56]);
+                if (!canadaCenter) return;
+
+                const scale = 3.5;
+                const translateX = w / 2 - canadaCenter[0] * scale;
+                const translateY = h / 2 - canadaCenter[1] * scale;
+
+                svg.select('g')
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeCubicInOut)
+                    .attr('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
+            } else {
+                // Retour à la vue monde
+                svg.select('g')
+                    .transition()
+                    .duration(800)
+                    .ease(d3.easeCubicInOut)
+                    .attr('transform', 'translate(0, 0) scale(1)');
+            }
+        } catch (error) {
+            console.error('[MapCanvas] Zoom error:', error);
+        }
+    }, [mapView, projection]);
+
     // Main SVG Render
     useEffect(() => {
         try {
             if (!svgRef.current || !projection) return;
-
-            // Validation: Ensure deals exist before proceeding
-            if (!deals || deals.length === 0) {
-                console.log('[MapCanvas] No deals to render');
-                return;
-            }
 
             const svg = d3.select(svgRef.current);
             let g = svg.select<SVGGElement>('g.map-content');
@@ -108,7 +146,9 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                 g = svg.append('g').attr('class', 'map-content');
             }
 
-            g.selectAll('*').remove();
+            // Clear pins, arcs, and badges before re-render
+            g.selectAll('.deal-pin, .discount-badge, path.flight-arc').remove();
+
             const path = d3.geoPath().projection(projection);
 
             d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
@@ -158,115 +198,8 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                             if (region) onRegionSelect(region);
                         });
 
-                    // 3. Process pin data (With fixed coordinates)
-                    const newPins: any[] = [];
-
-                    // Helper for precise coordinates
-                    const getCoords = (deal: any): { lat: number; lng: number } | null => {
-                        if (!deal) return null;
-                        const name = deal.destination || deal.city || '';
-                        if (CITY_COORDINATES[name]) return CITY_COORDINATES[name];
-
-                        const codeMatch = PRIORITY_DESTINATIONS.find((p: any) => p.code === deal.destination_code || p.city === name);
-                        if (codeMatch && CITY_COORDINATES[codeMatch.city]) {
-                            return CITY_COORDINATES[codeMatch.city];
-                        }
-
-                        const lat = deal.lat || 0;
-                        const lng = deal.lon || deal.lng || 0;
-                        if (lat !== 0 || lng !== 0) return { lat, lng };
-
-                        return null;
-                    };
-
-                    const yulCoords = projection([-73.74, 45.47]); // Montréal-Trudeau (YUL)
-
-                    (deals || []).forEach((deal: any, idx: number) => {
-                        if (!deal) return;
-                        const coords = getCoords(deal);
-                        if (!coords) return;
-
-                        const projected = projection([coords.lng, coords.lat]);
-                        if (!projected) return;
-
-                        const [x, y] = projected;
-
-                        // A. Flight Arcs (From YUL)
-                        if (yulCoords) {
-                            const midX = (yulCoords[0] + x) / 2;
-                            const midY = Math.min(yulCoords[1], y) - 50;
-                            const pathData = `M${yulCoords[0]},${yulCoords[1]} Q${midX},${midY} ${x},${y}`;
-
-                            g.append('path')
-                                .attr('d', pathData)
-                                .attr('stroke', '#2E7DDB')
-                                .attr('stroke-width', 1)
-                                .attr('fill', 'none')
-                                .attr('opacity', 0.3)
-                                .attr('stroke-dasharray', '4,4');
-                        }
-
-                        // B. Pin
-                        g.append('circle')
-                            .attr('cx', x)
-                            .attr('cy', y)
-                            .attr('r', 5)
-                            .attr('fill', '#2E7DDB')
-                            .attr('stroke', 'white')
-                            .attr('stroke-width', 1.5)
-                            .attr('class', 'deal-pin')
-                            .style('cursor', 'pointer')
-                            .on("mouseenter", (e) => onHoverDeal(deal, e))
-                            .on("mouseleave", onLeaveDeal)
-                            .on("click", (e) => onSelectDeal?.(deal, e));
-
-                        // C. Discount Badge (Permanent)
-                        const discount = deal.discount || deal.disc || 0;
-                        if (discount > 0) {
-                            const badgeG = g.append('g')
-                                .attr('transform', `translate(${x}, ${y - 20})`)
-                                .attr('class', 'discount-badge')
-                                .style('cursor', 'pointer')
-                                .on("mouseenter", (e) => onHoverDeal(deal, e))
-                                .on("mouseleave", onLeaveDeal)
-                                .on("click", (e) => onSelectDeal?.(deal, e));
-
-                            badgeG.append('rect')
-                                .attr('x', -28)
-                                .attr('y', -12)
-                                .attr('width', 56)
-                                .attr('height', 24)
-                                .attr('rx', 12)
-                                .attr('fill', 'white')
-                                .attr('stroke', '#FF4D6A')
-                                .attr('stroke-width', 1.5);
-
-                            badgeG.append('circle')
-                                .attr('cx', -18)
-                                .attr('cy', 0)
-                                .attr('r', 4)
-                                .attr('fill', '#FF4D6A');
-
-                            badgeG.append('text')
-                                .attr('x', 4)
-                                .attr('y', 4)
-                                .attr('text-anchor', 'middle')
-                                .attr('font-size', '11px')
-                                .attr('font-weight', '700')
-                                .attr('font-family', "'Outfit', sans-serif")
-                                .attr('fill', '#FF4D6A')
-                                .text(`-${discount}%`);
-
-                            badgeG.append('path')
-                                .attr('d', 'M-4,12 L0,18 L4,12')
-                                .attr('fill', 'white')
-                                .attr('stroke', '#FF4D6A')
-                                .attr('stroke-width', 1.5);
-                        }
-
-                        newPins.push({ deal, x, y, index: idx });
-                    });
-                    setPins(newPins);
+                    // 3. Process pin data using our helper
+                    renderPins(g, visibleDeals, projection);
                 } catch (innerError) {
                     console.error('[MapCanvas] Error in topojson processing:', innerError);
                 }
@@ -276,7 +209,85 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         } catch (error) {
             console.error('[MapCanvas] Error rendering pins:', error);
         }
-    }, [projection, deals]);
+    }, [projection, visibleDeals]);
+
+    // Refactored helper to render pins and arcs
+    const renderPins = (g: any, dealsToRender: any[], proj: d3.GeoProjection) => {
+        try {
+            const yulCoords = proj([-73.74, 45.47]); // Montréal-Trudeau (YUL)
+
+            // Helper for precise coordinates
+            const getCoords = (deal: any): { lat: number; lng: number } | null => {
+                if (!deal) return null;
+                const name = deal.destination || deal.city || '';
+                if (CITY_COORDINATES[name]) return CITY_COORDINATES[name];
+                const codeMatch = PRIORITY_DESTINATIONS.find((p: any) => p.code === deal.destination_code || p.city === name);
+                if (codeMatch && CITY_COORDINATES[codeMatch.city]) return CITY_COORDINATES[codeMatch.city];
+                const lat = deal.lat || 0;
+                const lng = deal.lon || deal.lng || 0;
+                return (lat !== 0 || lng !== 0) ? { lat, lng } : null;
+            };
+
+            const newPins: any[] = [];
+
+            dealsToRender.forEach((deal: any, idx: number) => {
+                const coords = getCoords(deal);
+                if (!coords) return;
+                const projected = proj([coords.lng, coords.lat]);
+                if (!projected) return;
+                const [x, y] = projected;
+
+                // Flight Arcs
+                if (yulCoords) {
+                    const midX = (yulCoords[0] + x) / 2;
+                    const midY = Math.min(yulCoords[1], y) - 50;
+                    g.append('path')
+                        .attr('d', `M${yulCoords[0]},${yulCoords[1]} Q${midX},${midY} ${x},${y}`)
+                        .attr('stroke', '#2E7DDB')
+                        .attr('stroke-width', 1)
+                        .attr('fill', 'none')
+                        .attr('opacity', 0.3)
+                        .attr('stroke-dasharray', '4,4')
+                        .attr('class', 'flight-arc');
+                }
+
+                // Pins
+                g.append('circle')
+                    .attr('cx', x).attr('cy', y).attr('r', 5)
+                    .attr('fill', '#2E7DDB').attr('stroke', 'white').attr('stroke-width', 1.5)
+                    .attr('class', 'deal-pin')
+                    .style('cursor', 'pointer')
+                    .on("mouseenter", (e: any) => onHoverDeal(deal, e))
+                    .on("mouseleave", onLeaveDeal)
+                    .on("click", (e: any) => onSelectDeal?.(deal, e));
+
+                // Badges
+                const discount = deal.discount || deal.disc || 0;
+                if (discount > 0) {
+                    const badgeG = g.append('g')
+                        .attr('transform', `translate(${x}, ${y - 20})`)
+                        .attr('class', 'discount-badge')
+                        .style('cursor', 'pointer')
+                        .on("mouseenter", (e: any) => onHoverDeal(deal, e))
+                        .on("mouseleave", onLeaveDeal)
+                        .on("click", (e: any) => onSelectDeal?.(deal, e));
+
+                    badgeG.append('rect').attr('x', -28).attr('y', -12).attr('width', 56).attr('height', 24).attr('rx', 12)
+                        .attr('fill', 'white').attr('stroke', '#FF4D6A').attr('stroke-width', 1.5);
+                    badgeG.append('circle').attr('cx', -18).attr('cy', 0).attr('r', 4).attr('fill', '#FF4D6A');
+                    badgeG.append('text').attr('x', 4).attr('y', 4).attr('text-anchor', 'middle')
+                        .attr('font-size', '11px').attr('font-weight', '700').attr('font-family', "'Outfit', sans-serif")
+                        .attr('fill', '#FF4D6A').text(`-${discount}%`);
+                    badgeG.append('path').attr('d', 'M-4,12 L0,18 L4,12').attr('fill', 'white').attr('stroke', '#FF4D6A').attr('stroke-width', 1.5);
+                }
+
+                newPins.push({ deal, x, y, index: idx });
+            });
+            setPins(newPins);
+        } catch (err) {
+            console.error('[MapCanvas] renderPins error:', err);
+        }
+    };
 
     // Pan/Zoom Handlers (Simple)
     useEffect(() => {
