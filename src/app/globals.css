@@ -2103,3 +2103,36 @@ a {
 .pin-pill.visible {
   opacity: 1 !important;
 }
+
+@keyframes pin-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
+.deal-pin-pulse {
+  animation: pin-pulse 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.discount-badge-container {
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+  pointer-events: none;
+}
+
+.discount-badge-container.visible {
+  opacity: 1;
+  pointer-events: all;
+}
