@@ -13,7 +13,7 @@ interface DealStripProps {
 }
 
 export default function DealStrip({ deals = [], loading = false }: DealStripProps) {
-    const [activeTab, setActiveTab] = useState<'flights' | 'hotels'>('flights');
+    const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
     const { user } = useAuth();
@@ -84,15 +84,10 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
         return () => cancelAnimationFrame(animationId);
     }, [isHovering]);
 
-    const sortedHotels = [...HOTELS].sort((a, b) => b.disc - a.disc);
 
-    // Use passed deals if available, otherwise use internal hook (which is duplicate but safe)
-    // Actually, we receive deals from parent now, so we can ignore internal hook or merge?
-    // The user instruction said: "Merge live prices with static data" in DealStrip.
-    // But we are also passing them from MapInterface.
-    // Let's use the props if provided.
 
-    const displayDeals = deals.length > 0
+    // Filter deals based on tab
+    const allMappedDeals = deals.length > 0
         ? deals.map(p => ({
             city: p.destination,
             code: p.destination_code,
@@ -115,7 +110,11 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
         }))
         : [...FLIGHTS].sort((a, b) => b.disc - a.disc);
 
-    // If loading, maybe show skeleton? For now just show static as fallback is handled above
+    const displayDeals = allMappedDeals.filter(d => {
+        const isCanada = d.country === 'Canada';
+        if (activeTab === 'canada') return isCanada;
+        return !isCanada;
+    });
 
 
     return (
@@ -126,15 +125,47 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                         Meilleurs deals <em>du moment</em>
                     </div>
                     <div className="strip-tabs">
+                        {/* Onglet International */}
                         <button
-                            className={`strip-tab ${activeTab === 'flights' ? 'on' : ''}`}
-                            onClick={() => setActiveTab('flights')}
+                            onClick={() => setActiveTab('international')}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                                transition: 'all 0.2s',
+                                background: activeTab === 'international' ? 'white' : 'none',
+                                color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
+                                boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            }}
                         >
-                            <svg viewBox="0 0 24 24">
-                                <path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
-                            </svg>
-                            Vols
+                            ✈️ International
                         </button>
+
+                        {/* Onglet Canada */}
+                        <button
+                            onClick={() => setActiveTab('canada')}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                                transition: 'all 0.2s',
+                                background: activeTab === 'canada' ? 'white' : 'none',
+                                color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
+                                boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            }}
+                        >
+                            🍁 Intra-pays
+                        </button>
+
+                        {/* Onglet Hôtels PRO */}
                         <button
                             style={{
                                 padding: '6px 14px',
@@ -148,14 +179,11 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                                 color: '#8FA3B8',
                                 position: 'relative',
                                 opacity: 0.7,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
                                 marginLeft: '8px'
                             }}
                             disabled
                         >
-                            <span style={{ textDecoration: 'line-through' }}>Hôtels</span>
+                            <span style={{ textDecoration: 'line-through' }}>🏨 Hôtels</span>
                             <span style={{
                                 position: 'absolute',
                                 top: -8,
@@ -171,6 +199,8 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                                 PRO
                             </span>
                         </button>
+
+                        {/* Onglet Plannings PRO */}
                         <button
                             style={{
                                 padding: '6px 14px',
@@ -184,14 +214,11 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                                 color: '#8FA3B8',
                                 position: 'relative',
                                 opacity: 0.7,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                marginLeft: '4px'
+                                marginLeft: '12px'
                             }}
                             disabled
                         >
-                            <span style={{ textDecoration: 'line-through' }}>Plannings voyage</span>
+                            <span style={{ textDecoration: 'line-through' }}>📍 Plannings</span>
                             <span style={{
                                 position: 'absolute',
                                 top: -8,
@@ -213,7 +240,7 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
             </div>
 
             {/* Panel Vols */}
-            <div className={`strip-panel ${activeTab === 'flights' ? 'show' : ''}`}>
+            <div className="strip-panel show">
                 <div
                     className="strip-row"
                     id="stripRow"
@@ -333,60 +360,6 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                 </div>
             </div>
 
-            {/* Panel Hôtels */}
-            <div className={`strip-panel ${activeTab === 'hotels' ? 'show' : ''}`}>
-                <div className="strip-row" id="stripRowHotels">
-                    {sortedHotels.slice(0, 7).map((h, i) => {
-                        const stars = Array.from({ length: h.stars });
-                        return (
-                            <div
-                                key={i}
-                                className="scard"
-                                style={{ animationDelay: `${0.7 + i * 0.1}s` }}
-                            >
-                                <img
-                                    className="scard-img"
-                                    src={h.photo}
-                                    alt={h.name}
-                                    loading="lazy"
-                                    onError={(e) => {
-                                        const target = e.currentTarget;
-                                        if (!target.dataset.failed) {
-                                            target.dataset.failed = 'true';
-                                            target.src = 'data:image/svg+xml,' + encodeURIComponent(
-                                                '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
-                                            );
-                                        }
-                                    }}
-                                />
-                                <div className="scard-body">
-                                    <div className="scard-stars">
-                                        {stars.map((_, si) => (
-                                            <svg key={si} className="scard-star" viewBox="0 0 12 12">
-                                                <path d="M6 1l1.5 3.1L11 4.6 8.5 7l.6 3.4L6 8.8 2.9 10.4l.6-3.4L1 4.6l3.5-.5L6 1z" />
-                                            </svg>
-                                        ))}
-                                    </div>
-                                    <div className="scard-city" style={{ fontSize: '13px' }}>
-                                        {h.name}
-                                    </div>
-                                    <div className="scard-rating">
-                                        <span className="scard-rating-num">{h.rating}</span>
-                                        {h.city} · {h.reviews.toLocaleString()} avis
-                                    </div>
-                                    <div className="scard-row">
-                                        <span className="scard-price">
-                                            {h.price} ${' '}
-                                            <span className="scard-pernight">/ nuit</span>
-                                        </span>
-                                        <span className="scard-disc">-{h.disc}%</span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
         </div>
     );
 }
