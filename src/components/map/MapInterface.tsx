@@ -10,7 +10,7 @@ import MapTopbar from './MapTopbar';
 import HoverCard from './HoverCard';
 import GeaiAssistant from './GeaiAssistant';
 import SocialTicker from './SocialTicker';
-import DealOfTheDay from './DealOfTheDay';
+// import DealOfTheDay from './DealOfTheDay';
 import Confetti from './Confetti';
 
 export default function MapInterface() {
@@ -71,7 +71,7 @@ export default function MapInterface() {
                     />
 
                     <PremiumBanner />
-                    <DealOfTheDay />
+                    {/* <DealOfTheDay /> */}
                     <SocialTicker />
                     <DealStrip />
                     <Sidebar

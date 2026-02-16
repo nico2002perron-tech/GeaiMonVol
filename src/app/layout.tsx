@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import './globals.css';
-import './globals.css';
+import './legacy.css';
 
 export const metadata: Metadata = {
   title: 'GeaiMonVol — Deals voyage depuis Montréal',
