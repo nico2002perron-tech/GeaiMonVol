@@ -3,13 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
-import { REGIONS, getRegionForCountry } from '@/lib/data/regions'; // Assuming these will be populated
-import { FLIGHTS } from '@/lib/data/flights'; // Assuming these will be populated
+import { REGIONS, getRegionForCountry } from '@/lib/data/regions';
+import { FLIGHTS } from '@/lib/data/flights';
 import MapPin from './MapPin';
 
 interface MapCanvasProps {
     onRegionSelect: (region: string) => void;
-    onHoverDeal: (deal: any, e: React.MouseEvent) => void; // Using any for deal temporarily
+    onHoverDeal: (deal: any, e: React.MouseEvent) => void;
     onLeaveDeal: () => void;
     onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
 }
@@ -17,10 +17,9 @@ interface MapCanvasProps {
 export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
-    // Zoom and Pan State
     const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
     const lastPos = useRef<{ x: number, y: number } | null>(null);
-    const [pins, setPins] = useState<any[]>([]); // Array of positioned pins
+    const [pins, setPins] = useState<any[]>([]);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
@@ -31,10 +30,11 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             const h = window.innerHeight;
             setDimensions({ width: w, height: h });
 
+            // Updated projection to center on Atlantic and cut Antarctica
             const proj = d3.geoNaturalEarth1()
-                .scale(w < 768 ? w / 4.5 : Math.min(w, h) / 3.2)
-                .translate([w < 768 ? w * 0.45 : w / 2, w < 768 ? h * 0.45 : h / 2])
-                .center([0, w < 768 ? 20 : 15]);
+                .scale(w < 768 ? w / 4 : w / 5.5)
+                .translate([w / 2, w < 768 ? h * 0.42 : h * 0.44])
+                .center([10, 20]); // Center on longitude 10 (Atlantic) and latitude 20
             setProjection(() => proj);
         };
 
@@ -44,37 +44,33 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
-    // Apply transform to SVG group
     useEffect(() => {
         if (!svgRef.current) return;
         const svg = d3.select(svgRef.current);
-        const g = svg.select('g.map-content'); // Assume we wrap everything in a g
+        const g = svg.select('g.map-content');
         if (g.empty()) return;
 
         g.attr('transform', `translate(${transform.x},${transform.y}) scale(${transform.k})`);
-
-        // Reposition pins
-        // Since pins are HTML divs on top, we need to calculate their projected position + transform
-        // This effectively means we need to re-render pins with new style
     }, [transform]);
 
     useEffect(() => {
         if (!svgRef.current || !projection) return;
 
         const svg = d3.select(svgRef.current);
-        // Ensure the group exists
         let g = svg.select<SVGGElement>('g.map-content');
         if (g.empty()) {
             g = svg.append('g').attr('class', 'map-content');
         }
 
-        // Clear previous content in group
         g.selectAll('*').remove();
 
         const path = d3.geoPath().projection(projection);
 
         d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
-            const countries = (topojson.feature(world, world.objects.countries) as any).features;
+            // Filter out Antarctica
+            const countries = (topojson.feature(world, world.objects.countries) as any).features.filter(
+                (f: any) => f.properties?.name !== 'Antarctica'
+            );
 
             const graticule = d3.geoGraticule().step([20, 20]);
             g.append("path")
@@ -100,8 +96,7 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                     // Highlight ALL countries in the same region
                     g.selectAll(".land-path").each(function () {
                         const el = d3.select(this);
-                        const elRegion = el.attr("data-region");
-                        if (elRegion === region) {
+                        if (el.attr("data-region") === region) {
                             el.classed("region-hover", true);
                         } else {
                             el.classed("region-dimmed", true);
@@ -109,7 +104,6 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                     });
                 })
                 .on("mouseleave", function () {
-                    // Remove all highlights
                     g.selectAll(".land-path")
                         .classed("region-hover", false)
                         .classed("region-dimmed", false);
@@ -117,21 +111,18 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                 .on("click", (event: any, d: any) => {
                     const countryName = d.properties?.name || '';
                     const region = getRegionForCountry(countryName);
-                    if (region) onRegionSelect(region);
+                    if (region) {
+                        onRegionSelect(region);
+                    }
                 });
 
-            // Calculate pins
-            // NOTE: This depends on FLIGHTS/REGIONS being populated. 
-            // Currently they are empty, so no pins will show.
+            // Calculate pins with correct mapping
             const newPins: any[] = [];
             let idx = 0;
 
-            // Logic adapted from buildPins to React state
-            // Once REGIONS is populated with deals, this will work.
             Object.entries(REGIONS).forEach(([regionKey, regionData]: [string, any]) => {
                 if (!regionData.deals) return;
                 regionData.deals.forEach((deal: any, di: number) => {
-                    if (di > 2) return;
                     const pos = projection([deal.lon, deal.lat]);
                     if (!pos) return;
 
@@ -147,12 +138,12 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             });
             setPins(newPins);
 
-            // Draw flight arcs from Montreal
+            // Draw flight arcs
             const montrealCoords: [number, number] = [-73.5674, 45.5019];
             const montrealPos = projection(montrealCoords);
 
             if (montrealPos) {
-                // Draw Montreal marker
+                // YUL Marker
                 g.append("circle")
                     .attr("cx", montrealPos[0])
                     .attr("cy", montrealPos[1])
@@ -171,15 +162,13 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                     .attr("font-family", "'DM Sans', sans-serif")
                     .text("YUL");
 
-                // Draw arcs to each destination
+                // Flight Arcs
                 newPins.forEach((p: any) => {
                     const destPos = projection([p.deal.lon, p.deal.lat]);
                     if (!destPos || !montrealPos) return;
 
-                    // Calculate a curved path (quadratic bezier)
                     const midX = (montrealPos[0] + destPos[0]) / 2;
                     const midY = (montrealPos[1] + destPos[1]) / 2;
-                    // Curve upward — the offset creates the arc effect
                     const dx = destPos[0] - montrealPos[0];
                     const dy = destPos[1] - montrealPos[1];
                     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -189,14 +178,14 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
 
                     const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${controlX},${controlY} ${destPos[0]},${destPos[1]}`;
 
-                    // Background arc (thicker, very subtle)
+                    // Subtle background arc
                     g.append("path")
                         .attr("d", pathData)
                         .attr("fill", "none")
                         .attr("stroke", "rgba(46, 125, 219, 0.06)")
                         .attr("stroke-width", 2);
 
-                    // Main arc (dashed, animated)
+                    // Animated dashed arc
                     g.append("path")
                         .attr("d", pathData)
                         .attr("fill", "none")
@@ -208,14 +197,9 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             }
         });
 
-    }, [projection]); // Re-run when projection changes (resize)
+    }, [projection]);
 
-    // Update pins calculation to include transform
-    // Actually, in the React way, we should update the 'style' of Pins based on transform
-    // The previous implementation calculated 'x' and 'y' once based on projection.
-    // Now 'left' should be x * k + tx, 'top' should be y * k + ty.
-
-    // Native wheel listener to allow preventDefault
+    // Pan/Zoom Handlers
     useEffect(() => {
         const container = document.getElementById('map-container');
         if (!container) return;
@@ -234,7 +218,6 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
     }, []);
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        // checks if target is not pin/sidebar etc handled by CSS pointer-events or stopPropagation
         lastPos.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -249,8 +232,6 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
     const handleMouseUp = () => {
         lastPos.current = null;
     };
-
-    // Touch events would be similar... skipped for brevity but should be added
 
     const lastPinchDist = useRef<number | null>(null);
 
@@ -269,7 +250,6 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
             lastPos.current = { x: touch.clientX, y: touch.clientY };
         }
-        // Pinch zoom with 2 fingers
         if (e.touches.length === 2) {
             const dx = e.touches[0].clientX - e.touches[1].clientX;
             const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -314,12 +294,12 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
                         position: 'absolute',
                         left: p.x * transform.k + transform.x,
                         top: p.y * transform.k + transform.y,
-                        pointerEvents: 'auto' // Re-enable for pins
+                        pointerEvents: 'auto'
                     }}>
                         <MapPin
                             deal={p.deal}
                             regionKey={p.regionKey}
-                            x={0} // Position handled by parent div for transform
+                            x={0}
                             y={0}
                             index={p.index}
                             onMouseEnter={(e: any, d: any) => onHoverDeal(d || p.deal, e)}
