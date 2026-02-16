@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { REGIONS, getRegionForCountry } from '@/lib/data/regions';
 import { FLIGHTS } from '@/lib/data/flights';
+import { PRIORITY_DESTINATIONS } from '@/lib/services/flights';
 import MapPin from './MapPin';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -151,105 +152,117 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
             const newPins: any[] = [];
             const activeDeals = deals && deals.length > 0 ? deals : [];
 
-            if (activeDeals.length > 0) {
-                activeDeals.forEach((deal: any, idx: number) => {
-                    // Precise Mapping or Fallback
-                    const coords = CITY_COORDINATES[deal.city] || {
-                        lat: deal.lat || 0,
-                        lng: deal.lon || deal.lng || 0
-                    };
+            // Helper for precise coordinates
+            const getCoords = (deal: any): { lat: number; lng: number } | null => {
+                const name = deal.destination || deal.city || '';
+                // 1. Direct city name match
+                if (CITY_COORDINATES[name]) return CITY_COORDINATES[name];
 
-                    const pos = projection([coords.lng, coords.lat]);
-                    if (!pos) return;
-
-                    newPins.push({
-                        deal: { ...deal, disc: deal.disc || 0, lon: coords.lng, lat: coords.lat },
-                        x: pos[0],
-                        y: pos[1],
-                        index: idx
-                    });
-                });
-            } else {
-                // Secondary fallback to static regions
-                Object.entries(REGIONS).forEach(([regionKey, regionData]: [string, any]) => {
-                    if (!regionData.deals) return;
-                    regionData.deals.forEach((deal: any, idx: number) => {
-                        const pos = projection([deal.lon, deal.lat]);
-                        if (!pos) return;
-                        newPins.push({ deal, x: pos[0], y: pos[1], index: idx });
-                    });
-                });
-            }
-            setPins(newPins);
-
-            // 4. YUL Marker
-            const montrealCoords: [number, number] = [-73.5674, 45.5019];
-            const montrealPos = projection(montrealCoords);
-            if (montrealPos) {
-                const yul = g.append("g").attr("class", "yul-marker")
-                    .attr("transform", `translate(${montrealPos[0]}, ${montrealPos[1]})`);
-                yul.append("circle").attr("r", 4).attr("fill", "#2E7DDB").attr("stroke", "#fff").attr("stroke-width", 2);
-                yul.append("text").attr("y", -10).attr("text-anchor", "middle").attr("font-size", "9px").attr("font-weight", "700").attr("fill", "#2E7DDB").attr("font-family", "'DM Sans', sans-serif").text("YUL");
-            }
-
-            // 5. Flight Arcs
-            if (montrealPos) {
-                newPins.forEach(p => {
-                    const midX = (montrealPos[0] + p.x) / 2;
-                    const midY = (montrealPos[1] + p.y) / 2 - Math.min(Math.sqrt(Math.pow(p.x - montrealPos[0], 2) + Math.pow(p.y - montrealPos[1], 2)) * 0.2, 80);
-                    const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${midX},${midY} ${p.x},${p.y}`;
-
-                    g.append("path").attr("d", pathData).attr("fill", "none").attr("stroke", "rgba(46, 125, 219, 0.06)").attr("stroke-width", 2);
-                    g.append("path")
-                        .attr("d", pathData)
-                        .attr("fill", "none")
-                        .attr("stroke", p.deal.disc >= 52 ? "rgba(232, 70, 106, 0.25)" : "rgba(46, 125, 219, 0.2)")
-                        .attr("stroke-width", 1)
-                        .attr("stroke-dasharray", "4 6")
-                        .style("animation", "arcFlow 2s linear infinite");
-                });
-            }
-
-            // 6. Pins & Badges
-            newPins.forEach(p => {
-                // Pin
-                g.append("circle")
-                    .attr("cx", p.x)
-                    .attr("cy", p.y)
-                    .attr("r", 4)
-                    .attr("fill", "#2E7DDB")
-                    .attr("opacity", 0.9)
-                    .style("cursor", "pointer")
-                    .on("mouseenter", (e) => onHoverDeal(p.deal, e))
-                    .on("mouseleave", onLeaveDeal)
-                    .on("click", (e) => onSelectDeal?.(p.deal, e));
-
-                // Discount Badge (Permanent)
-                if (p.deal.disc > 0) {
-                    const badge = g.append("g")
-                        .attr("transform", `translate(${p.x}, ${p.y - 20})`)
-                        .style("cursor", "pointer")
-                        .on("mouseenter", (e) => onHoverDeal(p.deal, e))
-                        .on("mouseleave", onLeaveDeal)
-                        .on("click", (e) => onSelectDeal?.(p.deal, e));
-
-                    badge.append("rect")
-                        .attr("x", -15)
-                        .attr("y", -10)
-                        .attr("width", 30)
-                        .attr("height", 16)
-                        .attr("rx", 8)
-                        .attr("fill", p.deal.disc >= 52 ? "#E8466A" : "#2E7DDB");
-
-                    badge.append("text")
-                        .attr("text-anchor", "middle")
-                        .attr("alignment-baseline", "middle")
-                        .attr("font-size", "9px")
-                        .attr("font-weight", "bold")
-                        .attr("fill", "#fff")
-                        .text(`-${p.deal.disc}%`);
+                // 2. Try matching destination_code to CITY_COORDINATES via PRIORITY_DESTINATIONS
+                const codeMatch = PRIORITY_DESTINATIONS.find((p: any) => p.code === deal.destination_code || p.city === name);
+                if (codeMatch && CITY_COORDINATES[codeMatch.city]) {
+                    return CITY_COORDINATES[codeMatch.city];
                 }
+
+                // 3. Fallback to raw data lat/lng/lon
+                const lat = deal.lat || 0;
+                const lng = deal.lon || deal.lng || 0;
+                if (lat !== 0 || lng !== 0) return { lat, lng };
+
+                return null;
+            };
+
+            const yulCoords = projection([-73.74, 45.47]); // Montréal-Trudeau (YUL)
+
+            activeDeals.forEach((deal: any, idx: number) => {
+                const coords = getCoords(deal);
+                if (!coords) return;
+
+                const projected = projection([coords.lng, coords.lat]);
+                if (!projected) return;
+
+                const [x, y] = projected;
+
+                // A. Flight Arcs (From YUL)
+                if (yulCoords) {
+                    const midX = (yulCoords[0] + x) / 2;
+                    const midY = Math.min(yulCoords[1], y) - 50;
+                    const pathData = `M${yulCoords[0]},${yulCoords[1]} Q${midX},${midY} ${x},${y}`;
+
+                    g.append('path')
+                        .attr('d', pathData)
+                        .attr('stroke', '#2E7DDB')
+                        .attr('stroke-width', 1)
+                        .attr('fill', 'none')
+                        .attr('opacity', 0.3)
+                        .attr('stroke-dasharray', '4,4');
+                }
+
+                // B. Pin
+                g.append('circle')
+                    .attr('cx', x)
+                    .attr('cy', y)
+                    .attr('r', 5)
+                    .attr('fill', '#2E7DDB')
+                    .attr('stroke', 'white')
+                    .attr('stroke-width', 1.5)
+                    .attr('class', 'deal-pin')
+                    .style('cursor', 'pointer')
+                    .on("mouseenter", (e) => onHoverDeal(deal, e))
+                    .on("mouseleave", onLeaveDeal)
+                    .on("click", (e) => onSelectDeal?.(deal, e));
+
+                // C. Discount Badge (Permanent)
+                const discount = deal.discount || deal.disc || 0;
+                if (discount > 0) {
+                    const badgeG = g.append('g')
+                        .attr('transform', `translate(${x}, ${y - 20})`)
+                        .attr('class', 'discount-badge')
+                        .style('cursor', 'pointer')
+                        .on("mouseenter", (e) => onHoverDeal(deal, e))
+                        .on("mouseleave", onLeaveDeal)
+                        .on("click", (e) => onSelectDeal?.(deal, e));
+
+                    // Rounded background
+                    badgeG.append('rect')
+                        .attr('x', -28)
+                        .attr('y', -12)
+                        .attr('width', 56)
+                        .attr('height', 24)
+                        .attr('rx', 12)
+                        .attr('fill', 'white')
+                        .attr('stroke', '#FF4D6A')
+                        .attr('stroke-width', 1.5);
+
+                    // Small red dot
+                    badgeG.append('circle')
+                        .attr('cx', -18)
+                        .attr('cy', 0)
+                        .attr('r', 4)
+                        .attr('fill', '#FF4D6A');
+
+                    // Discount text
+                    badgeG.append('text')
+                        .attr('x', 4)
+                        .attr('y', 4)
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '11px')
+                        .attr('font-weight', '700')
+                        .attr('font-family', "'Outfit', sans-serif")
+                        .attr('fill', '#FF4D6A')
+                        .text(`-${discount}%`);
+
+                    // Arrow point
+                    badgeG.append('path')
+                        .attr('d', 'M-4,12 L0,18 L4,12')
+                        .attr('fill', 'white')
+                        .attr('stroke', '#FF4D6A')
+                        .attr('stroke-width', 1.5);
+                }
+
+                newPins.push({ deal, x, y, index: idx });
             });
+            setPins(newPins);
         });
 
     }, [projection, deals]);

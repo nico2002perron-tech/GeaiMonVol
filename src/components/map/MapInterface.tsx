@@ -36,6 +36,7 @@ export default function MapInterface() {
     }, []);
 
     const { prices, loading: pricesLoading, lastUpdated } = useLivePrices();
+    console.log('[MapInterface] Live prices:', prices?.length, prices);
 
     return (
         <>
