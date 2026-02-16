@@ -9,7 +9,7 @@ import HowItWorksModal from '@/components/ui/HowItWorksModal';
 import MapTopbar from './MapTopbar';
 import HoverCard from './HoverCard';
 import GeaiAssistant from './GeaiAssistant';
-import SocialTicker from './SocialTicker';
+// import SocialTicker from './SocialTicker';
 // import DealOfTheDay from './DealOfTheDay';
 import Confetti from './Confetti';
 
@@ -72,7 +72,7 @@ export default function MapInterface() {
 
                     <PremiumBanner />
                     {/* <DealOfTheDay /> */}
-                    <SocialTicker />
+                    {/* <SocialTicker /> */}
                     <DealStrip />
                     <Sidebar
                         isOpen={sidebarOpen}
