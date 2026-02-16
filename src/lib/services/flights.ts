@@ -283,7 +283,7 @@ export async function scanDestinationDeep(
                 },
             });
 
-            await sleep(2500);
+            await sleep(1500);
         } catch (error) {
             console.error(`[Deep] Error scanning ${destCity} ${date.month}:`, error);
         }
@@ -312,7 +312,7 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     // PHASE 2 : Scan détaillé des 10 destinations prioritaires
     // (celles qui sont populaires depuis Montréal)
     console.log('\n--- Phase 2: Deep scan top destinations ---');
-    const topDestinations = PRIORITY_DESTINATIONS.slice(0, 10); // Top 10
+    const topDestinations = PRIORITY_DESTINATIONS.slice(0, 5); // Top 5
 
     for (const dest of topDestinations) {
         const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
@@ -328,7 +328,7 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     // Scanner les 5 meilleurs deals surprises
     const topSurprises = surpriseDeals
         .sort((a, b) => a.price - b.price)
-        .slice(0, 5);
+        .slice(0, 2);
 
     for (const surprise of topSurprises) {
         if (surprise.airportCode) {
