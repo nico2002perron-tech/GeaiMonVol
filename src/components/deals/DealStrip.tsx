@@ -5,8 +5,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { HOTELS } from '@/lib/data/hotels';
 import { FLIGHTS } from '@/lib/data/flights';
+import { useLivePrices } from '@/lib/hooks/useLivePrices';
 
-export default function DealStrip() {
+interface DealStripProps {
+    deals?: any[];
+    loading?: boolean;
+}
+
+export default function DealStrip({ deals = [], loading = false }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'flights' | 'hotels'>('flights');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -80,7 +86,35 @@ export default function DealStrip() {
 
     const sortedHotels = [...HOTELS].sort((a, b) => b.disc - a.disc);
 
-    const allDeals = [...FLIGHTS].sort((a, b) => b.disc - a.disc);
+    // Use passed deals if available, otherwise use internal hook (which is duplicate but safe)
+    // Actually, we receive deals from parent now, so we can ignore internal hook or merge?
+    // The user instruction said: "Merge live prices with static data" in DealStrip.
+    // But we are also passing them from MapInterface.
+    // Let's use the props if provided.
+
+    const displayDeals = deals.length > 0
+        ? deals.map(p => ({
+            city: p.destination,
+            code: p.destination_code,
+            price: p.price,
+            airline: p.airline,
+            stops: p.stops,
+            route: `YUL – ${p.destination_code}`,
+            dates: `${p.departure_date} → ${p.return_date}`,
+            disc: 0,
+            oldPrice: 0,
+            img: FLIGHTS.find(f => f.city === p.destination)?.img || '',
+            imgSmall: FLIGHTS.find(f => f.city === p.destination)?.imgSmall || '',
+            country: FLIGHTS.find(f => f.city === p.destination)?.country || '',
+            tags: [],
+            lat: FLIGHTS.find(f => f.city === p.destination)?.lat || 0,
+            lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
+            id: p.destination_code
+        }))
+        : [...FLIGHTS].sort((a, b) => b.disc - a.disc);
+
+    // If loading, maybe show skeleton? For now just show static as fallback is handled above
+
 
     return (
         <div className="strip">
@@ -122,7 +156,7 @@ export default function DealStrip() {
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
                 >
-                    {allDeals.slice(0, 7).map((deal, i) => (
+                    {displayDeals.slice(0, 7).map((deal, i) => (
                         <div key={deal.id || i} className="scard">
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img

@@ -13,6 +13,7 @@ import GeaiAssistant from './GeaiAssistant';
 // import DealOfTheDay from './DealOfTheDay';
 import Confetti from './Confetti';
 import Onboarding from './Onboarding';
+import { useLivePrices } from '@/lib/hooks/useLivePrices';
 
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,6 +34,8 @@ export default function MapInterface() {
         setAppReady(true);
     }, []);
 
+    const { prices, loading: pricesLoading, lastUpdated } = useLivePrices();
+
     return (
         <>
 
@@ -41,6 +44,7 @@ export default function MapInterface() {
                 <div id="app" className={appReady ? 'show' : ''} style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden' }}>
 
                     <MapCanvas
+                        deals={prices} // Pass live prices to map
                         onRegionSelect={(region) => {
                             console.log("Selected region:", region);
                             setSelectedRegion(region); // New state needed
@@ -75,7 +79,8 @@ export default function MapInterface() {
                     <PremiumBanner />
                     {/* <DealOfTheDay /> */}
                     {/* <SocialTicker /> */}
-                    <DealStrip />
+                    {/* <SocialTicker /> */}
+                    <DealStrip deals={prices} loading={pricesLoading} />
                     <Sidebar
                         isOpen={sidebarOpen}
                         onClose={() => setSidebarOpen(false)}

@@ -1,0 +1,12 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/scan-prices?secret=${CRON_SECRET}",
+            "schedule": "0 */6 * * *"
+        },
+        {
+            "path": "/api/cron/send-alerts?secret=${CRON_SECRET}",
+            "schedule": "30 */6 * * *"
+        }
+    ]
+}

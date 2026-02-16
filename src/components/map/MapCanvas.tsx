@@ -8,13 +8,14 @@ import { FLIGHTS } from '@/lib/data/flights';
 import MapPin from './MapPin';
 
 interface MapCanvasProps {
+    deals?: any[]; // Added deals prop
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
     onLeaveDeal: () => void;
     onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
 }
 
-export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
+export default function MapCanvas({ deals = [], onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
     const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
@@ -120,22 +121,54 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             const newPins: any[] = [];
             let idx = 0;
 
-            Object.entries(REGIONS).forEach(([regionKey, regionData]: [string, any]) => {
-                if (!regionData.deals) return;
-                regionData.deals.forEach((deal: any, di: number) => {
-                    const pos = projection([deal.lon, deal.lat]);
+            // Use live deals if available, otherwise fallback to regions
+            if (deals && deals.length > 0) {
+                deals.forEach((deal: any) => {
+                    // Try to find coordinates from static FLIGHTS if not in deal
+                    const staticFlight = FLIGHTS.find(f => f.city === deal.destination);
+                    const lon = deal.lon || staticFlight?.lon || 0;
+                    const lat = deal.lat || staticFlight?.lat || 0;
+
+                    const pos = projection([lon, lat]);
                     if (!pos) return;
 
+                    // Merge deal data
+                    const fullDeal = {
+                        ...deal,
+                        city: deal.destination,
+                        country: staticFlight?.country || '',
+                        img: staticFlight?.img || '',
+                        // Calculate discount if not present
+                        disc: deal.disc || 0
+                    };
+
                     newPins.push({
-                        deal,
-                        regionKey,
+                        deal: fullDeal,
+                        regionKey: 'all', // Simplify for now
                         x: pos[0],
                         y: pos[1],
                         index: idx
                     });
                     idx++;
                 });
-            });
+            } else {
+                Object.entries(REGIONS).forEach(([regionKey, regionData]: [string, any]) => {
+                    if (!regionData.deals) return;
+                    regionData.deals.forEach((deal: any, di: number) => {
+                        const pos = projection([deal.lon, deal.lat]);
+                        if (!pos) return;
+
+                        newPins.push({
+                            deal,
+                            regionKey,
+                            x: pos[0],
+                            y: pos[1],
+                            index: idx
+                        });
+                        idx++;
+                    });
+                });
+            }
             setPins(newPins);
 
             // Draw flight arcs
@@ -164,19 +197,25 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
 
                 // Flight Arcs
                 newPins.forEach((p: any) => {
-                    const destPos = projection([p.deal.lon, p.deal.lat]);
-                    if (!destPos || !montrealPos) return;
+                    const destPos = projection([p.deal.lon || p.deal.destination_code === p.deal.code ? 0 : 0, p.deal.lat || 0]);
+                    // Re-project using p.x/p.y is safer since we already calculated it
+                    // But we need formatted source for arcs.
+                    // Actually we can just use p.x and p.y directly!
 
-                    const midX = (montrealPos[0] + destPos[0]) / 2;
-                    const midY = (montrealPos[1] + destPos[1]) / 2;
-                    const dx = destPos[0] - montrealPos[0];
-                    const dy = destPos[1] - montrealPos[1];
+                    if (!montrealPos) return;
+                    const destX = p.x;
+                    const destY = p.y;
+
+                    const midX = (montrealPos[0] + destX) / 2;
+                    const midY = (montrealPos[1] + destY) / 2;
+                    const dx = destX - montrealPos[0];
+                    const dy = destY - montrealPos[1];
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     const curveOffset = Math.min(dist * 0.2, 80);
                     const controlX = midX;
                     const controlY = midY - curveOffset;
 
-                    const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${controlX},${controlY} ${destPos[0]},${destPos[1]}`;
+                    const pathData = `M${montrealPos[0]},${montrealPos[1]} Q${controlX},${controlY} ${destX},${destY}`;
 
                     // Subtle background arc
                     g.append("path")
