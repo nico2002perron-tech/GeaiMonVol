@@ -1,4 +1,12 @@
 {
+    "functions": {
+        "src/app/api/cron/scan-prices/route.ts": {
+            "maxDuration": 60
+        },
+        "src/app/api/cron/send-alerts/route.ts": {
+            "maxDuration": 60
+        }
+    },
     "crons": [
         {
             "path": "/api/cron/scan-prices?secret=${CRON_SECRET}",
