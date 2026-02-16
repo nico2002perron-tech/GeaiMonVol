@@ -2051,41 +2051,56 @@
 
         /* Strip mobile */
         .strip {
-            max-height: 200px;
+            max-height: 280px;
+            padding: 20px 0 0;
         }
 
         .strip-head {
-            padding: 0 12px 8px;
+            padding: 0 16px 10px;
         }
 
         .strip-title {
-            font-size: 13px;
+            font-size: 15px;
+            font-weight: 700;
         }
 
         .strip-row {
-            padding: 0 12px 14px;
-            gap: 10px;
+            padding: 0 16px 16px;
+            gap: 12px;
         }
 
         .scard {
-            flex: 0 0 156px;
-            min-width: 156px;
+            flex: 0 0 170px;
+            min-width: 170px;
         }
 
         .scard-img {
-            height: 75px;
+            height: 90px;
         }
 
         .scard-body {
-            padding: 8px 10px 10px;
+            padding: 10px 12px 12px;
         }
 
         .scard-city {
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .scard-route {
+            font-size: 11px;
+            margin-bottom: 8px;
         }
 
         .scard-price {
-            font-size: 14px;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .scard-disc {
+            font-size: 11px;
+            padding: 3px 9px;
+            font-weight: 800;
         }
 
         /* Sidebar mobile — full width */
@@ -2744,5 +2759,39 @@
         fill: #EDF3F8;
         stroke: rgba(194, 216, 234, 0.3);
         transition: fill 0.3s ease, stroke 0.3s ease;
+    }
+
+    /* Prix qui attire l'oeil */
+    .scard-price {
+        font-family: 'Fredoka', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        color: #fff;
+        background: linear-gradient(135deg, #2E7DDB, #1E5FA8);
+        padding: 3px 10px;
+        border-radius: 8px;
+        display: inline-block;
+        line-height: 1.2;
+        box-shadow: 0 2px 8px rgba(46, 125, 219, 0.25);
+    }
+
+    /* Rabais plus visible */
+    .scard-disc {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 100px;
+        background: linear-gradient(135deg, #DC2626, #EF4444);
+        color: #fff;
+        letter-spacing: 0.3px;
+        box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+    }
+
+    /* Ligne de prix : prix à gauche, rabais à droite */
+    .scard-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 4px;
     }
 }

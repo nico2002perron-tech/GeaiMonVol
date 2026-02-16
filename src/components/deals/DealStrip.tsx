@@ -95,21 +95,20 @@ export default function DealStrip() {
                                 <div className="scard-city">{deal.city}</div>
                                 <div className="scard-route">{deal.route}</div>
                                 <div className="scard-row">
-                                    <div>
-                                        <span className="scard-price">{deal.price} $</span>
-                                        {deal.oldPrice && (
-                                            <span style={{
-                                                fontSize: 11,
-                                                color: '#8FA3B8',
-                                                textDecoration: 'line-through',
-                                                marginLeft: 6,
-                                            }}>
-                                                {deal.oldPrice} $
-                                            </span>
-                                        )}
-                                    </div>
+                                    <span className="scard-price">{deal.price} $</span>
                                     <span className="scard-disc">-{deal.disc}%</span>
                                 </div>
+                                {deal.oldPrice && (
+                                    <div style={{
+                                        fontSize: 11,
+                                        color: '#8FA3B8',
+                                        textDecoration: 'line-through',
+                                        marginTop: 2,
+                                        paddingLeft: 2,
+                                    }}>
+                                        {deal.oldPrice} $
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
