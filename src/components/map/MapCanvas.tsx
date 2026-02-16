@@ -32,9 +32,9 @@ export default function MapCanvas({ onRegionSelect, onHoverDeal, onLeaveDeal, on
             setDimensions({ width: w, height: h });
 
             const proj = d3.geoNaturalEarth1()
-                .scale(w < 768 ? w / 8 : Math.min(w, h) / 3.2)
-                .translate([w / 2, h / 2])
-                .center([0, 15]);
+                .scale(w < 768 ? w / 3.5 : Math.min(w, h) / 3.2)
+                .translate([w < 768 ? w * 0.35 : w / 2, h / 2])
+                .center([0, w < 768 ? 25 : 15]);
             setProjection(() => proj);
         };
 
