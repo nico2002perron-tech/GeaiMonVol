@@ -136,13 +136,40 @@ export default function DealStrip({ deals = [], loading = false }: DealStripProp
                             Vols
                         </button>
                         <button
-                            className={`strip-tab ${activeTab === 'hotels' ? 'on' : ''}`}
-                            onClick={() => setActiveTab('hotels')}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'default',
+                                fontFamily: "'Outfit', sans-serif",
+                                background: 'rgba(26,43,66,0.04)',
+                                color: '#8FA3B8',
+                                position: 'relative',
+                                opacity: 0.7,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                marginLeft: '8px'
+                            }}
+                            disabled
                         >
-                            <svg viewBox="0 0 24 24">
-                                <path d="M3 21h18M3 7v14M21 7v14M6 11h4v4H6zM14 11h4v4h-4zM9 3h6l3 4H6l3-4z" />
-                            </svg>
-                            Hôtels
+                            <span style={{ textDecoration: 'line-through' }}>Hôtels</span>
+                            <span style={{
+                                position: 'absolute',
+                                top: -8,
+                                right: -12,
+                                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                                color: 'white',
+                                fontSize: 8,
+                                fontWeight: 800,
+                                padding: '2px 5px',
+                                borderRadius: 100,
+                                letterSpacing: '0.5px',
+                            }}>
+                                PRO
+                            </span>
                         </button>
                         <button
                             style={{
