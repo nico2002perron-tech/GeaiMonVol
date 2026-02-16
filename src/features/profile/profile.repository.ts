@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerSupabase } from "@/lib/supabase/server";
 import { Profile } from "./profile.schema";
 
 export async function getProfile(userId: string): Promise<Profile | null> {
-    const supabase = await createClient();
+    const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -14,7 +14,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 }
 
 export async function updateProfile(userId: string, profile: Partial<Profile>) {
-    const supabase = await createClient();
+    const supabase = await createServerSupabase();
     const { error } = await supabase
         .from("profiles")
         .update(profile)

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerSupabase } from "@/lib/supabase/server";
 
 export interface WatchlistItem {
     id: string;
@@ -9,7 +9,7 @@ export interface WatchlistItem {
 }
 
 export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
-    const supabase = await createClient();
+    const supabase = await createServerSupabase();
     const { data, error } = await supabase
         .from("watchlist")
         .select("*")
@@ -20,7 +20,7 @@ export async function getWatchlist(userId: string): Promise<WatchlistItem[]> {
 }
 
 export async function addToWatchlist(userId: string, destination: string, targetPrice?: number) {
-    const supabase = await createClient();
+    const supabase = await createServerSupabase();
     const { error } = await supabase
         .from("watchlist")
         .insert({ user_id: userId, destination, target_price: targetPrice });

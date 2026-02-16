@@ -1,5 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { HOTELS } from '@/lib/data/hotels';
 import { FLIGHTS } from '@/lib/data/flights';
 
@@ -7,6 +10,51 @@ export default function DealStrip() {
     const [activeTab, setActiveTab] = useState<'flights' | 'hotels'>('flights');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
+    const { user } = useAuth();
+    const router = useRouter();
+    const supabase = createClient();
+    const [watchedDeals, setWatchedDeals] = useState<string[]>([]);
+
+    // Load user's watchlist
+    useEffect(() => {
+        if (!user) return;
+        const loadWatchlist = async () => {
+            const { data } = await supabase
+                .from('watchlist')
+                .select('destination')
+                .eq('user_id', user.id);
+            if (data) setWatchedDeals(data.map(w => w.destination));
+        };
+        loadWatchlist();
+    }, [user]);
+
+    const toggleWatchlist = async (deal: any) => {
+        if (!user) {
+            router.push('/auth');
+            return;
+        }
+
+        const isWatched = watchedDeals.includes(deal.city);
+
+        if (isWatched) {
+            await supabase
+                .from('watchlist')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('destination', deal.city);
+            setWatchedDeals(prev => prev.filter(d => d !== deal.city));
+        } else {
+            await supabase
+                .from('watchlist')
+                .upsert({
+                    user_id: user.id,
+                    destination: deal.city,
+                    country: deal.country,
+                    target_price: deal.price,
+                }, { onConflict: 'user_id,destination' });
+            setWatchedDeals(prev => [...prev, deal.city]);
+        }
+    };
 
     useEffect(() => {
         const el = scrollRef.current;
@@ -76,21 +124,59 @@ export default function DealStrip() {
                 >
                     {allDeals.slice(0, 7).map((deal, i) => (
                         <div key={deal.id || i} className="scard">
-                            <img
-                                className="scard-img"
-                                src={deal.imgSmall || deal.img}
-                                alt={deal.city}
-                                loading="lazy"
-                                onError={(e) => {
-                                    const target = e.currentTarget;
-                                    if (!target.dataset.failed) {
-                                        target.dataset.failed = 'true';
-                                        target.src = 'data:image/svg+xml,' + encodeURIComponent(
-                                            '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
-                                        );
-                                    }
-                                }}
-                            />
+                            <div style={{ position: 'relative', overflow: 'hidden' }}>
+                                <img
+                                    className="scard-img"
+                                    src={deal.imgSmall || deal.img}
+                                    alt={deal.city}
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        const target = e.currentTarget;
+                                        if (!target.dataset.failed) {
+                                            target.dataset.failed = 'true';
+                                            target.src = 'data:image/svg+xml,' + encodeURIComponent(
+                                                '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
+                                            );
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleWatchlist(deal);
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 8,
+                                        right: 8,
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: '50%',
+                                        background: 'rgba(255,255,255,0.9)',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        backdropFilter: 'blur(4px)',
+                                        transition: 'all 0.2s',
+                                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                                    }}
+                                >
+                                    <svg
+                                        width="14"
+                                        height="14"
+                                        viewBox="0 0 24 24"
+                                        fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
+                                        stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#5A7089'}
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                    >
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                    </svg>
+                                </button>
+                            </div>
                             <div className="scard-body">
                                 <div className="scard-city">{deal.city}</div>
                                 <div className="scard-route">{deal.route}</div>

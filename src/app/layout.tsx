@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { AuthProvider } from '@/lib/auth/AuthProvider';
 import './globals.css';
 import './legacy.css';
 
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

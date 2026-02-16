@@ -1,6 +1,9 @@
 'use client';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import Link from 'next/link';
 
 export default function MapTopbar() {
+    const { user, profile, loading } = useAuth();
     return (
         <div style={{
             position: 'absolute',
@@ -108,6 +111,73 @@ export default function MapTopbar() {
                     </svg>
                     Comment ça marche?
                 </button>
+
+                {/* Auth button */}
+                {!loading && (
+                    <>
+                        {user ? (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                            }}>
+                                <Link
+                                    href="/profile"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 6,
+                                        padding: '7px 14px',
+                                        borderRadius: 100,
+                                        background: 'rgba(255,255,255,0.85)',
+                                        border: '1px solid rgba(26,43,66,0.06)',
+                                        fontSize: 12,
+                                        fontWeight: 600,
+                                        color: '#1A2B42',
+                                        textDecoration: 'none',
+                                        fontFamily: "'Outfit', sans-serif",
+                                        backdropFilter: 'blur(8px)',
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #2E7DDB, #4A94E8)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: 'white',
+                                    }}>
+                                        {(profile?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                                    </div>
+                                    {profile?.full_name?.split(' ')[0] || 'Mon profil'}
+                                </Link>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/auth"
+                                style={{
+                                    padding: '8px 18px',
+                                    borderRadius: 100,
+                                    background: 'linear-gradient(135deg, #2E7DDB, #1E5FA8)',
+                                    color: 'white',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    textDecoration: 'none',
+                                    fontFamily: "'Fredoka', sans-serif",
+                                    boxShadow: '0 2px 8px rgba(46,125,219,0.2)',
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                S'inscrire
+                            </Link>
+                        )}
+                    </>
+                )}
             </div>
         </div>
     );
