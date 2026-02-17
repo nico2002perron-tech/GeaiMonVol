@@ -2850,3 +2850,45 @@
         display: none !important;
     }
 }
+/*  Card hover effects  */
+.deal-card {
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.deal-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(26,43,66,0.15);
+    border-color: rgba(46,125,219,0.2);
+}
+
+.deal-card:hover .card-img {
+    transform: scale(1.08);
+}
+
+.card-img {
+    transition: transform 0.5s ease;
+}
+
+.deal-card:hover .see-flight {
+    color: #fff;
+    background: #2E7DDB;
+}
+
+/* Heart button */
+.deal-card button[style*="borderRadius: '50%'"],
+.deal-card button {
+    transition: transform 0.2s ease;
+}
+
+.deal-card button:hover {
+    transform: scale(1.15);
+}
+
+.deal-card button:active {
+    transform: scale(0.9);
+}
+
+@keyframes premiumSlide {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
