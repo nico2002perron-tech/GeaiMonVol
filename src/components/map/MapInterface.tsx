@@ -108,8 +108,12 @@ export default function MapInterface() {
                         </div>
 
                         <div style={{
-                            height: isMobile ? '40vh' : '400px',
+                            width: '100%',
+                            flex: isMobile ? '0 0 45vh' : '1 1 auto',
+                            minHeight: isMobile ? '40vh' : '350px',
                             position: 'relative',
+                            overflow: 'hidden',
+                            marginBottom: 0,
                         }}>
                             <MapCanvas
                                 deals={prices} // Pass live prices to map

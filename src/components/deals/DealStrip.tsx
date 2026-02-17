@@ -71,7 +71,13 @@ interface DealStripProps {
 export default function DealStrip({ deals = [], loading = false, onViewChange, onDealClick }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
+    const [showPremiumStrip, setShowPremiumStrip] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setShowPremiumStrip(true), 8000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -630,6 +636,76 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     ))}
                 </div>
             </div>
+
+            {/* Premium upsell intégré */}
+            {showPremiumStrip && (
+                <div style={{
+                    margin: isMobile ? '0 12px 12px' : '0 24px 16px',
+                    padding: isMobile ? '12px 16px' : '14px 20px',
+                    borderRadius: 14,
+                    background: 'linear-gradient(135deg, #1A2B42 0%, #2E4A6E 100%)',
+                    display: 'flex',
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    justifyContent: 'space-between',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? 12 : 0,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    animation: 'premiumSlide 0.5s ease both',
+                }}>
+                    {/* Orbe décoratif */}
+                    <div style={{
+                        position: 'absolute', right: -20, top: -20,
+                        width: 100, height: 100, borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(46,125,219,0.3) 0%, transparent 70%)',
+                    }} />
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, zIndex: 1 }}>
+                        <div style={{
+                            width: 36, height: 36, borderRadius: 10,
+                            background: 'linear-gradient(135deg, #2E7DDB, #06B6D4)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 16, flexShrink: 0,
+                        }}>
+                            ⚡
+                        </div>
+                        <div>
+                            <div style={{ color: 'white', fontWeight: 700, fontSize: 14, fontFamily: "'Outfit', sans-serif" }}>
+                                Premium — 5$/mois
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontFamily: "'Outfit', sans-serif" }}>
+                                Alertes perso · Prix record · Guides IA
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, zIndex: 1 }}>
+                        <button
+                            onClick={() => setShowPremiumStrip(false)}
+                            style={{
+                                padding: '7px 16px', borderRadius: 100,
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                background: 'none', color: 'rgba(255,255,255,0.7)',
+                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                            }}
+                        >
+                            Plus tard
+                        </button>
+                        <button
+                            onClick={() => { /* router.push('/pricing') */ }}
+                            style={{
+                                padding: '7px 18px', borderRadius: 100, border: 'none',
+                                background: 'white', color: '#1A2B42',
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                            }}
+                        >
+                            Essayer →
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
