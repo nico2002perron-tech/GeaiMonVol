@@ -829,7 +829,8 @@
     position: relative;
     z-index: 100;
     background: white;
-    padding: 8px 0 0;
+    padding: 10px 0 0;
+    flex-shrink: 0;
 }
 
 .strip-head {
@@ -2825,7 +2826,7 @@
 
     /* Strip */
     .strip {
-        padding: 4px 0 0 !important;
+        padding: 6px 0 0 !important;
     }
 
     .strip-head {
