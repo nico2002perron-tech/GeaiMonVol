@@ -50,7 +50,6 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
     'Ho Chi Minh': { lat: 10.82, lng: 106.63 },
 };
 
-// Countries with deals — Set for O(1) lookup
 const COUNTRIES_WITH_DEALS = new Set([
     'France', 'Spain', 'Portugal', 'Italy', 'Cuba', 'Mexico',
     'Dominican Republic', 'United States of America', 'Thailand',
@@ -60,7 +59,17 @@ const COUNTRIES_WITH_DEALS = new Set([
     'Jamaica', 'Vietnam',
 ]);
 
-// Module-level cache for world atlas (persists across remounts)
+// Badge colors by deal level
+const BADGE_COLORS: Record<string, string> = {
+    lowest_ever: '#7C3AED',
+    incredible: '#DC2626',
+    great: '#EA580C',
+    good: '#2E7DDB',
+    slight: '#2E7DDB',
+    normal: '#2E7DDB',
+};
+
+// Module-level cache for world atlas
 let worldAtlasCache: any = null;
 let worldAtlasPromise: Promise<any> | null = null;
 
@@ -118,12 +127,10 @@ export default function MapCanvas({
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [worldData, setWorldData] = useState<any>(null);
 
-    // Load world atlas once (cached at module level)
     useEffect(() => {
         loadWorldAtlas().then(setWorldData).catch(() => { });
     }, []);
 
-    // Resize handler
     useEffect(() => {
         const updateDimensions = () => {
             if (!svgRef.current) return;
@@ -131,7 +138,6 @@ export default function MapCanvas({
             const h = svgRef.current.clientHeight || window.innerHeight;
             setDimensions({ width: w, height: h });
         };
-
         window.addEventListener('resize', updateDimensions);
         const timer = setTimeout(updateDimensions, 50);
         return () => {
@@ -140,7 +146,6 @@ export default function MapCanvas({
         };
     }, []);
 
-    // Projection — memoized on dimensions + mobile
     const projection = useMemo(() => {
         if (dimensions.width === 0) return null;
         const proj = d3.geoNaturalEarth1();
@@ -152,7 +157,6 @@ export default function MapCanvas({
         return proj;
     }, [dimensions.width, dimensions.height, isMobile]);
 
-    // Filter deals by mapView
     const visibleDeals = useMemo(() => {
         return (deals || []).filter((deal) => {
             const code = deal.destination_code || deal.code || '';
@@ -161,7 +165,6 @@ export default function MapCanvas({
         });
     }, [deals, mapView]);
 
-    // Calculate pin positions — no more JSON.stringify, uses useMemo
     const pins: DealPin[] = useMemo(() => {
         if (!projection) return [];
         const result: DealPin[] = [];
@@ -175,30 +178,25 @@ export default function MapCanvas({
         return result;
     }, [visibleDeals, projection]);
 
-    // YUL (Montréal) position for arcs
     const yulPos = useMemo(() => {
         if (!projection) return null;
         return projection([-73.74, 45.47]);
     }, [projection]);
 
-    // Stable ref for onRegionSelect to avoid re-rendering land paths
     const onRegionSelectRef = useRef(onRegionSelect);
     onRegionSelectRef.current = onRegionSelect;
 
-    // D3: render ONLY land paths (geography). Pins are 100% React.
     useEffect(() => {
         if (!svgRef.current || !projection || !worldData?.objects) return;
 
         const svg = d3.select(svgRef.current);
         let g = svg.select<SVGGElement>('g.d3-land');
         if (g.empty()) {
-            // Insert the D3 layer BEFORE the React layer so pins render on top
             g = svg.insert('g', ':first-child').attr('class', 'd3-land');
         }
 
         const path = d3.geoPath().projection(projection);
 
-        // Setup zoom (once)
         if (!zoomInitializedRef.current) {
             const reactG = svg.select<SVGGElement>('g.react-overlay');
             const zoom = d3.zoom<SVGSVGElement, unknown>()
@@ -211,7 +209,6 @@ export default function MapCanvas({
             zoomInitializedRef.current = true;
         }
 
-        // Clear and re-render land (needed when projection changes)
         g.selectAll('.land-path').remove();
 
         try {
@@ -248,11 +245,10 @@ export default function MapCanvas({
                     if (region) onRegionSelectRef.current(region);
                 });
         } catch {
-            // Silently fail — land will just not render
+            // Silently fail
         }
     }, [projection, worldData]);
 
-    // Arc path helper
     const getArcPath = useCallback((toX: number, toY: number) => {
         if (!yulPos) return '';
         const midX = (yulPos[0] + toX) / 2;
@@ -269,39 +265,63 @@ export default function MapCanvas({
                 height={dimensions.height}
                 style={{ display: 'block' }}
             >
+                {/* SVG Defs for animated arc gradient */}
+                <defs>
+                    <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#2E7DDB" stopOpacity={0.6} />
+                        <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.3} />
+                    </linearGradient>
+                </defs>
+
                 {/* D3 inserts g.d3-land here via useEffect */}
 
                 {/* React-managed overlay: arcs + pins + badges */}
                 <g className="react-overlay">
-                    {/* Flight arcs */}
+                    {/* Flight arcs — animated dash */}
                     {yulPos && pins.map((pin, i) => (
                         <path
                             key={`arc-${pin.deal.destination_code || i}`}
                             d={getArcPath(pin.x, pin.y)}
-                            stroke="#2E7DDB"
-                            strokeWidth={1}
+                            stroke="url(#arcGradient)"
+                            strokeWidth={1.2}
                             fill="none"
-                            opacity={0.3}
-                            strokeDasharray="4,4"
+                            opacity={0.35}
+                            strokeDasharray="6,4"
+                            className="flight-arc-animated"
                         />
                     ))}
 
-                    {/* Deal pins */}
+                    {/* Deal pins with pulse/glow and colored badges */}
                     {pins.map((pin, i) => {
                         const discount = pin.deal.discount || pin.deal.disc || 0;
                         const cityName = pin.deal.city || pin.deal.destination || '';
+                        const level = pin.deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
+                        const pinColor = BADGE_COLORS[level] || '#2E7DDB';
 
                         return (
                             <g key={`pin-${pin.deal.destination_code || i}`}>
+                                {/* Glow halo — pulse animation */}
+                                <circle
+                                    cx={pin.x}
+                                    cy={pin.y}
+                                    r={12}
+                                    fill="none"
+                                    stroke={pinColor}
+                                    strokeWidth={2}
+                                    opacity={0.3}
+                                    className="pin-glow-halo"
+                                />
+
                                 {/* Pin circle */}
                                 <circle
                                     cx={pin.x}
                                     cy={pin.y}
                                     r={5}
-                                    fill="#2E7DDB"
+                                    fill={pinColor}
                                     stroke="white"
                                     strokeWidth={1.5}
                                     style={{ cursor: 'pointer' }}
+                                    className="pin-dot-pulse"
                                     onMouseEnter={(e) => onHoverDeal(pin.deal, e)}
                                     onMouseLeave={onLeaveDeal}
                                     onClick={(e) => onSelectDeal?.(pin.deal, e)}
@@ -311,7 +331,7 @@ export default function MapCanvas({
                                 {!isMobile && (
                                     <text
                                         x={pin.x}
-                                        y={pin.y + 15}
+                                        y={pin.y + 17}
                                         textAnchor="middle"
                                         fontSize="8.5px"
                                         fontWeight="700"
@@ -326,25 +346,23 @@ export default function MapCanvas({
                                     </text>
                                 )}
 
-                                {/* Discount badge */}
+                                {/* Discount badge — colored by deal level */}
                                 {discount > 0 && (
                                     <g
-                                        transform={`translate(${pin.x}, ${pin.y - 20})`}
+                                        transform={`translate(${pin.x}, ${pin.y - 22})`}
                                         style={{ cursor: 'pointer' }}
                                         onMouseEnter={(e) => onHoverDeal(pin.deal, e)}
                                         onMouseLeave={onLeaveDeal}
                                         onClick={(e) => onSelectDeal?.(pin.deal, e)}
                                     >
-                                        <rect x={-28} y={-12} width={56} height={24} rx={12}
-                                            fill="white" stroke="#FF4D6A" strokeWidth={1.5} />
-                                        <circle cx={-18} cy={0} r={4} fill="#FF4D6A" />
-                                        <text x={4} y={4} textAnchor="middle"
-                                            fontSize="11px" fontWeight="700"
+                                        <rect x={-24} y={-10} width={48} height={20} rx={10}
+                                            fill={pinColor} opacity={0.95} />
+                                        <text x={0} y={4} textAnchor="middle"
+                                            fontSize="10px" fontWeight="800"
                                             fontFamily="'Outfit', sans-serif"
-                                            fill="#FF4D6A">
+                                            fill="white">
                                             -{Math.abs(Math.round(discount))}%
                                         </text>
-                                        <path d="M-4,12 L0,18 L4,12" fill="white" stroke="#FF4D6A" strokeWidth={1.5} />
                                     </g>
                                 )}
                             </g>
