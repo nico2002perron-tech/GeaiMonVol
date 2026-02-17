@@ -47,6 +47,7 @@ const CITY_IMAGES: Record<string, string> = {
     'San José': 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=400&h=250&fit=crop',
     'Cartagena': 'https://images.unsplash.com/photo-1583997052103-b4a1cb974ce5?w=400&h=250&fit=crop',
     'Ho Chi Minh': 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=400&h=250&fit=crop',
+    'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570345070170-51d6e8f38953?w=400&h=250&fit=crop',
 };
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
@@ -172,103 +173,70 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         return true;
     });
 
-    const displayDealsKey = (displayDeals || []).map(d => d.id || d.code || d.city).join(',');
+    const dealsCount = (displayDeals || []).length;
 
     useEffect(() => {
         const container = scrollRef.current;
-        if (!container) return;
+        if (!container || dealsCount === 0) return;
 
-        // Attendre que le contenu soit rendu et que les images aient une taille
-        const initTimeout = setTimeout(() => {
-            if (!container.scrollWidth || container.scrollWidth <= container.clientWidth) return;
-
+        // Attendre que le DOM soit prêt et que les cards soient rendues
+        const startDelay = setTimeout(() => {
             let isPaused = false;
             let animationId: number;
 
-            // Capturer la largeur d'un set de deals au moment de l'init
-            // scrollWidth = 2 sets (loopedDeals), donc 1 set = scrollWidth / 2
-            const getHalfWidth = () => {
-                // On recalcule à chaque frame serait instable, 
-                // donc on le snapshot une fois au départ
-                return container.scrollWidth / 2;
-            };
-            const halfWidth = getHalfWidth();
+            // Mesurer la largeur d'un set de deals
+            // loopedDeals = 2x displayDeals, donc halfWidth = scrollWidth / 2
+            const halfWidth = container.scrollWidth / 2;
 
-            // S'assurer que halfWidth est valide
-            if (halfWidth <= 0 || !isFinite(halfWidth)) return;
+            if (halfWidth <= 0) return;
 
-            const scroll = () => {
-                if (!isPaused) {
-                    // Lire la position actuelle (respecte le scroll manuel de l'user)
-                    let currentPos = container.scrollLeft;
-                    currentPos += 0.5; // vitesse en px/frame (~30px/sec à 60fps)
+            const tick = () => {
+                if (!isPaused && container) {
+                    let pos = container.scrollLeft + 0.5;
 
-                    // Reset seamless : quand on dépasse le set 1, revenir au début
-                    // Le set 2 est identique au set 1, donc le saut est invisible
-                    if (currentPos >= halfWidth) {
-                        currentPos = currentPos - halfWidth;
+                    // Quand on atteint la fin du premier set, revenir au début
+                    if (pos >= halfWidth) {
+                        pos -= halfWidth;
                     }
 
-                    container.scrollLeft = currentPos;
+                    container.scrollLeft = pos;
                 }
-                animationId = requestAnimationFrame(scroll);
+                animationId = requestAnimationFrame(tick);
             };
 
-            animationId = requestAnimationFrame(scroll);
+            animationId = requestAnimationFrame(tick);
 
-            // --- Pause / Resume ---
-            const pause = () => {
-                isPaused = true;
-            };
+            // Pause handlers
+            const pause = () => { isPaused = true; };
+            const resume = () => { isPaused = false; };
+            const delayedResume = () => { setTimeout(resume, 2500); };
 
-            const resume = () => {
-                isPaused = false;
-            };
-
-            const delayedResume = () => {
-                // Sur mobile, attendre 2.5s après le touchend avant de reprendre
-                setTimeout(resume, 2500);
-            };
-
-            // Pause au hover (desktop)
             container.addEventListener('mouseenter', pause);
             container.addEventListener('mouseleave', resume);
-
-            // Pause au touch (mobile)
             container.addEventListener('touchstart', pause, { passive: true });
             container.addEventListener('touchend', delayedResume);
 
-            // Si l'user scroll manuellement (drag sur mobile), on pause aussi
-            let scrollTimeout: NodeJS.Timeout;
-            const onManualScroll = () => {
-                if (!isPaused) {
-                    isPaused = true;
-                    clearTimeout(scrollTimeout);
-                    scrollTimeout = setTimeout(() => {
-                        // Vérifier si on a dépassé le halfWidth pendant le scroll manuel
-                        if (container.scrollLeft >= halfWidth) {
-                            container.scrollLeft = container.scrollLeft - halfWidth;
-                        }
-                        isPaused = false;
-                    }, 3000); // Reprend 3s après que l'user arrête de scroller
-                }
-            };
-            container.addEventListener('scroll', onManualScroll, { passive: true });
-
-            // Cleanup
-            return () => {
+            // Cleanup interne
+            const cleanup = () => {
                 cancelAnimationFrame(animationId);
-                clearTimeout(scrollTimeout);
                 container.removeEventListener('mouseenter', pause);
                 container.removeEventListener('mouseleave', resume);
                 container.removeEventListener('touchstart', pause);
                 container.removeEventListener('touchend', delayedResume);
-                container.removeEventListener('scroll', onManualScroll);
             };
-        }, 500); // Délai de 500ms pour laisser les images se charger
 
-        return () => clearTimeout(initTimeout);
-    }, [displayDealsKey]); // ← Dépendance stable (string au lieu de tableau)
+            // Stocker le cleanup pour le return du useEffect
+            (container as any).__carouselCleanup = cleanup;
+        }, 300);
+
+        return () => {
+            clearTimeout(startDelay);
+            const container = scrollRef.current;
+            if (container && (container as any).__carouselCleanup) {
+                (container as any).__carouselCleanup();
+            }
+        };
+    }, [dealsCount]);
 
     const loopedDeals = [...(displayDeals || []), ...(displayDeals || [])];
 
@@ -559,7 +527,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     </svg>
                                 </button>
                             </div>
-                            <div className="scard-body" style={{ padding: '8px 12px 12px' }}>
+                            <div className="scard-body" style={{ padding: '8px 12px 12px', position: 'relative', zIndex: 2 }}>
                                 <div className="scard-city" style={{ fontWeight: 700, fontSize: 13, color: '#1A2B42', marginBottom: 2 }}>{deal.city}</div>
                                 <div className="scard-route" style={{ fontSize: 11, color: '#64748B', marginBottom: 6 }}>{deal.route}</div>
                                 <div className="scard-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
