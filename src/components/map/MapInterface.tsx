@@ -26,6 +26,7 @@ export default function MapInterface() {
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [showPremiumBanner, setShowPremiumBanner] = useState(true);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -57,90 +58,105 @@ export default function MapInterface() {
                     position: 'relative',
                     height: '100vh',
                     width: '100vw',
-                    overflow: 'auto',
+                    overflow: 'hidden',
                     display: 'flex',
                     flexDirection: 'column',
                 }}>
 
-                    <div style={{
-                        width: '100%',
-                        flex: isMobile ? '0 0 auto' : '0 0 auto', // Permettre au hero de prendre sa place
-                        position: 'relative',
-                        overflow: 'hidden',
-                        marginBottom: 0,
-                        paddingBottom: 0,
-                    }}>
-                        <MapTopbar prices={prices} />
+                    <MapTopbar prices={prices} />
 
-                        {/* Hero mini — accroche émotionnelle */}
+                    {/* Premium banner — juste sous le header */}
+                    {showPremiumBanner && (
                         <div style={{
-                            textAlign: 'center',
-                            padding: isMobile ? '12px 16px 0' : '20px 24px 0',
-                            background: 'transparent',
-                            position: 'relative',
-                            zIndex: 10,
-                            marginTop: isMobile ? 40 : 50, // Sous la topbar absolue
-                        }}>
-                            <h1 style={{
-                                fontFamily: "'Fredoka', sans-serif",
-                                fontSize: isMobile ? 20 : 28,
-                                fontWeight: 700,
-                                color: '#1A2B42',
-                                lineHeight: 1.2,
-                                marginBottom: 4,
-                            }}>
-                                Les meilleurs prix de vols depuis{' '}
-                                <span style={{
-                                    background: 'linear-gradient(135deg, #2E7DDB, #06B6D4)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                }}>Montréal</span>
-                            </h1>
-                            <p style={{
-                                fontSize: isMobile ? 12 : 14,
-                                color: '#5A7089',
-                                maxWidth: 480,
-                                margin: '0 auto',
-                                lineHeight: 1.5,
-                            }}>
-                                On scanne des centaines de vols chaque jour pour te trouver les rabais que les autres manquent.
-                            </p>
-                        </div>
-
-                        <div style={{
-                            width: '100%',
-                            height: isMobile ? 'calc(50vh)' : 'calc(100vh - 380px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 16,
+                            padding: '7px 24px',
+                            background: 'linear-gradient(135deg, #1A2B42 0%, #2E4A6E 100%)',
+                            flexShrink: 0,
                             position: 'relative',
                             overflow: 'hidden',
-                            marginBottom: 0,
-                            flexShrink: 0,
                         }}>
-                            <MapCanvas
-                                deals={prices} // Pass live prices to map
-                                mapView={mapView}
-                                isMobile={isMobile}
-                                onRegionSelect={(region) => {
-                                    console.log("Selected region:", region);
-                                    setSelectedRegion(region); // New state needed
-                                    setSidebarOpen(true);
-                                }}
-                                onHoverDeal={(deal, e) => {
-                                    setHoveredDeal(deal);
-                                    setHoverPos({ x: e.clientX, y: e.clientY });
-                                    setHoverVisible(true);
-                                }}
-                                onLeaveDeal={() => {
-                                    setHoverVisible(false);
-                                }}
-                                onSelectDeal={(deal: any, e: any) => { // Added explicit types
-                                    setSelectedFlight(deal);
-                                    setBookingOpen(true);
-                                    setConfettiPos({ x: e.clientX, y: e.clientY });
-                                    setConfettiTrigger(prev => prev + 1);
-                                }}
-                            />
-                        </div>
+                            {/* Orbes décoratifs */}
+                            <div style={{
+                                position: 'absolute', left: -30, top: -30,
+                                width: 80, height: 80, borderRadius: '50%',
+                                background: 'radial-gradient(circle, rgba(46,125,219,0.2) 0%, transparent 70%)',
+                            }} />
+                            <div style={{
+                                position: 'absolute', right: -20, top: -20,
+                                width: 60, height: 60, borderRadius: '50%',
+                                background: 'radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%)',
+                            }} />
 
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
+                                <span style={{ fontSize: 14 }}>⚡</span>
+                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>
+                                    <strong style={{ fontWeight: 800 }}>Premium — 5$/mois</strong>
+                                    <span style={{ color: 'rgba(255,255,255,0.55)', marginLeft: 8 }}>
+                                        Alertes perso · Prix record · Guides IA
+                                    </span>
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => { /* router.push('/pricing') */ }}
+                                style={{
+                                    padding: '4px 14px', borderRadius: 100, border: 'none',
+                                    background: 'white', color: '#1A2B42', fontSize: 11,
+                                    fontWeight: 700, cursor: 'pointer',
+                                    fontFamily: "'Outfit', sans-serif", zIndex: 1,
+                                }}
+                            >
+                                Essayer →
+                            </button>
+                            <button
+                                onClick={() => setShowPremiumBanner(false)}
+                                style={{
+                                    position: 'absolute', right: 12, top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none', border: 'none',
+                                    color: 'rgba(255,255,255,0.4)',
+                                    fontSize: 14, cursor: 'pointer', zIndex: 1,
+                                    padding: '4px 8px',
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    )}
+
+                    <div style={{
+                        width: '100%',
+                        flex: '1 1 auto',
+                        minHeight: 0,
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}>
+                        <MapCanvas
+                            deals={prices}
+                            mapView={mapView}
+                            isMobile={isMobile}
+                            onRegionSelect={(region) => {
+                                console.log("Selected region:", region);
+                                setSelectedRegion(region);
+                                setSidebarOpen(true);
+                            }}
+                            onHoverDeal={(deal, e) => {
+                                setHoveredDeal(deal);
+                                setHoverPos({ x: e.clientX, y: e.clientY });
+                                setHoverVisible(true);
+                            }}
+                            onLeaveDeal={() => {
+                                setHoverVisible(false);
+                            }}
+                            onSelectDeal={(deal: any, e: any) => {
+                                setSelectedFlight(deal);
+                                setBookingOpen(true);
+                                setConfettiPos({ x: e.clientX, y: e.clientY });
+                                setConfettiTrigger(prev => prev + 1);
+                            }}
+                        />
                     </div>
                     <Onboarding />
 
@@ -151,7 +167,6 @@ export default function MapInterface() {
                         visible={hoverVisible}
                     />
 
-                    <PremiumBanner />
                     {/* <DealOfTheDay /> */}
                     {/* <SocialTicker /> */}
                     {/* <SocialTicker /> */}

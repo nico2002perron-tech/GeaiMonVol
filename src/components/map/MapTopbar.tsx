@@ -3,141 +3,88 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import Link from 'next/link';
 
 export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
-    const { user, profile, loading } = useAuth();
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        setIsMobile(window.innerWidth <= 768);
-        const handleResize = () => setIsMobile(window.innerWidth <= 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
     return (
         <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 100,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: isMobile ? '6px 10px' : '10px 24px',
-            height: isMobile ? 40 : 50,
-            background: 'linear-gradient(180deg, rgba(244,248,251,0.95) 60%, rgba(244,248,251,0))',
-            pointerEvents: 'none',
+            padding: '8px 24px',
+            background: 'rgba(255,255,255,0.95)',
+            backdropFilter: 'blur(16px)',
+            borderBottom: '1px solid rgba(26,43,66,0.05)',
+            zIndex: 100,
+            flexShrink: 0,
         }}>
-            {/* Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, pointerEvents: 'auto' }}>
-                <span style={{ fontSize: isMobile ? 20 : 28 }}>🐦</span>
-                <span style={{
-                    fontSize: isMobile ? 14 : 18,
-                    fontWeight: 700,
-                    fontFamily: "'Outfit', sans-serif",
-                    color: '#1A2B42',
+            {/* Gauche : logo + tagline */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 22 }}>🐦</span>
+                    <span style={{
+                        fontFamily: "'Fredoka', sans-serif",
+                        fontWeight: 700,
+                        fontSize: 17,
+                        color: '#1A2B42',
+                    }}>
+                        Geai<span style={{ color: '#2E7DDB' }}>MonVol</span>
+                    </span>
+                </div>
+
+                {/* Tagline compacte — pill dans la topbar */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '3px 12px',
+                    borderRadius: 100,
+                    background: 'rgba(46,125,219,0.05)',
+                    border: '1px solid rgba(46,125,219,0.08)',
                 }}>
-                    Geai<span style={{ color: '#2E7DDB' }}>Mon</span>Vol
-                </span>
+                    <span style={{ fontSize: 11, color: '#5A7089' }}>Meilleurs prix depuis</span>
+                    <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #2E7DDB, #06B6D4)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                    }}>Montréal</span>
+                    <span style={{ fontSize: 10 }}>✈️</span>
+                </div>
             </div>
 
-            {/* Right side buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, pointerEvents: 'auto' }}>
+            {/* Droite : compteur + inscrire */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 10px',
+                    borderRadius: 100,
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: '#16A34A',
+                }}>
+                    <span style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: '#16A34A',
+                        animation: 'liveBlink 2s ease-in-out infinite',
+                    }} />
+                    900+ scannés
+                </span>
                 <button style={{
-                    background: 'none',
+                    padding: '6px 16px',
+                    borderRadius: 100,
                     border: 'none',
-                    fontSize: isMobile ? 10 : 13,
-                    color: '#8FA3B8',
+                    background: '#1A2B42',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: 12,
                     cursor: 'pointer',
                     fontFamily: "'Outfit', sans-serif",
-                    whiteSpace: 'nowrap',
-                    padding: isMobile ? '4px 6px' : '6px 12px',
                 }}>
-                    Comment ça marche?
+                    S'inscrire
                 </button>
-
-                {/* Chip vols scannés — live indicator */}
-                {!isMobile && (
-                    <span style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '6px 14px',
-                        borderRadius: 100,
-                        background: '#F0FDF4',
-                        border: '1px solid #BBF7D0',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#16A34A',
-                        fontFamily: "'Outfit', sans-serif",
-                    }}>
-                        <span style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            background: '#16A34A',
-                            display: 'inline-block',
-                            animation: 'liveBlink 2s ease-in-out infinite',
-                        }} />
-                        {prices?.length ? `${prices.length * 50}+ vols scannés` : 'Scan en cours...'}
-                    </span>
-                )}
-
-                {!loading && (
-                    <>
-                        {user ? (
-                            <Link
-                                href="/profile"
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 6,
-                                    padding: isMobile ? '4px 8px' : '8px 18px',
-                                    borderRadius: 100,
-                                    background: isMobile ? 'none' : 'rgba(255,255,255,0.85)',
-                                    border: isMobile ? 'none' : '1px solid rgba(26,43,66,0.06)',
-                                    fontSize: isMobile ? 11 : 13,
-                                    fontWeight: 600,
-                                    color: '#1A2B42',
-                                    textDecoration: 'none',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    whiteSpace: 'nowrap',
-                                }}
-                            >
-                                <div style={{
-                                    width: isMobile ? 18 : 22,
-                                    height: isMobile ? 18 : 22,
-                                    borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #2E7DDB, #4A94E8)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: isMobile ? 9 : 10,
-                                    fontWeight: 700,
-                                    color: 'white',
-                                }}>
-                                    {(profile?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
-                                </div>
-                                {!isMobile && (profile?.full_name?.split(' ')[0] || 'Profil')}
-                            </Link>
-                        ) : (
-                            <button style={{
-                                background: '#1A2B42',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 100,
-                                fontSize: isMobile ? 11 : 13,
-                                fontWeight: 600,
-                                padding: isMobile ? '5px 12px' : '8px 18px',
-                                cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                                whiteSpace: 'nowrap',
-                            }} onClick={() => window.location.href = '/auth'}>
-                                S'inscrire
-                            </button>
-                        )}
-                    </>
-                )}
             </div>
         </div>
     );

@@ -258,17 +258,87 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
     return (
         <div className="strip">
             {/* Titre + Onglets */}
+            {/* 4 onglets pleine largeur */}
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                background: 'white',
+                borderTop: '1px solid rgba(26,43,66,0.06)',
+                borderBottom: '1px solid rgba(26,43,66,0.06)',
+            }}>
+                {[
+                    { key: 'international', label: 'Monde', icon: '✈️', pro: false },
+                    { key: 'canada', label: 'Canada', icon: '🍁', pro: false },
+                    { key: 'hotels', label: 'Hôtels', icon: '🏨', pro: true },
+                    { key: 'planning', label: 'Planning', icon: '📍', pro: true },
+                ].map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => !tab.pro && setActiveTab(tab.key === 'international' ? 'international' : 'canada')}
+                        className="big-tab"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            padding: '12px 0',
+                            border: 'none',
+                            background: activeTab === tab.key
+                                ? 'rgba(46,125,219,0.04)'
+                                : 'transparent',
+                            cursor: tab.pro ? 'default' : 'pointer',
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: 13.5,
+                            fontWeight: activeTab === tab.key ? 700 : 600,
+                            color: activeTab === tab.key
+                                ? '#2E7DDB'
+                                : tab.pro ? '#B0BEC5' : '#5A7089',
+                            opacity: tab.pro ? 0.6 : 1,
+                            borderRight: tab.key !== 'planning'
+                                ? '1px solid rgba(26,43,66,0.04)'
+                                : 'none',
+                            position: 'relative',
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        <span style={{ fontSize: 16 }}>{tab.icon}</span>
+                        <span>{tab.pro ? <s>{tab.label}</s> : tab.label}</span>
+                        {tab.pro && (
+                            <span style={{
+                                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                                color: 'white',
+                                fontSize: 8,
+                                fontWeight: 800,
+                                padding: '1px 6px',
+                                borderRadius: 100,
+                                marginLeft: 2,
+                            }}>PRO</span>
+                        )}
+                        {/* Barre active en bas */}
+                        {activeTab === tab.key && (
+                            <div style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: '15%',
+                                right: '15%',
+                                height: 3,
+                                borderRadius: '3px 3px 0 0',
+                                background: '#2E7DDB',
+                            }} />
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {/* Titre */}
             <div style={{
                 display: 'flex',
                 flexDirection: isMobile ? 'column' : 'row',
                 alignItems: isMobile ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
-                padding: isMobile ? '0 12px 4px' : '10px 20px',
+                padding: isMobile ? '12px 12px 4px' : '16px 20px 8px',
                 gap: isMobile ? 6 : 8,
-                marginTop: 0,
-                paddingTop: 0,
             }}>
-                {/* Titre */}
                 <span style={{
                     fontSize: isMobile ? 15 : 16,
                     fontWeight: 700,
@@ -293,116 +363,6 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         {activeTab === 'international' ? 'dans le monde' : 'Canada'}
                     </span>
                 </span>
-
-                {/* Onglets - largeur égale */}
-                <div style={{
-                    display: 'flex',
-                    gap: 3,
-                    background: '#F0F4F8',
-                    borderRadius: 100,
-                    padding: 3,
-                    width: isMobile ? '100%' : 'auto',
-                    minWidth: isMobile ? 'unset' : 320,
-                }}>
-                    <button
-                        onClick={() => { setActiveTab('international'); onViewChange?.('world'); }}
-                        style={{
-                            flex: 1,
-                            padding: '6px 0',
-                            borderRadius: 100,
-                            border: 'none',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontFamily: "'Outfit', sans-serif",
-                            textAlign: 'center',
-                            transition: 'all 0.2s',
-                            background: activeTab === 'international' ? 'white' : 'none',
-                            color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                        }}
-                    >
-                        ✈️ Monde
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
-                        style={{
-                            flex: 1,
-                            padding: '6px 0',
-                            borderRadius: 100,
-                            border: 'none',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontFamily: "'Outfit', sans-serif",
-                            textAlign: 'center',
-                            transition: 'all 0.2s',
-                            background: activeTab === 'canada' ? 'white' : 'none',
-                            color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                        }}
-                    >
-                        🍁 Canada
-                    </button>
-
-                    <button disabled style={{
-                        flex: 1,
-                        padding: '6px 0',
-                        borderRadius: 100,
-                        border: 'none',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'default',
-                        fontFamily: "'Outfit', sans-serif",
-                        textAlign: 'center',
-                        background: 'rgba(26,43,66,0.04)',
-                        color: '#8FA3B8',
-                        position: 'relative',
-                        opacity: 0.7,
-                    }}>
-                        <span style={{ textDecoration: 'line-through' }}>🏨 Hôtels</span>
-                        <span style={{
-                            position: 'absolute',
-                            top: -6,
-                            right: 2,
-                            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                            color: 'white',
-                            fontSize: 7,
-                            fontWeight: 800,
-                            padding: '1px 4px',
-                            borderRadius: 100
-                        }}>PRO</span>
-                    </button>
-
-                    <button disabled style={{
-                        flex: 1,
-                        padding: '6px 0',
-                        borderRadius: 100,
-                        border: 'none',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'default',
-                        fontFamily: "'Outfit', sans-serif",
-                        textAlign: 'center',
-                        background: 'rgba(26,43,66,0.04)',
-                        color: '#8FA3B8',
-                        position: 'relative',
-                        opacity: 0.7,
-                    }}>
-                        <span style={{ textDecoration: 'line-through' }}>📍 Plans</span>
-                        <span style={{
-                            position: 'absolute',
-                            top: -6,
-                            right: 2,
-                            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                            color: 'white',
-                            fontSize: 7,
-                            fontWeight: 800,
-                            padding: '1px 4px',
-                            borderRadius: 100
-                        }}>PRO</span>
-                    </button>
-                </div>
             </div>
 
             {/* Ligne 2 — Sélecteur de mois */}

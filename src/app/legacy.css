@@ -2901,3 +2901,7 @@
     -ms-overflow-style: none; 
     scrollbar-width: none;
 }
+
+.big-tab:hover {
+    background: rgba(46,125,219,0.03);
+}
