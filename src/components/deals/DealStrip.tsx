@@ -69,8 +69,8 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [isHovering, setIsHovering] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
     const supabase = createClient();
@@ -113,24 +113,6 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             setWatchedDeals(prev => [...prev, deal.city]);
         }
     };
-
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-        let animationId: number;
-        let scrollSpeed = 0.5;
-        const scroll = () => {
-            if (!isHovering && el) {
-                el.scrollLeft += scrollSpeed;
-                if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 1) {
-                    el.scrollLeft = 0;
-                }
-            }
-            animationId = requestAnimationFrame(scroll);
-        };
-        animationId = requestAnimationFrame(scroll);
-        return () => cancelAnimationFrame(animationId);
-    }, [isHovering]);
 
     const months = (() => {
         const ms = [];
@@ -189,6 +171,48 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         }
         return true;
     });
+
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        let scrollAmount = 0;
+        let speed = 0.5; // pixels par frame — lent et smooth
+
+        const scroll = () => {
+            if (!container) return;
+            scrollAmount += speed;
+
+            // Quand on atteint la moitié (les deals sont dupliqués), reset
+            if (scrollAmount >= container.scrollWidth / 2) {
+                scrollAmount = 0;
+            }
+
+            container.scrollLeft = scrollAmount;
+            animationId = requestAnimationFrame(scroll);
+        };
+
+        let animationId = requestAnimationFrame(scroll);
+
+        // Pause au hover (desktop) ou touch (mobile)
+        const pause = () => { speed = 0; };
+        const resume = () => { speed = 0.5; };
+
+        container.addEventListener('mouseenter', pause);
+        container.addEventListener('mouseleave', resume);
+        container.addEventListener('touchstart', pause);
+        container.addEventListener('touchend', () => setTimeout(resume, 2000));
+
+        return () => {
+            cancelAnimationFrame(animationId);
+            container.removeEventListener('mouseenter', pause);
+            container.removeEventListener('mouseleave', resume);
+            container.removeEventListener('touchstart', pause);
+            container.removeEventListener('touchend', resume);
+        };
+    }, [displayDeals]); // Re-run when deals change
+
+    const loopedDeals = [...(displayDeals || []), ...(displayDeals || [])];
 
     return (
         <div className="strip">
@@ -387,14 +411,29 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     className="strip-row"
                     id="stripRow"
                     ref={scrollRef}
-                    onMouseEnter={() => setIsHovering(true)}
-                    onMouseLeave={() => setIsHovering(false)}
+                    style={{
+                        display: 'flex',
+                        gap: isMobile ? 10 : 14,
+                        overflowX: 'auto',
+                        padding: isMobile ? '8px 12px' : '10px 20px',
+                        scrollbarWidth: 'none',
+                        WebkitOverflowScrolling: 'touch',
+                    }}
                 >
-                    {(displayDeals || []).slice(0, 10).map((deal: any, i: number) => (
+                    {loopedDeals.map((deal: any, i: number) => (
                         <div
-                            key={deal.id || i}
+                            key={`${deal.id || i}-${i}`}
                             className="scard"
-                            style={{ cursor: 'pointer' }}
+                            style={{
+                                minWidth: isMobile ? 150 : 180,
+                                maxWidth: isMobile ? 150 : 180,
+                                borderRadius: 12,
+                                overflow: 'hidden',
+                                background: 'white',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                flexShrink: 0,
+                                cursor: 'pointer',
+                            }}
                             onClick={() => onDealClick?.(deal)}
                         >
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
@@ -404,9 +443,10 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     alt={deal.city}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 100 : 140,
+                                        height: isMobile ? 110 : 150,
                                         objectFit: 'cover',
-                                        borderRadius: '8px 8px 0 0',
+                                        borderRadius: '10px 10px 0 0',
+                                        display: 'block',
                                     }}
                                 />
                                 <button
@@ -442,12 +482,12 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     </svg>
                                 </button>
                             </div>
-                            <div className="scard-body">
-                                <div className="scard-city">{deal.city}</div>
-                                <div className="scard-route">{deal.route}</div>
-                                <div className="scard-row">
-                                    <span className="scard-price">{deal.price} $</span>
-                                    {deal.disc > 0 && <span className="scard-disc">-{deal.disc}%</span>}
+                            <div className="scard-body" style={{ padding: '8px 12px 12px' }}>
+                                <div className="scard-city" style={{ fontWeight: 700, fontSize: 13, color: '#1A2B42', marginBottom: 2 }}>{deal.city}</div>
+                                <div className="scard-route" style={{ fontSize: 11, color: '#64748B', marginBottom: 6 }}>{deal.route}</div>
+                                <div className="scard-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span className="scard-price" style={{ fontWeight: 800, fontSize: 15, color: '#2E7DDB' }}>{deal.price} $</span>
+                                    {deal.disc > 0 && <span className="scard-disc" style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', background: '#FEF2F2', padding: '2px 6px', borderRadius: 4 }}>-{deal.disc}%</span>}
                                 </div>
                                 <div style={{ marginTop: 8, fontSize: 11, color: '#2E7DDB', fontWeight: 600 }}>
                                     Voir ce vol →
