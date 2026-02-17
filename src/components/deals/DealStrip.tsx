@@ -192,43 +192,39 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
     return (
         <div className="strip">
-            {/* compact header */}
+            {/* Ligne 1 — Titre + Onglets */}
             <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: isMobile ? '6px 12px' : '10px 20px',
+                padding: isMobile ? '8px 12px 4px' : '10px 20px',
                 flexWrap: 'nowrap',
                 gap: 8,
             }}>
                 <span style={{
-                    fontSize: isMobile ? 12 : 16,
+                    fontSize: isMobile ? 13 : 16,
                     fontWeight: 700,
                     fontFamily: "'Outfit', sans-serif",
-                    color: '#1A2B42',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
                 }}>
-                    <span>{activeTab === 'international' ? (isMobile ? 'Deals' : 'Meilleurs deals') : (isMobile ? 'Vols' : 'À travers le')}</span>
-                    {' '}
+                    <span style={{ color: '#1A2B42' }}>Deals </span>
                     <span style={{ color: '#2E7DDB' }}>
-                        {activeTab === 'international' ? (isMobile ? 'Intl' : 'internationaux') : 'Canada'}
+                        {activeTab === 'international' ? (isMobile ? 'internationaux' : 'internationaux') : 'Canada'}
                     </span>
                 </span>
 
                 <div style={{
                     display: 'flex',
-                    gap: 4,
+                    gap: isMobile ? 3 : 4,
                     alignItems: 'center',
                     background: '#F0F4F8',
                     borderRadius: 100,
-                    padding: 3,
+                    padding: isMobile ? 2 : 3,
                     flexShrink: 0,
                 }}>
                     <button
                         onClick={() => { setActiveTab('international'); onViewChange?.('world'); }}
                         style={{
-                            padding: isMobile ? '4px 8px' : '6px 14px',
+                            padding: isMobile ? '3px 8px' : '6px 14px',
                             borderRadius: 100,
                             border: 'none',
                             fontSize: isMobile ? 10 : 12,
@@ -238,7 +234,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             transition: 'all 0.2s',
                             background: activeTab === 'international' ? 'white' : 'none',
                             color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            boxShadow: activeTab === 'international' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                             whiteSpace: 'nowrap',
                         }}
                     >
@@ -247,7 +243,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     <button
                         onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
                         style={{
-                            padding: isMobile ? '4px 8px' : '6px 14px',
+                            padding: isMobile ? '3px 8px' : '6px 14px',
                             borderRadius: 100,
                             border: 'none',
                             fontSize: isMobile ? 10 : 12,
@@ -257,7 +253,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             transition: 'all 0.2s',
                             background: activeTab === 'canada' ? 'white' : 'none',
                             color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            boxShadow: activeTab === 'canada' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                             whiteSpace: 'nowrap',
                         }}
                     >
@@ -265,30 +261,71 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     </button>
 
                     <button disabled style={{
-                        padding: isMobile ? '4px 6px' : '6px 10px',
+                        padding: isMobile ? '3px 6px' : '6px 10px',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: isMobile ? 10 : 12,
+                        fontSize: isMobile ? 9 : 12,
+                        fontWeight: 600,
                         cursor: 'default',
+                        fontFamily: "'Outfit', sans-serif",
                         background: 'none',
                         color: '#C0C8D2',
                         position: 'relative',
                         opacity: 0.6,
                     }}>
-                        🏨 {!isMobile && 'Hôtels'}
-                        <span style={{ position: 'absolute', top: -4, right: -2, background: '#F59E0B', color: 'white', fontSize: 6, padding: '1px 3px', borderRadius: 4 }}>PRO</span>
+                        <span style={{ textDecoration: 'line-through' }}>🏨</span>
+                        {!isMobile && ' Hôtels'}
+                        <span style={{
+                            position: 'absolute',
+                            top: isMobile ? -5 : -4,
+                            right: isMobile ? -3 : -2,
+                            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                            color: 'white',
+                            fontSize: 6,
+                            fontWeight: 800,
+                            padding: '1px 3px',
+                            borderRadius: 100
+                        }}>PRO</span>
+                    </button>
+
+                    <button disabled style={{
+                        padding: isMobile ? '3px 6px' : '6px 10px',
+                        borderRadius: 100,
+                        border: 'none',
+                        fontSize: isMobile ? 9 : 12,
+                        fontWeight: 600,
+                        cursor: 'default',
+                        fontFamily: "'Outfit', sans-serif",
+                        background: 'none',
+                        color: '#C0C8D2',
+                        position: 'relative',
+                        opacity: 0.6,
+                    }}>
+                        <span style={{ textDecoration: 'line-through' }}>📍</span>
+                        {!isMobile && ' Plannings'}
+                        <span style={{
+                            position: 'absolute',
+                            top: isMobile ? -5 : -4,
+                            right: isMobile ? -3 : -2,
+                            background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                            color: 'white',
+                            fontSize: 6,
+                            fontWeight: 800,
+                            padding: '1px 3px',
+                            borderRadius: 100
+                        }}>PRO</span>
                     </button>
                 </div>
             </div>
 
-            {/* month selector */}
+            {/* Ligne 2 — Sélecteur de mois */}
             <div
                 className="month-selector"
                 style={{
                     display: 'flex',
-                    gap: 6,
+                    gap: isMobile ? 5 : 6,
                     overflowX: 'auto',
-                    padding: '8px 10px 10px',
+                    padding: isMobile ? '4px 12px' : '8px 10px 10px',
                     WebkitOverflowScrolling: 'touch',
                     msOverflowStyle: 'none',
                     scrollbarWidth: 'none',
@@ -297,32 +334,34 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                 <button
                     onClick={() => setSelectedMonth('all')}
                     style={{
-                        padding: '6px 12px',
+                        padding: isMobile ? '3px 10px' : '6px 12px',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: 11,
-                        fontWeight: 700,
+                        fontSize: isMobile ? 10 : 11,
+                        fontWeight: 600,
                         cursor: 'pointer',
+                        fontFamily: "'Outfit', sans-serif",
                         whiteSpace: 'nowrap',
-                        background: selectedMonth === 'all' ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                        background: selectedMonth === 'all' ? '#2E7DDB' : (isMobile ? '#F0F4F8' : 'rgba(26,43,66,0.04)'),
                         color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
                     }}
                 >
-                    Tous les mois
+                    {isMobile ? 'Tous' : 'Tous les mois'}
                 </button>
                 {months.map(m => (
                     <button
                         key={m.value}
                         onClick={() => setSelectedMonth(m.value)}
                         style={{
-                            padding: '6px 12px',
+                            padding: isMobile ? '3px 10px' : '6px 12px',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: 11,
-                            fontWeight: 700,
+                            fontSize: isMobile ? 10 : 11,
+                            fontWeight: 600,
                             cursor: 'pointer',
+                            fontFamily: "'Outfit', sans-serif",
                             whiteSpace: 'nowrap',
-                            background: selectedMonth === m.value ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                            background: selectedMonth === m.value ? '#2E7DDB' : (isMobile ? '#F0F4F8' : 'rgba(26,43,66,0.04)'),
                             color: selectedMonth === m.value ? 'white' : '#8FA3B8',
                         }}
                     >
@@ -331,7 +370,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                 ))}
             </div>
 
-            {/* deals panel */}
+            {/* Ligne 3 — Carrousel de cards */}
             <div className="strip-panel show">
                 <div
                     className="strip-row"
