@@ -89,6 +89,9 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
+    // Stable key for deals to avoid re-rendering pins if data hasn't changed
+    const dealsKey = JSON.stringify((deals || []).map(d => (d.destination_code || d.code || '') + (d.price || 0)));
+
     // Filter deals based on mapView
     const visibleDeals = (deals || []).filter(deal => {
         const code = deal.destination_code || deal.code || '';
@@ -108,64 +111,70 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                 g = svg.append('g').attr('class', 'map-content');
             }
 
-            // Clear pins, arcs, and badges before re-render
-            g.selectAll('.deal-pin, .discount-badge, path.flight-arc').remove();
+            // Clear pins, arcs, and badges before re-render to avoid flashing/duplicates
+            g.selectAll('.deal-pin, .discount-badge, path.flight-arc, .deal-pin-halo').remove();
 
             const path = d3.geoPath().projection(projection);
 
-            d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
-                try {
-                    if (!world || !world.objects) return;
+            // Check if land is already rendered
+            const landPaths = g.selectAll(".land-path");
+            if (landPaths.empty()) {
+                d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then((world: any) => {
+                    try {
+                        if (!world || !world.objects) return;
 
-                    const countries = (topojson.feature(world, world.objects.countries) as any).features.filter(
-                        (f: any) => f?.properties?.name !== 'Antarctica'
-                    );
+                        const countries = (topojson.feature(world, world.objects.countries) as any).features.filter(
+                            (f: any) => f?.properties?.name !== 'Antarctica'
+                        );
 
-
-                    // 2. Land paths
-                    g.selectAll(".land-path")
-                        .data(countries)
-                        .enter().append("path")
-                        .attr("class", "land-path")
-                        .attr("d", path as any)
-                        .attr("data-name", (d: any) => d.properties?.name || '')
-                        .attr("data-region", (d: any) => getRegionForCountry(d.properties?.name || '') || '')
-                        .on("mouseenter", function (event: any, d: any) {
-                            const countryName = d.properties?.name || '';
-                            const region = getRegionForCountry(countryName);
-                            if (!region) return;
-                            g.selectAll(".land-path").each(function () {
-                                const el = d3.select(this);
-                                if (el.attr("data-region") === region) {
-                                    el.classed("region-hover", true);
-                                } else {
-                                    el.classed("region-dimmed", true);
-                                }
+                        // Land paths
+                        g.selectAll(".land-path")
+                            .data(countries)
+                            .enter().append("path")
+                            .attr("class", "land-path")
+                            .attr("d", path as any)
+                            .attr("data-name", (d: any) => d.properties?.name || '')
+                            .attr("data-region", (d: any) => getRegionForCountry(d.properties?.name || '') || '')
+                            .on("mouseenter", function (event: any, d: any) {
+                                const countryName = d.properties?.name || '';
+                                const region = getRegionForCountry(countryName);
+                                if (!region) return;
+                                g.selectAll(".land-path").each(function () {
+                                    const el = d3.select(this);
+                                    if (el.attr("data-region") === region) {
+                                        el.classed("region-hover", true);
+                                    } else {
+                                        el.classed("region-dimmed", true);
+                                    }
+                                });
+                            })
+                            .on("mouseleave", function () {
+                                g.selectAll(".land-path")
+                                    .classed("region-hover", false)
+                                    .classed("region-dimmed", false);
+                            })
+                            .on("click", (event: any, d: any) => {
+                                const countryName = d.properties?.name || '';
+                                const region = getRegionForCountry(countryName);
+                                if (region) onRegionSelect(region);
                             });
-                        })
-                        .on("mouseleave", function () {
-                            g.selectAll(".land-path")
-                                .classed("region-hover", false)
-                                .classed("region-dimmed", false);
-                        })
-                        .on("click", (event: any, d: any) => {
-                            const countryName = d.properties?.name || '';
-                            const region = getRegionForCountry(countryName);
-                            if (region) onRegionSelect(region);
-                        });
 
-                    // 3. Process pin data using our helper
-                    renderPins(g, visibleDeals, projection);
-                } catch (innerError) {
-                    console.error('[MapCanvas] Error in topojson processing:', innerError);
-                }
-            }).catch(fetchError => {
-                console.error('[MapCanvas] Error fetching world atlas:', fetchError);
-            });
+                        // Initial pin render
+                        renderPins(g, visibleDeals, projection);
+                    } catch (innerError) {
+                        console.error('[MapCanvas] Error in topojson processing:', innerError);
+                    }
+                }).catch(fetchError => {
+                    console.error('[MapCanvas] Error fetching world atlas:', fetchError);
+                });
+            } else {
+                // Land is already there, just render pins
+                renderPins(g, visibleDeals, projection);
+            }
         } catch (error) {
             console.error('[MapCanvas] Error rendering pins:', error);
         }
-    }, [projection, visibleDeals]);
+    }, [projection, dealsKey, mapView]); // Stable dependencies
 
     // Refactored helper to render pins and arcs
     const renderPins = (g: any, dealsToRender: any[], proj: d3.GeoProjection) => {
