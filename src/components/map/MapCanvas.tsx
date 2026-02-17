@@ -281,8 +281,8 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
     };
 
     return (
-        <div id="map-container">
-            <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
+        <div id="map-container" style={{ width: '100%', height: '100%', margin: 0, padding: 0 }}>
+            <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height} style={{ display: 'block' }}>
                 <g className="map-content" />
             </svg>
         </div>

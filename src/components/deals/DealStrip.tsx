@@ -198,8 +198,10 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                 flexDirection: isMobile ? 'column' : 'row',
                 alignItems: isMobile ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
-                padding: isMobile ? '4px 12px 4px' : '10px 20px',
+                padding: isMobile ? '0 12px 4px' : '10px 20px',
                 gap: isMobile ? 6 : 8,
+                marginTop: 0,
+                paddingTop: 0,
             }}>
                 {/* Titre */}
                 <span style={{

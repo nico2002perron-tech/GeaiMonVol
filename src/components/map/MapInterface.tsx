@@ -60,6 +60,8 @@ export default function MapInterface() {
                         height: isMobile ? '40vh' : 'calc(100vh - 300px)',
                         position: 'relative',
                         overflow: 'hidden',
+                        marginBottom: 0,
+                        paddingBottom: 0,
                     }}>
                         <MapCanvas
                             deals={prices} // Pass live prices to map
