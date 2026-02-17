@@ -172,45 +172,51 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         return true;
     });
 
+    const displayDealsCount = (displayDeals || []).length;
     useEffect(() => {
         const container = scrollRef.current;
-        if (!container) return;
+        if (!container || displayDealsCount === 0) return;
 
-        let scrollAmount = 0;
-        let speed = 0.5; // pixels par frame — lent et smooth
+        let scrollAmount = container.scrollLeft;
+        let speed = 0.5;
+        let isPaused = false;
 
         const scroll = () => {
-            if (!container) return;
-            scrollAmount += speed;
-
-            // Quand on atteint la moitié (les deals sont dupliqués), reset
-            if (scrollAmount >= container.scrollWidth / 2) {
-                scrollAmount = 0;
+            if (!isPaused) {
+                scrollAmount += speed;
+                // Reset quand on atteint la moitié (deals dupliqués)
+                const halfWidth = container.scrollWidth / 2;
+                if (halfWidth > 0 && scrollAmount >= halfWidth) {
+                    scrollAmount = 0;
+                }
+                container.scrollLeft = scrollAmount;
             }
-
-            container.scrollLeft = scrollAmount;
             animationId = requestAnimationFrame(scroll);
         };
 
         let animationId = requestAnimationFrame(scroll);
 
-        // Pause au hover (desktop) ou touch (mobile)
-        const pause = () => { speed = 0; };
-        const resume = () => { speed = 0.5; };
+        const pause = () => { isPaused = true; };
+        const resume = () => {
+            isPaused = false;
+            scrollAmount = container.scrollLeft; // Sync après pause
+        };
+
+        const touchResume = () => setTimeout(resume, 2000);
 
         container.addEventListener('mouseenter', pause);
         container.addEventListener('mouseleave', resume);
-        container.addEventListener('touchstart', pause);
-        container.addEventListener('touchend', () => setTimeout(resume, 2000));
+        container.addEventListener('touchstart', pause, { passive: true });
+        container.addEventListener('touchend', touchResume);
 
         return () => {
             cancelAnimationFrame(animationId);
             container.removeEventListener('mouseenter', pause);
             container.removeEventListener('mouseleave', resume);
             container.removeEventListener('touchstart', pause);
-            container.removeEventListener('touchend', resume);
+            container.removeEventListener('touchend', touchResume);
         };
-    }, [displayDeals]); // Re-run when deals change
+    }, [displayDealsCount]);
 
     const loopedDeals = [...(displayDeals || []), ...(displayDeals || [])];
 

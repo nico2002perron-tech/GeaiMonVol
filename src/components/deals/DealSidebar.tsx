@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 interface DealDetail {
     city: string;
+    destination?: string;
     country?: string;
     destination_code?: string;
     price: number;
@@ -20,6 +21,8 @@ interface DealDetail {
     googleFlightsLink?: string;
     raw_data?: any;
     img?: string;
+    route?: string;
+    disc?: number;
 }
 
 interface DealSidebarProps {
@@ -149,7 +152,7 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                 <div style={{ position: 'relative' }}>
                     <img
                         src={deal.img || `https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=200&fit=crop`}
-                        alt={deal.city}
+                        alt={deal.city || deal.destination}
                         style={{ width: '100%', height: isMobile ? 140 : 180, objectFit: 'cover' }}
                     />
                     <button
@@ -194,11 +197,11 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                 <div style={{ padding: 24 }}>
                     {/* Ville + pays */}
                     <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1A2B42' }}>
-                        {deal.city}
+                        {deal.city || deal.destination || 'Destination'}
                     </h2>
-                    {deal.country && (
+                    {(deal.country || deal.raw_data?.country) && (
                         <p style={{ margin: '4px 0 0', fontSize: 14, color: '#8FA3B8' }}>
-                            {deal.country}
+                            {deal.country || deal.raw_data?.country}
                         </p>
                     )}
 
