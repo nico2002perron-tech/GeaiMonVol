@@ -64,40 +64,80 @@ export default function MapInterface() {
 
                     <div style={{
                         width: '100%',
-                        flex: isMobile ? '0 0 50vh' : '1 1 auto',
-                        minHeight: isMobile ? '45vh' : '400px',
+                        flex: isMobile ? '0 0 auto' : '0 0 auto', // Permettre au hero de prendre sa place
                         position: 'relative',
                         overflow: 'hidden',
                         marginBottom: 0,
                         paddingBottom: 0,
                     }}>
-                        <MapCanvas
-                            deals={prices} // Pass live prices to map
-                            mapView={mapView}
-                            isMobile={isMobile}
-                            onRegionSelect={(region) => {
-                                console.log("Selected region:", region);
-                                setSelectedRegion(region); // New state needed
-                                setSidebarOpen(true);
-                            }}
-                            onHoverDeal={(deal, e) => {
-                                setHoveredDeal(deal);
-                                setHoverPos({ x: e.clientX, y: e.clientY });
-                                setHoverVisible(true);
-                            }}
-                            onLeaveDeal={() => {
-                                setHoverVisible(false);
-                            }}
-                            onSelectDeal={(deal: any, e: any) => { // Added explicit types
-                                setSelectedFlight(deal);
-                                setBookingOpen(true);
-                                setConfettiPos({ x: e.clientX, y: e.clientY });
-                                setConfettiTrigger(prev => prev + 1);
-                            }}
-                        />
-                    </div>
+                        <MapTopbar prices={prices} />
 
-                    <MapTopbar />
+                        {/* Hero mini — accroche émotionnelle */}
+                        <div style={{
+                            textAlign: 'center',
+                            padding: isMobile ? '12px 16px 0' : '20px 24px 0',
+                            background: 'transparent',
+                            position: 'relative',
+                            zIndex: 10,
+                            marginTop: isMobile ? 40 : 50, // Sous la topbar absolue
+                        }}>
+                            <h1 style={{
+                                fontFamily: "'Fredoka', sans-serif",
+                                fontSize: isMobile ? 20 : 28,
+                                fontWeight: 700,
+                                color: '#1A2B42',
+                                lineHeight: 1.2,
+                                marginBottom: 4,
+                            }}>
+                                Les meilleurs prix de vols depuis{' '}
+                                <span style={{
+                                    background: 'linear-gradient(135deg, #2E7DDB, #06B6D4)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}>Montréal</span>
+                            </h1>
+                            <p style={{
+                                fontSize: isMobile ? 12 : 14,
+                                color: '#5A7089',
+                                maxWidth: 480,
+                                margin: '0 auto',
+                                lineHeight: 1.5,
+                            }}>
+                                On scanne des centaines de vols chaque jour pour te trouver les rabais que les autres manquent.
+                            </p>
+                        </div>
+
+                        <div style={{
+                            height: isMobile ? '40vh' : '400px',
+                            position: 'relative',
+                        }}>
+                            <MapCanvas
+                                deals={prices} // Pass live prices to map
+                                mapView={mapView}
+                                isMobile={isMobile}
+                                onRegionSelect={(region) => {
+                                    console.log("Selected region:", region);
+                                    setSelectedRegion(region); // New state needed
+                                    setSidebarOpen(true);
+                                }}
+                                onHoverDeal={(deal, e) => {
+                                    setHoveredDeal(deal);
+                                    setHoverPos({ x: e.clientX, y: e.clientY });
+                                    setHoverVisible(true);
+                                }}
+                                onLeaveDeal={() => {
+                                    setHoverVisible(false);
+                                }}
+                                onSelectDeal={(deal: any, e: any) => { // Added explicit types
+                                    setSelectedFlight(deal);
+                                    setBookingOpen(true);
+                                    setConfettiPos({ x: e.clientX, y: e.clientY });
+                                    setConfettiTrigger(prev => prev + 1);
+                                }}
+                            />
+                        </div>
+
+                    </div>
                     <Onboarding />
 
                     <HoverCard

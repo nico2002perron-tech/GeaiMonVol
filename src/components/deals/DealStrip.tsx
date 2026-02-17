@@ -7,6 +7,15 @@ import { HOTELS } from '@/lib/data/hotels';
 import { FLIGHTS } from '@/lib/data/flights';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 
+const DEAL_BADGES: Record<string, { label: string; bg: string; icon: string }> = {
+    lowest_ever: { label: 'PRIX RECORD', bg: '#7C3AED', icon: '⚡' },
+    incredible: { label: 'INCROYABLE', bg: '#DC2626', icon: '🔥' },
+    great: { label: 'SUPER DEAL', bg: '#EA580C', icon: '✨' },
+    good: { label: 'BON PRIX', bg: '#2563EB', icon: '👍' },
+    slight: { label: '', bg: '', icon: '' },
+    normal: { label: '', bg: '', icon: '' },
+};
+
 const CITY_IMAGES: Record<string, string> = {
     'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400&h=250&fit=crop',
     'Ottawa': 'https://images.unsplash.com/photo-1558025137-0b406e0f5765?w=400&h=250&fit=crop',
@@ -444,15 +453,27 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
             {/* Ligne 3 — Carrousel de cards */}
             <div className="strip-panel show" style={{ position: 'relative' }}>
+                {/* Fade gauche */}
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: 50, height: '100%',
+                    background: 'linear-gradient(to right, white, transparent)',
+                    zIndex: 3, pointerEvents: 'none',
+                }} />
+                {/* Fade droite */}
+                <div style={{
+                    position: 'absolute', top: 0, right: 0, width: 50, height: '100%',
+                    background: 'linear-gradient(to left, white, transparent)',
+                    zIndex: 3, pointerEvents: 'none',
+                }} />
                 <div
                     className="strip-row"
                     id="stripRow"
                     ref={scrollRef}
                     style={{
                         display: 'flex',
-                        gap: isMobile ? 10 : 14,
+                        gap: isMobile ? 10 : 16,
                         overflowX: 'auto',
-                        padding: isMobile ? '8px 12px' : '10px 20px',
+                        padding: isMobile ? '8px 12px 16px' : '8px 24px 20px',
                         scrollbarWidth: 'none',
                         WebkitOverflowScrolling: 'touch',
                         scrollBehavior: 'auto',
@@ -461,128 +482,153 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     {loopedDeals.map((deal: any, i: number) => (
                         <div
                             key={`${deal.id || i}-${i}`}
-                            className="scard"
+                            className="scard deal-card"
                             style={{
-                                minWidth: isMobile ? 155 : 190,
-                                maxWidth: isMobile ? 155 : 190,
-                                borderRadius: 12,
+                                minWidth: isMobile ? 165 : 200,
+                                maxWidth: isMobile ? 165 : 200,
+                                borderRadius: 16,
                                 overflow: 'hidden',
                                 background: 'white',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                border: '1px solid rgba(26,43,66,0.06)',
+                                boxShadow: '0 2px 12px rgba(26,43,66,0.06)',
                                 flexShrink: 0,
                                 cursor: 'pointer',
+                                position: 'relative',
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 90 : 130 }}>
+                            {/* Badge deal level */}
+                            {(() => {
+                                const badge = (DEAL_BADGES as any)[deal.dealLevel] || {};
+                                return badge.label ? (
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: 10,
+                                        left: 10,
+                                        zIndex: 5,
+                                        background: badge.bg,
+                                        color: 'white',
+                                        padding: '3px 10px',
+                                        borderRadius: 100,
+                                        fontSize: 9,
+                                        fontWeight: 800,
+                                        letterSpacing: 0.5,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        boxShadow: `0 2px 8px ${badge.bg}40`,
+                                    }}>
+                                        {badge.icon} {badge.label}
+                                    </div>
+                                ) : null;
+                            })()}
+
+                            {/* Coeur watchlist */}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
+                                style={{
+                                    position: 'absolute',
+                                    top: 10,
+                                    right: 10,
+                                    zIndex: 5,
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: '50%',
+                                    background: 'rgba(255,255,255,0.9)',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backdropFilter: 'blur(4px)',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                    transition: 'transform 0.2s ease',
+                                }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24"
+                                    fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
+                                    stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#94A3B8'}
+                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                >
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                </svg>
+                            </button>
+
+                            {/* Image */}
+                            <div style={{ overflow: 'hidden', height: isMobile ? 100 : 140, background: '#E8F0FE' }}>
                                 <img
-                                    className="scard-img"
+                                    className="scard-img card-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city || deal.destination || ''}
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
-                                        if (target.src !== DEFAULT_IMAGE) {
-                                            target.src = DEFAULT_IMAGE;
-                                        }
+                                        if (target.src !== DEFAULT_IMAGE) target.src = DEFAULT_IMAGE;
                                     }}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 90 : 130,
+                                        height: '100%',
                                         objectFit: 'cover',
-                                        borderRadius: '10px 10px 0 0',
                                         display: 'block',
-                                        background: '#E8F0FE',
                                     }}
                                 />
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
-                                    style={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.9)',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        backdropFilter: 'blur(4px)',
-                                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                                    }}
-                                >
-                                    <svg
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
-                                        stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#5A7089'}
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                    >
-                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                    </svg>
-                                </button>
                             </div>
-                            <div className="scard-body" style={{ padding: '8px 12px 12px', position: 'relative', zIndex: 2 }}>
-                                <div className="scard-city" style={{ fontWeight: 700, fontSize: 13, color: '#1A2B42', marginBottom: 2 }}>{deal.city}</div>
-                                <div className="scard-route" style={{ fontSize: 11, color: '#64748B', marginBottom: 6 }}>{deal.route}</div>
-                                <div className="scard-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                            {/* Body */}
+                            <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 14px', position: 'relative', zIndex: 2 }}>
+                                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: '#1A2B42', marginBottom: 2 }}>
+                                    {deal.city}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#8FA3B8', marginBottom: 4 }}>
+                                    {deal.route} · {deal.airline || ''}{deal.stops === 0 ? ' · Direct' : deal.stops ? ` · ${deal.stops} escale${deal.stops > 1 ? 's' : ''}` : ''}
+                                </div>
+
+                                {/* Prix + rabais */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
                                     <span style={{
                                         background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
                                         color: 'white',
-                                        padding: '4px 10px',
-                                        borderRadius: 8,
-                                        fontSize: isMobile ? 13 : 15,
+                                        padding: '5px 12px',
+                                        borderRadius: 10,
+                                        fontSize: isMobile ? 14 : 17,
                                         fontWeight: 800,
+                                        fontFamily: "'Fredoka', sans-serif",
+                                        boxShadow: '0 2px 8px rgba(46,125,219,0.2)',
                                     }}>
                                         {deal.price} $
                                     </span>
                                     {deal.disc > 0 && (
-                                        <span className="scard-disc" style={{
-                                            fontSize: 10,
-                                            fontWeight: 700,
+                                        <span style={{
+                                            background: 'linear-gradient(135deg, #DC2626, #EF4444)',
                                             color: 'white',
-                                            background: '#FF4D6A',
-                                            padding: '2px 6px',
-                                            borderRadius: 4
+                                            padding: '3px 8px',
+                                            borderRadius: 6,
+                                            fontSize: 11,
+                                            fontWeight: 800,
+                                            boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
                                         }}>
-                                            -{deal.disc}%
+                                            -{Math.round(deal.disc)}%
                                         </span>
                                     )}
                                 </div>
-                                <div style={{ marginTop: 8, fontSize: 11, color: '#2E7DDB', fontWeight: 600 }}>
+
+                                {/* CTA */}
+                                <div className="see-flight" style={{
+                                    marginTop: 10,
+                                    fontSize: 12,
+                                    color: '#2E7DDB',
+                                    fontWeight: 700,
+                                    padding: '6px 0',
+                                    borderRadius: 8,
+                                    textAlign: 'center',
+                                    background: 'rgba(46,125,219,0.06)',
+                                    transition: 'all 0.2s ease',
+                                }}>
                                     Voir ce vol →
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
-
-                {/* Fade indicators gauche/droite */}
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: 40,
-                    height: '100%',
-                    background: 'linear-gradient(to right, white, transparent)',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                }} />
-                <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: 40,
-                    height: '100%',
-                    background: 'linear-gradient(to left, white, transparent)',
-                    pointerEvents: 'none',
-                    zIndex: 2,
-                }} />
             </div>
         </div>
     );

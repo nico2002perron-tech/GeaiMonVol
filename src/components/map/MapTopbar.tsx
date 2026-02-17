@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import Link from 'next/link';
 
-export default function MapTopbar() {
+export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
     const { user, profile, loading } = useAuth();
     const [isMobile, setIsMobile] = useState(false);
 
@@ -55,6 +55,33 @@ export default function MapTopbar() {
                 }}>
                     Comment ça marche?
                 </button>
+
+                {/* Chip vols scannés — live indicator */}
+                {!isMobile && (
+                    <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '6px 14px',
+                        borderRadius: 100,
+                        background: '#F0FDF4',
+                        border: '1px solid #BBF7D0',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#16A34A',
+                        fontFamily: "'Outfit', sans-serif",
+                    }}>
+                        <span style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: '#16A34A',
+                            display: 'inline-block',
+                            animation: 'liveBlink 2s ease-in-out infinite',
+                        }} />
+                        {prices?.length ? `${prices.length * 50}+ vols scannés` : 'Scan en cours...'}
+                    </span>
+                )}
 
                 {!loading && (
                     <>
