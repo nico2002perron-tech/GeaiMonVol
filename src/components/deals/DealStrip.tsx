@@ -198,7 +198,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                 flexDirection: isMobile ? 'column' : 'row',
                 alignItems: isMobile ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
-                padding: isMobile ? '8px 12px 4px' : '10px 20px',
+                padding: isMobile ? '4px 12px 4px' : '10px 20px',
                 gap: isMobile ? 6 : 8,
             }}>
                 {/* Titre */}
@@ -400,7 +400,12 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city}
-                                    loading="lazy"
+                                    style={{
+                                        width: '100%',
+                                        height: isMobile ? 100 : 140,
+                                        objectFit: 'cover',
+                                        borderRadius: '8px 8px 0 0',
+                                    }}
                                 />
                                 <button
                                     onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
