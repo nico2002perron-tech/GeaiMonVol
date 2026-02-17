@@ -57,7 +57,7 @@ export default function MapInterface() {
                     position: 'relative',
                     height: '100vh',
                     width: '100vw',
-                    overflow: 'hidden',
+                    overflow: 'auto',
                     display: 'flex',
                     flexDirection: 'column',
                 }}>
@@ -109,11 +109,11 @@ export default function MapInterface() {
 
                         <div style={{
                             width: '100%',
-                            flex: isMobile ? '0 0 45vh' : '1 1 auto',
-                            minHeight: isMobile ? '40vh' : '350px',
+                            height: isMobile ? 'calc(50vh)' : 'calc(100vh - 380px)',
                             position: 'relative',
                             overflow: 'hidden',
                             marginBottom: 0,
+                            flexShrink: 0,
                         }}>
                             <MapCanvas
                                 deals={prices} // Pass live prices to map
