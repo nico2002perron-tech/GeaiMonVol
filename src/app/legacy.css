@@ -2839,8 +2839,8 @@
     }
 
     .scard {
-        flex: 0 0 160px !important;
-        min-width: 160px !important;
+        flex: 0 0 155px !important;
+        min-width: 155px !important;
     }
 
     .scard-img {

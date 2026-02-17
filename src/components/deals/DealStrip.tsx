@@ -182,7 +182,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
         const scroll = () => {
             if (!isPaused) {
-                scrollAmount += 0.5;
+                scrollAmount += 0.4; // Vitesse lente et smooth
                 // Reset quand on atteint la moitié (deals dupliqués)
                 const halfWidth = container.scrollWidth / 2;
                 if (halfWidth > 0 && scrollAmount >= halfWidth) {
@@ -201,7 +201,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             scrollAmount = container.scrollLeft; // Sync après pause
         };
 
-        const touchResume = () => setTimeout(resume, 2000);
+        const touchResume = () => setTimeout(resume, 2500);
 
         container.addEventListener('mouseenter', pause);
         container.addEventListener('mouseleave', resume);
@@ -411,7 +411,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             </div>
 
             {/* Ligne 3 — Carrousel de cards */}
-            <div className="strip-panel show">
+            <div className="strip-panel show" style={{ position: 'relative' }}>
                 <div
                     className="strip-row"
                     id="stripRow"
@@ -430,8 +430,8 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             key={`${deal.id || i}-${i}`}
                             className="scard"
                             style={{
-                                minWidth: isMobile ? 160 : 180,
-                                maxWidth: isMobile ? 160 : 180,
+                                minWidth: isMobile ? 155 : 190,
+                                maxWidth: isMobile ? 155 : 190,
                                 borderRadius: 12,
                                 overflow: 'hidden',
                                 background: 'white',
@@ -441,7 +441,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 100 : 150 }}>
+                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 90 : 130 }}>
                                 <img
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
@@ -454,7 +454,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     }}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 100 : 150,
+                                        height: isMobile ? 90 : 130,
                                         objectFit: 'cover',
                                         borderRadius: '10px 10px 0 0',
                                         display: 'block',
@@ -528,6 +528,28 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         </div>
                     ))}
                 </div>
+
+                {/* Fade indicators gauche/droite */}
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: 40,
+                    height: '100%',
+                    background: 'linear-gradient(to right, white, transparent)',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                }} />
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 40,
+                    height: '100%',
+                    background: 'linear-gradient(to left, white, transparent)',
+                    pointerEvents: 'none',
+                    zIndex: 2,
+                }} />
             </div>
         </div>
     );
