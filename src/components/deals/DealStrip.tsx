@@ -290,7 +290,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     </span>
                     {' '}
                     <span style={{ color: '#2E7DDB' }}>
-                        {activeTab === 'international' ? 'internationaux' : 'Canada'}
+                        {activeTab === 'international' ? 'dans le monde' : 'Canada'}
                     </span>
                 </span>
 
@@ -322,7 +322,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
                         }}
                     >
-                        ✈️ Intl
+                        ✈️ Monde
                     </button>
                     <button
                         onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
@@ -561,7 +561,12 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             </button>
 
                             {/* Image */}
-                            <div style={{ overflow: 'hidden', height: isMobile ? 100 : 140, background: '#E8F0FE' }}>
+                            {(() => {
+                                // Debug images
+                                if (i < 5) console.log('[Card]', deal.city, CITY_IMAGES[deal.city || deal.destination]);
+                                return null;
+                            })()}
+                            <div style={{ overflow: 'hidden', height: isMobile ? 100 : 140, background: '#E8F0FE', width: '100%' }}>
                                 <img
                                     className="scard-img card-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}

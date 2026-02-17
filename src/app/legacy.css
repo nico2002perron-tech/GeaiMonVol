@@ -2892,3 +2892,12 @@
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Hide scrollbars for the deal strip caroussel */
+.strip-row::-webkit-scrollbar { 
+    display: none; 
+}
+.strip-row { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none;
+}
