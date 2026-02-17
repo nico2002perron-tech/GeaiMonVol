@@ -436,14 +436,14 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            <div style={{ position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 100 : 150 }}>
                                 <img
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 110 : 150,
+                                        height: isMobile ? 100 : 150,
                                         objectFit: 'cover',
                                         borderRadius: '10px 10px 0 0',
                                         display: 'block',
