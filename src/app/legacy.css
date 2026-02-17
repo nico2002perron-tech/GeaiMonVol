@@ -461,11 +461,7 @@
     cursor: default
 }
 
-#map-svg .graticule {
-    fill: none;
-    stroke: rgba(46, 125, 219, .06);
-    stroke-width: .3
-}
+
 
 /* ======== PINS ======== */
 .pin-layer {
@@ -907,7 +903,7 @@
     width: 13px;
     height: 13px;
     stroke: currentColor;
-    fill: none;
+
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -2821,9 +2817,12 @@
     justify-content: space-between;
     margin-top: 4px;
 }
+
 @media(max-width:768px) {
+
     /* Topbar compact */
-    .topbar, div[style*='position: absolute'][style*='top: 0'] {
+    .topbar,
+    div[style*='position: absolute'][style*='top: 0'] {
         padding: 10px 14px !important;
     }
 
@@ -2869,7 +2868,8 @@
     }
 
     /* GeaiAssistant */
-    .geai-btn, button[aria-label='Assistant voyage'] {
+    .geai-btn,
+    button[aria-label='Assistant voyage'] {
         bottom: 14px !important;
         right: 14px !important;
         width: 42px !important;

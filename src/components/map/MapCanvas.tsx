@@ -121,12 +121,6 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                         (f: any) => f?.properties?.name !== 'Antarctica'
                     );
 
-                    // 1. Graticule
-                    const graticule = d3.geoGraticule().step([20, 20]);
-                    g.append("path")
-                        .datum(graticule())
-                        .attr("class", "graticule")
-                        .attr("d", path);
 
                     // 2. Land paths
                     g.selectAll(".land-path")
