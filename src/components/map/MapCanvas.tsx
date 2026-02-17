@@ -66,8 +66,6 @@ interface MapCanvasProps {
 export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
-    const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
-    const lastPos = useRef<{ x: number, y: number } | null>(null);
     const [pins, setPins] = useState<any[]>([]);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -98,42 +96,6 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         if (mapView === 'canada') return isCanadian;
         return !isCanadian;
     });
-
-    // Zoom effect when mapView changes
-    useEffect(() => {
-        if (!svgRef.current || !projection) return;
-
-        const svg = d3.select(svgRef.current);
-        const w = svgRef.current.clientWidth || 800;
-        const h = svgRef.current.clientHeight || 500;
-
-        try {
-            if (mapView === 'canada') {
-                // Coordonnées du centre du Canada projeté
-                const canadaCenter = projection([-96, 56]);
-                if (!canadaCenter) return;
-
-                const scale = 3.5;
-                const translateX = w / 2 - canadaCenter[0] * scale;
-                const translateY = h / 2 - canadaCenter[1] * scale;
-
-                svg.select('g')
-                    .transition()
-                    .duration(800)
-                    .ease(d3.easeCubicInOut)
-                    .attr('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
-            } else {
-                // Retour à la vue monde
-                svg.select('g')
-                    .transition()
-                    .duration(800)
-                    .ease(d3.easeCubicInOut)
-                    .attr('transform', 'translate(0, 0) scale(1)');
-            }
-        } catch (error) {
-            console.error('[MapCanvas] Zoom error:', error);
-        }
-    }, [mapView, projection]);
 
     // Main SVG Render
     useEffect(() => {
@@ -289,47 +251,11 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         }
     };
 
-    // Pan/Zoom Handlers (Simple)
-    useEffect(() => {
-        const container = document.getElementById('map-container');
-        if (!container) return;
-        const wheelHandler = (e: WheelEvent) => {
-            e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.15 : 0.15;
-            setTransform(prev => ({ ...prev, k: Math.min(6, Math.max(1, prev.k + delta)) }));
-        };
-        container.addEventListener('wheel', wheelHandler, { passive: false });
-        return () => container.removeEventListener('wheel', wheelHandler);
-    }, []);
-
-    const handleMouseDown = (e: React.MouseEvent) => { lastPos.current = { x: e.clientX, y: e.clientY }; };
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (!lastPos.current) return;
-        const dx = e.clientX - lastPos.current.x;
-        const dy = e.clientY - lastPos.current.y;
-        setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-        lastPos.current = { x: e.clientX, y: e.clientY };
-    };
-    const handleMouseUp = () => { lastPos.current = null; };
-
     return (
-        <div
-            id="map-container"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            style={{ cursor: lastPos.current ? 'grabbing' : 'grab', touchAction: 'none' }}
-        >
-            <div className="map-transform-wrapper" style={{
-                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})`,
-                transformOrigin: '0 0',
-                transition: 'transform 0.1s ease-out'
-            }}>
-                <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
-                    <g className="map-content" />
-                </svg>
-            </div>
+        <div id="map-container">
+            <svg id="map-svg" ref={svgRef} width={dimensions.width} height={dimensions.height}>
+                <g className="map-content" />
+            </svg>
         </div>
     );
 }
