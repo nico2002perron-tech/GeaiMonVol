@@ -274,11 +274,11 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
                     pinG.append('text')
                         .attr('x', x).attr('y', y + 15)
                         .attr('text-anchor', 'middle')
-                        .attr('font-size', '9px')
-                        .attr('font-weight', '600')
+                        .attr('font-size', '8.5px')
+                        .attr('font-weight', '700')
                         .attr('fill', '#1A2B42')
                         .attr('font-family', "'Outfit', sans-serif")
-                        .style('text-shadow', '0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7)')
+                        .style('text-shadow', '0 0 6px rgba(255,255,255,1), 0 0 12px rgba(255,255,255,0.8)')
                         .style('pointer-events', 'none')
                         .text(deal.city || deal.destination || '');
                 }
