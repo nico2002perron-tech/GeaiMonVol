@@ -192,126 +192,129 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
     return (
         <div className="strip">
-            {/* Ligne 1 — Titre + Onglets */}
+            {/* Titre + Onglets */}
             <div style={{
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: isMobile ? 'column' : 'row',
+                alignItems: isMobile ? 'flex-start' : 'center',
                 justifyContent: 'space-between',
                 padding: isMobile ? '8px 12px 4px' : '10px 20px',
-                flexWrap: 'nowrap',
-                gap: 8,
+                gap: isMobile ? 6 : 8,
             }}>
+                {/* Titre */}
                 <span style={{
-                    fontSize: isMobile ? 13 : 16,
+                    fontSize: isMobile ? 15 : 16,
                     fontWeight: 700,
                     fontFamily: "'Outfit', sans-serif",
                 }}>
-                    <span style={{ color: '#1A2B42' }}>Deals </span>
+                    <span style={{ color: '#1A2B42' }}>
+                        {activeTab === 'international' ? 'Meilleurs deals' : 'Vols à travers le'}
+                    </span>
+                    {' '}
                     <span style={{ color: '#2E7DDB' }}>
-                        {activeTab === 'international' ? (isMobile ? 'internationaux' : 'internationaux') : 'Canada'}
+                        {activeTab === 'international' ? 'internationaux' : 'Canada'}
                     </span>
                 </span>
 
+                {/* Onglets - pleine largeur sur mobile */}
                 <div style={{
                     display: 'flex',
-                    gap: isMobile ? 3 : 4,
-                    alignItems: 'center',
+                    gap: 4,
                     background: '#F0F4F8',
                     borderRadius: 100,
-                    padding: isMobile ? 2 : 3,
-                    flexShrink: 0,
+                    padding: 3,
+                    width: isMobile ? '100%' : 'auto',
+                    justifyContent: isMobile ? 'space-between' : 'flex-end',
                 }}>
                     <button
                         onClick={() => { setActiveTab('international'); onViewChange?.('world'); }}
                         style={{
-                            padding: isMobile ? '3px 8px' : '6px 14px',
+                            padding: isMobile ? '5px 10px' : '6px 14px',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: isMobile ? 10 : 12,
+                            fontSize: isMobile ? 11 : 12,
                             fontWeight: 600,
                             cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
                             transition: 'all 0.2s',
                             background: activeTab === 'international' ? 'white' : 'none',
                             color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'international' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                            whiteSpace: 'nowrap',
+                            boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            flex: isMobile ? 1 : 'unset',
                         }}
                     >
-                        ✈️ {isMobile ? 'Intl' : 'International'}
+                        ✈️ International
                     </button>
                     <button
                         onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
                         style={{
-                            padding: isMobile ? '3px 8px' : '6px 14px',
+                            padding: isMobile ? '5px 10px' : '6px 14px',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: isMobile ? 10 : 12,
+                            fontSize: isMobile ? 11 : 12,
                             fontWeight: 600,
                             cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
                             transition: 'all 0.2s',
                             background: activeTab === 'canada' ? 'white' : 'none',
                             color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: activeTab === 'canada' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                            whiteSpace: 'nowrap',
+                            boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            flex: isMobile ? 1 : 'unset',
                         }}
                     >
-                        🍁 {isMobile ? 'Canada' : 'Intra-pays'}
+                        🍁 Intra-pays
                     </button>
 
                     <button disabled style={{
-                        padding: isMobile ? '3px 6px' : '6px 10px',
+                        padding: isMobile ? '5px 8px' : '6px 14px',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: isMobile ? 9 : 12,
+                        fontSize: isMobile ? 10 : 12,
                         fontWeight: 600,
                         cursor: 'default',
                         fontFamily: "'Outfit', sans-serif",
-                        background: 'none',
-                        color: '#C0C8D2',
+                        background: 'rgba(26,43,66,0.04)',
+                        color: '#8FA3B8',
                         position: 'relative',
-                        opacity: 0.6,
+                        opacity: 0.7,
                     }}>
-                        <span style={{ textDecoration: 'line-through' }}>🏨</span>
-                        {!isMobile && ' Hôtels'}
+                        <span style={{ textDecoration: 'line-through' }}>🏨 Hôtels</span>
                         <span style={{
                             position: 'absolute',
-                            top: isMobile ? -5 : -4,
-                            right: isMobile ? -3 : -2,
+                            top: -6,
+                            right: -8,
                             background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                             color: 'white',
-                            fontSize: 6,
+                            fontSize: 7,
                             fontWeight: 800,
-                            padding: '1px 3px',
+                            padding: '1px 4px',
                             borderRadius: 100
                         }}>PRO</span>
                     </button>
 
                     <button disabled style={{
-                        padding: isMobile ? '3px 6px' : '6px 10px',
+                        padding: isMobile ? '5px 8px' : '6px 14px',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: isMobile ? 9 : 12,
+                        fontSize: isMobile ? 10 : 12,
                         fontWeight: 600,
                         cursor: 'default',
                         fontFamily: "'Outfit', sans-serif",
-                        background: 'none',
-                        color: '#C0C8D2',
+                        background: 'rgba(26,43,66,0.04)',
+                        color: '#8FA3B8',
                         position: 'relative',
-                        opacity: 0.6,
+                        opacity: 0.7,
                     }}>
-                        <span style={{ textDecoration: 'line-through' }}>📍</span>
-                        {!isMobile && ' Plannings'}
+                        <span style={{ textDecoration: 'line-through' }}>📍 Plannings</span>
                         <span style={{
                             position: 'absolute',
-                            top: isMobile ? -5 : -4,
-                            right: isMobile ? -3 : -2,
+                            top: -6,
+                            right: -8,
                             background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                             color: 'white',
-                            fontSize: 6,
+                            fontSize: 7,
                             fontWeight: 800,
-                            padding: '1px 3px',
+                            padding: '1px 4px',
                             borderRadius: 100
                         }}>PRO</span>
                     </button>
