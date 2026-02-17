@@ -111,6 +111,14 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                 g = svg.append('g').attr('class', 'map-content');
             }
 
+            // Reactivate Zoom & Pan
+            const zoom = d3.zoom<SVGSVGElement, unknown>()
+                .scaleExtent([1, 8])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform.toString());
+                });
+            svg.call(zoom);
+
             // Clear pins, arcs, and badges before re-render to avoid flashing/duplicates
             g.selectAll('.deal-pin, .discount-badge, path.flight-arc, .deal-pin-halo').remove();
 
