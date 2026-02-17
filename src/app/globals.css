@@ -816,7 +816,7 @@ nav {
   transition: transform .4s cubic-bezier(.4, 0, .2, 1)
 }
 
-/* ===== HOW IT WORKS — HORIZONTAL BIG IMAGES ===== */
+/* ===== HOW IT WORKS â€” HORIZONTAL BIG IMAGES ===== */
 .steps-wrap {
   max-width: 1100px;
   margin: 0 auto
@@ -2263,14 +2263,20 @@ html {
   background: #E8F0FE;
   color: #2E7DDB;
 }
+
 /* ===== NEW: Animated arcs ===== */
 .flight-arc-animated {
   animation: arc-dash-flow 1.5s linear infinite;
 }
 
 @keyframes arc-dash-flow {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -20; }
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -20;
+  }
 }
 
 /* ===== NEW: Pin glow halo pulse ===== */
@@ -2280,9 +2286,20 @@ html {
 }
 
 @keyframes pin-glow {
-  0%   { r: 9;  opacity: 0.35; }
-  50%  { r: 15; opacity: 0.1;  }
-  100% { r: 9;  opacity: 0.35; }
+  0% {
+    r: 9;
+    opacity: 0.35;
+  }
+
+  50% {
+    r: 15;
+    opacity: 0.1;
+  }
+
+  100% {
+    r: 9;
+    opacity: 0.35;
+  }
 }
 
 /* ===== NEW: Pin dot subtle pulse ===== */
@@ -2292,16 +2309,74 @@ html {
 }
 
 @keyframes pin-dot-breathe {
-  0%   { r: 5; }
-  50%  { r: 6; }
-  100% { r: 5; }
+  0% {
+    r: 5;
+  }
+
+  50% {
+    r: 6;
+  }
+
+  100% {
+    r: 5;
+  }
 }
 
-/* ===== NEW: Mini deal card hover ===== */.mini-deal-card:hover {
+/* ===== NEW: Mini deal card hover ===== */
+.mini-deal-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(26, 43, 66, 0.12) !important;
 }
 
 .mini-deal-card::-webkit-scrollbar {
   display: none;
+}
+
+/* ===== NEW: Premium locked card gold shimmer ===== */
+.premium-locked-card {
+  position: relative;
+}
+
+.premium-gold-shimmer {
+  animation: gold-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.premium-locked-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg,
+      transparent 30%,
+      rgba(255, 215, 0, 0.08) 50%,
+      transparent 70%);
+  animation: gold-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes gold-sweep {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
 }
