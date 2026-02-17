@@ -23,168 +23,91 @@ export default function MapTopbar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: isMobile ? '8px 12px' : '14px 24px',
+            padding: isMobile ? '6px 10px' : '10px 24px',
+            height: isMobile ? 40 : 50,
             background: 'linear-gradient(180deg, rgba(244,248,251,0.95) 60%, rgba(244,248,251,0))',
             pointerEvents: 'none',
-            gap: 8,
         }}>
             {/* Logo */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                pointerEvents: 'auto',
-            }}>
-                <div style={{
-                    width: isMobile ? 28 : 34,
-                    height: isMobile ? 28 : 34,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #2563EB, #3B82F6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
-                }}>
-                    <svg width={isMobile ? 14 : 18} height={isMobile ? 14 : 18} viewBox="0 0 24 24" fill="white">
-                        <path d="M3.64 14.26c-.24-.24-.24-.63 0-.87l6.36-6.36c.48-.48 1.12-.74 1.8-.74s1.32.26 1.8.74l3.06 3.06.18-2.04c.08-.72.64-1.28 1.36-1.36.72-.08 1.38.32 1.6 1l2.2 6.8c.16.48.06 1-.24 1.38-.3.38-.76.58-1.24.52l-7.08-1.08c-.72-.1-1.28-.66-1.36-1.38-.08-.72.32-1.38 1-1.6l2.14-.74-2.42-2.42c-.24-.24-.56-.36-.88-.36s-.64.12-.88.36L4.68 14.53c-.24.24-.63.24-.87 0l-.17-.27z" />
-                    </svg>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10, pointerEvents: 'auto' }}>
+                <span style={{ fontSize: isMobile ? 20 : 28 }}>🐦</span>
                 <span style={{
-                    fontFamily: "'Fredoka', sans-serif",
-                    fontSize: isMobile ? 16 : 19,
+                    fontSize: isMobile ? 14 : 18,
                     fontWeight: 700,
+                    fontFamily: "'Outfit', sans-serif",
                     color: '#1A2B42',
-                    letterSpacing: -0.3,
                 }}>
                     Geai<span style={{ color: '#2E7DDB' }}>Mon</span>Vol
                 </span>
             </div>
 
-            {/* Center — subtle status */}
-            <div style={{
-                display: isMobile ? 'none' : 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 12,
-                color: '#8FA3B8',
-                fontWeight: 500,
-                fontFamily: "'Outfit', sans-serif",
-                pointerEvents: 'auto',
-            }}>
-                <span style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: '#16A34A',
-                    display: 'inline-block',
-                }} />
-                Deals en direct depuis YUL
-            </div>
-
-            {/* Right */}
-            <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                pointerEvents: 'auto',
-            }}>
-                <button
-                    style={{
-                        display: isMobile ? 'none' : 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        padding: '7px 14px',
-                        borderRadius: 100,
-                        background: 'rgba(255,255,255,0.85)',
-                        border: '1px solid rgba(26,43,66,0.06)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#5A7089',
-                        cursor: 'pointer',
-                        fontFamily: "'Outfit', sans-serif",
-                        backdropFilter: 'blur(8px)',
-                        transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(46,125,219,0.2)';
-                        e.currentTarget.style.color = '#2E7DDB';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = 'rgba(26,43,66,0.06)';
-                        e.currentTarget.style.color = '#5A7089';
-                    }}
-                >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
+            {/* Right side buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16, pointerEvents: 'auto' }}>
+                <button style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: isMobile ? 10 : 13,
+                    color: '#8FA3B8',
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', sans-serif",
+                    whiteSpace: 'nowrap',
+                    padding: isMobile ? '4px 6px' : '6px 12px',
+                }}>
                     Comment ça marche?
                 </button>
 
-                {/* Auth button */}
                 {!loading && (
                     <>
                         {user ? (
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                            }}>
-                                <Link
-                                    href="/profile"
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 6,
-                                        padding: isMobile ? '6px 10px' : '7px 14px',
-                                        borderRadius: 100,
-                                        background: 'rgba(255,255,255,0.85)',
-                                        border: '1px solid rgba(26,43,66,0.06)',
-                                        fontSize: isMobile ? 11 : 12,
-                                        fontWeight: 600,
-                                        color: '#1A2B42',
-                                        textDecoration: 'none',
-                                        fontFamily: "'Outfit', sans-serif",
-                                        backdropFilter: 'blur(8px)',
-                                        transition: 'all 0.2s',
-                                    }}
-                                >
-                                    <div style={{
-                                        width: 22,
-                                        height: 22,
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, #2E7DDB, #4A94E8)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        color: 'white',
-                                    }}>
-                                        {(profile?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
-                                    </div>
-                                    {profile?.full_name?.split(' ')[0] || 'Mon profil'}
-                                </Link>
-                            </div>
-                        ) : (
                             <Link
-                                href="/auth"
+                                href="/profile"
                                 style={{
-                                    padding: isMobile ? '6px 14px' : '8px 18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    padding: isMobile ? '4px 8px' : '8px 18px',
                                     borderRadius: 100,
-                                    background: 'linear-gradient(135deg, #2E7DDB, #1E5FA8)',
-                                    color: 'white',
-                                    fontSize: isMobile ? 11 : 12,
-                                    fontWeight: 700,
+                                    background: isMobile ? 'none' : 'rgba(255,255,255,0.85)',
+                                    border: isMobile ? 'none' : '1px solid rgba(26,43,66,0.06)',
+                                    fontSize: isMobile ? 11 : 13,
+                                    fontWeight: 600,
+                                    color: '#1A2B42',
                                     textDecoration: 'none',
-                                    fontFamily: "'Fredoka', sans-serif",
-                                    boxShadow: '0 2px 8px rgba(46,125,219,0.2)',
-                                    transition: 'all 0.2s',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    whiteSpace: 'nowrap',
                                 }}
                             >
-                                S'inscrire
+                                <div style={{
+                                    width: isMobile ? 18 : 22,
+                                    height: isMobile ? 18 : 22,
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #2E7DDB, #4A94E8)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: isMobile ? 9 : 10,
+                                    fontWeight: 700,
+                                    color: 'white',
+                                }}>
+                                    {(profile?.full_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                                </div>
+                                {!isMobile && (profile?.full_name?.split(' ')[0] || 'Profil')}
                             </Link>
+                        ) : (
+                            <button style={{
+                                background: '#1A2B42',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: 100,
+                                fontSize: isMobile ? 11 : 13,
+                                fontWeight: 600,
+                                padding: isMobile ? '5px 12px' : '8px 18px',
+                                cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                                whiteSpace: 'nowrap',
+                            }} onClick={() => window.location.href = '/auth'}>
+                                S'inscrire
+                            </button>
                         )}
                     </>
                 )}

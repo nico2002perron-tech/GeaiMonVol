@@ -61,6 +61,14 @@ interface DealStripProps {
 export default function DealStrip({ deals = [], loading = false, onViewChange, onDealClick }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        setIsMobile(window.innerWidth <= 768);
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
     const { user } = useAuth();
@@ -68,7 +76,6 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
     const supabase = createClient();
     const [watchedDeals, setWatchedDeals] = useState<string[]>([]);
 
-    // Load user's watchlist
     useEffect(() => {
         if (!user) return;
         const loadWatchlist = async () => {
@@ -79,16 +86,14 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             if (data) setWatchedDeals((data || []).map((w: any) => w.destination));
         };
         loadWatchlist();
-    }, [user]);
+    }, [user, supabase]);
 
     const toggleWatchlist = async (deal: any) => {
         if (!user) {
             router.push('/auth');
             return;
         }
-
         const isWatched = watchedDeals.includes(deal.city);
-
         if (isWatched) {
             await supabase
                 .from('watchlist')
@@ -112,43 +117,35 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
     useEffect(() => {
         const el = scrollRef.current;
         if (!el) return;
-
         let animationId: number;
-        let scrollSpeed = 0.5; // pixels per frame
-
+        let scrollSpeed = 0.5;
         const scroll = () => {
             if (!isHovering && el) {
                 el.scrollLeft += scrollSpeed;
-                // Reset to beginning when reaching the end
                 if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 1) {
                     el.scrollLeft = 0;
                 }
             }
             animationId = requestAnimationFrame(scroll);
         };
-
         animationId = requestAnimationFrame(scroll);
         return () => cancelAnimationFrame(animationId);
     }, [isHovering]);
 
-    const getNext12Months = () => {
-        const months = [];
+    const months = (() => {
+        const ms = [];
         const now = new Date();
         for (let i = 0; i < 12; i++) {
             const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
             const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             const label = d.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '');
-            months.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+            ms.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
         }
-        return months;
-    };
-    const months = getNext12Months();
-
-
+        return ms;
+    })();
 
     const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
-    // Filter deals based on tab
     const allMappedDeals = (deals || []).length > 0
         ? (deals || []).map(p => ({
             city: p.destination,
@@ -178,218 +175,163 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             ...f,
             code: f.route.split(' – ')[1] || '',
             source: 'static',
-            departure_date: '', // Ensure it exists for filtering
+            departure_date: '',
         }));
 
-    const filteredDeals = (allMappedDeals || []).filter(deal => {
+    const displayDeals = (allMappedDeals || []).filter(deal => {
         const code = deal.code || '';
         const isCanadian = CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
-
-        // Filtre par onglet
         if (activeTab === 'canada' && !isCanadian) return false;
         if (activeTab === 'international' && isCanadian) return false;
-
-        // Filtre par mois
         if (selectedMonth !== 'all') {
             const departDate = (deal as any).departure_date || (deal as any).dates?.split(' → ')[0] || '';
-            if (!departDate) return false;
-            if (!departDate.startsWith(selectedMonth)) return false;
+            if (!departDate || !departDate.startsWith(selectedMonth)) return false;
         }
-
         return true;
     });
 
-    const displayDeals = filteredDeals;
-
     return (
         <div className="strip">
-            <div className="strip-head">
-                <div className="strip-head-left">
-                    <div className="strip-title">
-                        <span style={{ fontWeight: 700, color: '#1A2B42' }}>
-                            {activeTab === 'international' ? 'Meilleurs deals' : 'Vols à travers le'}
-                        </span>
-                        {' '}
-                        <span style={{ fontWeight: 700, color: '#2E7DDB' }}>
-                            {activeTab === 'international' ? 'internationaux' : 'Canada'}
-                        </span>
-                    </div>
-                    <div className="strip-tabs">
-                        {/* Onglet International */}
-                        <button
-                            onClick={() => {
-                                setActiveTab('international');
-                                onViewChange?.('world');
-                            }}
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: 100,
-                                border: 'none',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                                transition: 'all 0.2s',
-                                background: activeTab === 'international' ? 'white' : 'none',
-                                color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
-                                boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                            }}
-                        >
-                            ✈️ International
-                        </button>
+            {/* compact header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: isMobile ? '6px 12px' : '10px 20px',
+                flexWrap: 'nowrap',
+                gap: 8,
+            }}>
+                <span style={{
+                    fontSize: isMobile ? 12 : 16,
+                    fontWeight: 700,
+                    fontFamily: "'Outfit', sans-serif",
+                    color: '#1A2B42',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                }}>
+                    <span>{activeTab === 'international' ? (isMobile ? 'Deals' : 'Meilleurs deals') : (isMobile ? 'Vols' : 'À travers le')}</span>
+                    {' '}
+                    <span style={{ color: '#2E7DDB' }}>
+                        {activeTab === 'international' ? (isMobile ? 'Intl' : 'internationaux') : 'Canada'}
+                    </span>
+                </span>
 
-                        {/* Onglet Canada */}
-                        <button
-                            onClick={() => {
-                                setActiveTab('canada');
-                                onViewChange?.('canada');
-                            }}
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: 100,
-                                border: 'none',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                                transition: 'all 0.2s',
-                                background: activeTab === 'canada' ? 'white' : 'none',
-                                color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
-                                boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                            }}
-                        >
-                            🍁 Intra-pays
-                        </button>
-
-                        {/* Onglet Hôtels PRO */}
-                        <button
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: 100,
-                                border: 'none',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'default',
-                                fontFamily: "'Outfit', sans-serif",
-                                background: 'rgba(26,43,66,0.04)',
-                                color: '#8FA3B8',
-                                position: 'relative',
-                                opacity: 0.7,
-                                marginLeft: '8px'
-                            }}
-                            disabled
-                        >
-                            <span style={{ textDecoration: 'line-through' }}>🏨 Hôtels</span>
-                            <span style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -12,
-                                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                                color: 'white',
-                                fontSize: 8,
-                                fontWeight: 800,
-                                padding: '2px 5px',
-                                borderRadius: 100,
-                                letterSpacing: '0.5px',
-                            }}>
-                                PRO
-                            </span>
-                        </button>
-
-                        {/* Onglet Plannings PRO */}
-                        <button
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: 100,
-                                border: 'none',
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: 'default',
-                                fontFamily: "'Outfit', sans-serif",
-                                background: 'rgba(26,43,66,0.04)',
-                                color: '#8FA3B8',
-                                position: 'relative',
-                                opacity: 0.7,
-                                marginLeft: '12px'
-                            }}
-                            disabled
-                        >
-                            <span style={{ textDecoration: 'line-through' }}>📍 Plannings</span>
-                            <span style={{
-                                position: 'absolute',
-                                top: -8,
-                                right: -12,
-                                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                                color: 'white',
-                                fontSize: 8,
-                                fontWeight: 800,
-                                padding: '2px 5px',
-                                borderRadius: 100,
-                                letterSpacing: '0.5px',
-                            }}>
-                                PRO
-                            </span>
-                        </button>
-                    </div>
-
-                    {/* Sélecteur de mois */}
-                    <div
-                        className="month-selector"
+                <div style={{
+                    display: 'flex',
+                    gap: 4,
+                    alignItems: 'center',
+                    background: '#F0F4F8',
+                    borderRadius: 100,
+                    padding: 3,
+                    flexShrink: 0,
+                }}>
+                    <button
+                        onClick={() => { setActiveTab('international'); onViewChange?.('world'); }}
                         style={{
-                            display: 'flex',
-                            gap: 6,
-                            overflowX: 'auto',
-                            padding: '12px 0 4px',
-                            WebkitOverflowScrolling: 'touch',
-                            msOverflowStyle: 'none',
-                            scrollbarWidth: 'none',
+                            padding: isMobile ? '4px 8px' : '6px 14px',
+                            borderRadius: 100,
+                            border: 'none',
+                            fontSize: isMobile ? 10 : 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: "'Outfit', sans-serif",
+                            transition: 'all 0.2s',
+                            background: activeTab === 'international' ? 'white' : 'none',
+                            color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
+                            boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            whiteSpace: 'nowrap',
                         }}
                     >
-                        <button
-                            onClick={() => setSelectedMonth('all')}
-                            style={{
-                                padding: '6px 14px',
-                                borderRadius: 100,
-                                border: 'none',
-                                fontSize: 11,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.2s',
-                                background: selectedMonth === 'all' ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
-                                color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
-                            }}
-                        >
-                            Tous les mois
-                        </button>
-                        {months.map(m => (
-                            <button
-                                key={m.value}
-                                onClick={() => setSelectedMonth(m.value)}
-                                style={{
-                                    padding: '6px 14px',
-                                    borderRadius: 100,
-                                    border: 'none',
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.2s',
-                                    background: selectedMonth === m.value ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
-                                    color: selectedMonth === m.value ? 'white' : '#8FA3B8',
-                                }}
-                            >
-                                {m.label}
-                            </button>
-                        ))}
-                    </div>
+                        ✈️ {isMobile ? 'Intl' : 'International'}
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
+                        style={{
+                            padding: isMobile ? '4px 8px' : '6px 14px',
+                            borderRadius: 100,
+                            border: 'none',
+                            fontSize: isMobile ? 10 : 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: "'Outfit', sans-serif",
+                            transition: 'all 0.2s',
+                            background: activeTab === 'canada' ? 'white' : 'none',
+                            color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
+                            boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        🍁 {isMobile ? 'Canada' : 'Intra-pays'}
+                    </button>
+
+                    <button disabled style={{
+                        padding: isMobile ? '4px 6px' : '6px 10px',
+                        borderRadius: 100,
+                        border: 'none',
+                        fontSize: isMobile ? 10 : 12,
+                        cursor: 'default',
+                        background: 'none',
+                        color: '#C0C8D2',
+                        position: 'relative',
+                        opacity: 0.6,
+                    }}>
+                        🏨 {!isMobile && 'Hôtels'}
+                        <span style={{ position: 'absolute', top: -4, right: -2, background: '#F59E0B', color: 'white', fontSize: 6, padding: '1px 3px', borderRadius: 4 }}>PRO</span>
+                    </button>
                 </div>
-                <button className="strip-more">Voir tout</button>
             </div>
 
-            {/* Panel Vols */}
+            {/* month selector */}
+            <div
+                className="month-selector"
+                style={{
+                    display: 'flex',
+                    gap: 6,
+                    overflowX: 'auto',
+                    padding: '8px 10px 10px',
+                    WebkitOverflowScrolling: 'touch',
+                    msOverflowStyle: 'none',
+                    scrollbarWidth: 'none',
+                }}
+            >
+                <button
+                    onClick={() => setSelectedMonth('all')}
+                    style={{
+                        padding: '6px 12px',
+                        borderRadius: 100,
+                        border: 'none',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        background: selectedMonth === 'all' ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                        color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
+                    }}
+                >
+                    Tous les mois
+                </button>
+                {months.map(m => (
+                    <button
+                        key={m.value}
+                        onClick={() => setSelectedMonth(m.value)}
+                        style={{
+                            padding: '6px 12px',
+                            borderRadius: 100,
+                            border: 'none',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            background: selectedMonth === m.value ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                            color: selectedMonth === m.value ? 'white' : '#8FA3B8',
+                        }}
+                    >
+                        {m.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* deals panel */}
             <div className="strip-panel show">
                 <div
                     className="strip-row"
@@ -398,35 +340,22 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
                 >
-                    {(displayDeals || []).slice(0, 7).map((deal: any, i: number) => (
+                    {(displayDeals || []).slice(0, 10).map((deal: any, i: number) => (
                         <div
                             key={deal.id || i}
                             className="scard"
                             style={{ cursor: 'pointer' }}
                             onClick={() => onDealClick?.(deal)}
                         >
-
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city}
                                     loading="lazy"
-                                    onError={(e) => {
-                                        const target = e.currentTarget;
-                                        if (!target.dataset.failed) {
-                                            target.dataset.failed = 'true';
-                                            target.src = 'data:image/svg+xml,' + encodeURIComponent(
-                                                '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect fill="%23DCEAF5" width="300" height="200"/><text x="150" y="105" text-anchor="middle" fill="%238FA3B8" font-size="14" font-family="sans-serif">Image non disponible</text></svg>'
-                                            );
-                                        }
-                                    }}
                                 />
                                 <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleWatchlist(deal);
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
                                     style={{
                                         position: 'absolute',
                                         top: 8,
@@ -441,7 +370,6 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         backdropFilter: 'blur(4px)',
-                                        transition: 'all 0.2s',
                                         boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
                                     }}
                                 >
@@ -458,65 +386,15 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                                     </svg>
                                 </button>
-                                {(deal.dealLevel === 'lowest_ever' || deal.dealLevel === 'incredible') && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        left: 8,
-                                        background: 'rgba(255,255,255,0.9)',
-                                        borderRadius: '12px',
-                                        padding: '2px 6px',
-                                        fontSize: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '2px',
-                                        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-                                        backdropFilter: 'blur(4px)',
-                                    }}>
-                                        🔥
-                                    </div>
-                                )}
                             </div>
                             <div className="scard-body">
-                                <div className="scard-city">
-                                    {deal.city}
-                                    {deal.priceLevel === 'low' && (
-                                        <span style={{
-                                            fontSize: '10px',
-                                            color: '#10B981',
-                                            background: '#ECFDF5',
-                                            padding: '1px 4px',
-                                            borderRadius: '4px',
-                                            marginLeft: '6px',
-                                            fontWeight: '600'
-                                        }}>
-                                            Prix bas
-                                        </span>
-                                    )}
-                                </div>
+                                <div className="scard-city">{deal.city}</div>
                                 <div className="scard-route">{deal.route}</div>
                                 <div className="scard-row">
                                     <span className="scard-price">{deal.price} $</span>
                                     {deal.disc > 0 && <span className="scard-disc">-{deal.disc}%</span>}
                                 </div>
-                                {deal.oldPrice > 0 && deal.disc > 0 && (
-                                    <div style={{
-                                        fontSize: 11,
-                                        color: '#8FA3B8',
-                                        textDecoration: 'line-through',
-                                        marginTop: 2,
-                                        paddingLeft: 2,
-                                    }}>
-                                        {deal.oldPrice} $
-                                    </div>
-                                )}
-                                <div style={{
-                                    marginTop: 8,
-                                    fontSize: 11,
-                                    color: '#2E7DDB',
-                                    fontWeight: 600,
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
+                                <div style={{ marginTop: 8, fontSize: 11, color: '#2E7DDB', fontWeight: 600 }}>
                                     Voir ce vol →
                                 </div>
                             </div>

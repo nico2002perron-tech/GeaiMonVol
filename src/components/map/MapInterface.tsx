@@ -57,7 +57,7 @@ export default function MapInterface() {
 
                     <div style={{
                         width: '100%',
-                        height: isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 300px)',
+                        height: isMobile ? 'calc(100vh - 260px)' : 'calc(100vh - 300px)',
                         position: 'relative',
                         overflow: 'hidden',
                     }}>

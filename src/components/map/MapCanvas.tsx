@@ -79,10 +79,19 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
             const h = svgRef.current.clientHeight || window.innerHeight;
             setDimensions({ width: w, height: h });
 
-            const proj = d3.geoNaturalEarth1()
-                .center([10, 20])
-                .scale(w / (isMobile ? 3 : 5.5))
-                .translate([w / 2, h / 2]);
+            const proj = d3.geoNaturalEarth1();
+
+            if (isMobile) {
+                proj
+                    .center([-30, 30])
+                    .scale(w / 2.8)
+                    .translate([w / 2, h / 2]);
+            } else {
+                proj
+                    .center([10, 20])
+                    .scale(w / 5.5)
+                    .translate([w / 2, h / 2]);
+            }
             setProjection(() => proj);
         };
 
