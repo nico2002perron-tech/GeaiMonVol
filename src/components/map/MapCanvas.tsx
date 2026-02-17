@@ -65,6 +65,7 @@ interface MapCanvasProps {
 }
 
 export default function MapCanvas({ deals = [], mapView = 'world', isMobile = false, onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
+    console.log('[MapCanvas] deals:', deals?.length, deals);
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
     const [pins, setPins] = useState<any[]>([]);
@@ -218,6 +219,7 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
 
     // Refactored helper to render pins and arcs
     const renderPins = (g: any, dealsToRender: any[], proj: d3.GeoProjection) => {
+        console.log('[MapCanvas] renderPins called with:', dealsToRender.length, 'deals');
         try {
             const yulCoords = proj([-73.74, 45.47]); // Montréal-Trudeau (YUL)
 
