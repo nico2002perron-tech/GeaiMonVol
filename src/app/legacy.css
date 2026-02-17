@@ -929,7 +929,7 @@
 .strip-row {
     display: flex;
     gap: 12px;
-    padding: 0 24px 20px;
+    padding: 0 24px 12px;
     overflow-x: auto;
     scroll-behavior: auto;
     scrollbar-width: none;
@@ -951,18 +951,6 @@
     transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.3s, border-color 0.3s;
     /* animation scardUp RETIRÉE — elle causait opacity:0 sur les cards du carrousel */
     position: relative;
-}
-
-@keyframes scardUp {
-    0% {
-        opacity: 0;
-        transform: translateY(20px) scale(.96)
-    }
-
-    100% {
-        opacity: 1;
-        transform: translateY(0) scale(1)
-    }
 }
 
 .scard::before {
@@ -2850,15 +2838,16 @@
         display: none !important;
     }
 }
+
 /*  Card hover effects  */
 .deal-card {
-    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s ease, border-color 0.3s ease;
+    transition: transform 0.35s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .deal-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(26,43,66,0.15);
-    border-color: rgba(46,125,219,0.2);
+    box-shadow: 0 20px 40px rgba(26, 43, 66, 0.15);
+    border-color: rgba(46, 125, 219, 0.2);
 }
 
 .deal-card:hover .card-img {
@@ -2889,19 +2878,27 @@
 }
 
 @keyframes premiumSlide {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Hide scrollbars for the deal strip caroussel */
-.strip-row::-webkit-scrollbar { 
-    display: none; 
+.strip-row::-webkit-scrollbar {
+    display: none;
 }
-.strip-row { 
-    -ms-overflow-style: none; 
+
+.strip-row {
+    -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
 .big-tab:hover {
-    background: rgba(46,125,219,0.03);
+    background: rgba(46, 125, 219, 0.03);
 }

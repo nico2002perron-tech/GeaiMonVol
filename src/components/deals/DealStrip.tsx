@@ -17,6 +17,24 @@ const DEAL_BADGES: Record<string, { label: string; bg: string; icon: string }> =
 };
 
 const CITY_IMAGES: Record<string, string> = {
+    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
+    'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400',
+    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
+    'Barcelone': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
+    'Lisbonne': 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400',
+    'Athènes': 'https://images.unsplash.com/photo-1503152394-c571994fd383?w=400',
+    'Dublin': 'https://images.unsplash.com/photo-1549918837-33fb394ea33d?w=400',
+    'Amsterdam': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=400',
+    'Madrid': 'https://images.unsplash.com/photo-1539330665512-75ca0ad9068b?w=400',
+    'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400',
+    'Marrakech': 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=400',
+    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
+    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
+    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
+    'Cancún': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
+    'Miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=400',
+    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
+    'Reykjavik': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
     'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400&h=250&fit=crop',
     'Ottawa': 'https://images.unsplash.com/photo-1558025137-0b406e0f5765?w=400&h=250&fit=crop',
     'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=400&h=250&fit=crop',
@@ -25,18 +43,6 @@ const CITY_IMAGES: Record<string, string> = {
     'Winnipeg': 'https://images.unsplash.com/photo-1560388259-2b8845dd4ee7?w=400&h=250&fit=crop',
     'Halifax': 'https://images.unsplash.com/photo-1575320181282-9afab399332c?w=400&h=250&fit=crop',
     'Québec': 'https://images.unsplash.com/photo-1545396280-acdb7441dd2e?w=400&h=250&fit=crop',
-    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=250&fit=crop',
-    'Cancún': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=250&fit=crop',
-    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400&h=250&fit=crop',
-    'Barcelone': 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=400&h=250&fit=crop',
-    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=250&fit=crop',
-    'Lisbonne': 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=400&h=250&fit=crop',
-    'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400&h=250&fit=crop',
-    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=250&fit=crop',
-    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=250&fit=crop',
-    'Marrakech': 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=250&fit=crop',
-    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400&h=250&fit=crop',
-    'Miami': 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&h=250&fit=crop',
     'Fort Lauderdale': 'https://images.unsplash.com/photo-1589083130544-0d6a2926e519?w=400&h=250&fit=crop',
     'Punta Cana': 'https://images.unsplash.com/photo-1535916707207-35f97e715e1c?w=400&h=250&fit=crop',
     'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=400&h=250&fit=crop',
@@ -45,12 +51,6 @@ const CITY_IMAGES: Record<string, string> = {
     'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400&h=250&fit=crop',
     'São Paulo': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400&h=250&fit=crop',
     'Buenos Aires': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=400&h=250&fit=crop',
-    'Amsterdam': 'https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=400&h=250&fit=crop',
-    'Dublin': 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=400&h=250&fit=crop',
-    'Athènes': 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=400&h=250&fit=crop',
-    'Reykjavik': 'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=400&h=250&fit=crop',
-    'Porto': 'https://images.unsplash.com/photo-155881400-74d7acaacd8b?w=400&h=250&fit=crop',
-    'Madrid': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=400&h=250&fit=crop',
     'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&h=250&fit=crop',
     'Montego Bay': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400&h=250&fit=crop',
     'San José': 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=400&h=250&fit=crop',
@@ -186,6 +186,17 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             if (!departDate || !departDate.startsWith(selectedMonth)) return false;
         }
         return true;
+    });
+
+    // Ajouter après la définition de displayDeals
+    const availableMonths = months.filter(m => {
+        return (allMappedDeals || []).some(d => {
+            const dep = d.departure_date || (d.dates || '').split(' → ')[0] || '';
+            return dep.startsWith(m.value) && (
+                activeTab === 'canada' ? (CANADA_CODES.includes(d.code) || d.source === 'google_flights_canada') :
+                    !(CANADA_CODES.includes(d.code) || d.source === 'google_flights_canada')
+            );
+        });
     });
 
     const dealsCount = (displayDeals || []).length;
@@ -330,104 +341,111 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                 ))}
             </div>
 
-            {/* Titre */}
+            {/* Titre "Meilleurs deals" avec mois dynamiques */}
             <div style={{
                 display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                alignItems: isMobile ? 'flex-start' : 'center',
+                alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: isMobile ? '12px 12px 4px' : '16px 20px 8px',
-                gap: isMobile ? 6 : 8,
+                padding: '10px 24px 0',
             }}>
-                <span style={{
-                    fontSize: isMobile ? 15 : 16,
-                    fontWeight: 700,
-                    fontFamily: "'Outfit', sans-serif",
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                }}>
-                    <span style={{ color: '#1A2B42', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {activeTab === 'international' ? 'Meilleurs deals' : 'Vols à travers le'}
-                        <span style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            background: '#16A34A',
-                            display: 'inline-block',
-                            animation: 'liveBlink 2s ease-in-out infinite',
-                        }} />
+                {/* Titre */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{
+                        fontFamily: "'Fredoka', sans-serif",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#1A2B42',
+                    }}>
+                        Meilleurs deals
                     </span>
-                    {' '}
-                    <span style={{ color: '#2E7DDB' }}>
-                        {activeTab === 'international' ? 'dans le monde' : 'Canada'}
+                    <span style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: '#16A34A',
+                        animation: 'liveBlink 2s ease-in-out infinite',
+                    }} />
+                    <span style={{
+                        fontFamily: "'Fredoka', sans-serif",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#2E7DDB',
+                    }}>
+                        {activeTab === 'international' ? 'dans le monde' : 'au Canada'}
                     </span>
-                </span>
-            </div>
+                </div>
 
-            {/* Ligne 2 — Sélecteur de mois */}
-            <div
-                className="month-selector"
-                style={{
-                    display: 'flex',
-                    gap: isMobile ? 5 : 6,
-                    overflowX: 'auto',
-                    padding: isMobile ? '4px 12px' : '8px 10px 10px',
-                    WebkitOverflowScrolling: 'touch',
-                    msOverflowStyle: 'none',
-                    scrollbarWidth: 'none',
-                }}
-            >
-                <button
-                    onClick={() => setSelectedMonth('all')}
-                    style={{
-                        padding: isMobile ? '3px 10px' : '6px 12px',
-                        borderRadius: 100,
-                        border: 'none',
-                        fontSize: isMobile ? 10 : 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        fontFamily: "'Outfit', sans-serif",
-                        whiteSpace: 'nowrap',
-                        background: selectedMonth === 'all' ? '#2E7DDB' : (isMobile ? '#F0F4F8' : 'rgba(26,43,66,0.04)'),
-                        color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
-                    }}
-                >
-                    {isMobile ? 'Tous' : 'Tous les mois'}
-                </button>
-                {months.map(m => (
+                {/* Mois dynamiques — seulement ceux qui ont des deals */}
+                <div style={{ display: 'flex', gap: 4 }}>
                     <button
-                        key={m.value}
-                        onClick={() => setSelectedMonth(m.value)}
+                        onClick={() => setSelectedMonth('all')}
                         style={{
-                            padding: isMobile ? '3px 10px' : '6px 12px',
+                            padding: '3px 10px',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: isMobile ? 10 : 11,
+                            fontSize: 10.5,
                             fontWeight: 600,
                             cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
-                            whiteSpace: 'nowrap',
-                            background: selectedMonth === m.value ? '#2E7DDB' : (isMobile ? '#F0F4F8' : 'rgba(26,43,66,0.04)'),
-                            color: selectedMonth === m.value ? 'white' : '#8FA3B8',
+                            background: selectedMonth === 'all' ? '#2E7DDB' : '#F0F4F8',
+                            color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
                         }}
                     >
-                        {m.label}
+                        Tous
                     </button>
-                ))}
+                    {availableMonths.map(m => {
+                        const count = displayDeals.filter(d => {
+                            const dep = d.departure_date || d.dates?.split(' → ')[0] || '';
+                            return dep.startsWith(m.value);
+                        }).length;
+                        // Ne pas afficher le mois s'il n'y a pas de deals
+                        if (count === 0) return null;
+                        return (
+                            <button
+                                key={m.value}
+                                onClick={() => setSelectedMonth(m.value)}
+                                className="month-btn"
+                                style={{
+                                    padding: '3px 10px',
+                                    borderRadius: 100,
+                                    border: 'none',
+                                    fontSize: 10.5,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    whiteSpace: 'nowrap',
+                                    background: selectedMonth === m.value ? '#2E7DDB' : '#F0F4F8',
+                                    color: selectedMonth === m.value ? 'white' : '#8FA3B8',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                }}
+                            >
+                                {m.label}
+                                <span style={{
+                                    fontSize: 8.5,
+                                    fontWeight: 800,
+                                    color: selectedMonth === m.value
+                                        ? 'rgba(255,255,255,0.7)'
+                                        : '#B0BEC5',
+                                }}>
+                                    {count}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* Ligne 3 — Carrousel de cards */}
-            <div className="strip-panel show" style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
                 {/* Fade gauche */}
                 <div style={{
-                    position: 'absolute', top: 0, left: 0, width: 50, height: '100%',
+                    position: 'absolute', top: 0, left: 0, width: 35, height: '100%',
                     background: 'linear-gradient(to right, white, transparent)',
                     zIndex: 3, pointerEvents: 'none',
                 }} />
                 {/* Fade droite */}
                 <div style={{
-                    position: 'absolute', top: 0, right: 0, width: 50, height: '100%',
+                    position: 'absolute', top: 0, right: 0, width: 35, height: '100%',
                     background: 'linear-gradient(to left, white, transparent)',
                     zIndex: 3, pointerEvents: 'none',
                 }} />
@@ -439,7 +457,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         display: 'flex',
                         gap: isMobile ? 10 : 16,
                         overflowX: 'auto',
-                        padding: isMobile ? '8px 12px 16px' : '8px 24px 20px',
+                        padding: isMobile ? '8px 12px 16px' : '12px 24px 20px',
                         scrollbarWidth: 'none',
                         WebkitOverflowScrolling: 'touch',
                         scrollBehavior: 'auto',
@@ -450,9 +468,9 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             key={`${deal.id || i}-${i}`}
                             className="scard deal-card"
                             style={{
-                                minWidth: isMobile ? 165 : 200,
-                                maxWidth: isMobile ? 165 : 200,
-                                borderRadius: 16,
+                                minWidth: isMobile ? 155 : 170,
+                                maxWidth: isMobile ? 155 : 170,
+                                borderRadius: 12,
                                 overflow: 'hidden',
                                 background: 'white',
                                 border: '1px solid rgba(26,43,66,0.06)',
@@ -465,24 +483,15 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         >
                             {/* Badge deal level */}
                             {(() => {
-                                const badge = (DEAL_BADGES as any)[deal.dealLevel] || {};
+                                const badge = DEAL_BADGES[deal.dealLevel] || {};
                                 return badge.label ? (
                                     <div style={{
-                                        position: 'absolute',
-                                        top: 10,
-                                        left: 10,
-                                        zIndex: 5,
-                                        background: badge.bg,
-                                        color: 'white',
-                                        padding: '3px 10px',
-                                        borderRadius: 100,
-                                        fontSize: 9,
-                                        fontWeight: 800,
-                                        letterSpacing: 0.5,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 4,
-                                        boxShadow: `0 2px 8px ${badge.bg}40`,
+                                        position: 'absolute', top: 6, left: 6, zIndex: 5,
+                                        background: badge.bg, color: 'white',
+                                        padding: '2px 7px', borderRadius: 100,
+                                        fontSize: 7.5, fontWeight: 800, letterSpacing: 0.3,
+                                        display: 'flex', alignItems: 'center', gap: 2,
+                                        boxShadow: `0 1px 4px ${badge.bg}30`,
                                     }}>
                                         {badge.icon} {badge.label}
                                     </div>
@@ -494,11 +503,11 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                 onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
                                 style={{
                                     position: 'absolute',
-                                    top: 10,
-                                    right: 10,
+                                    top: 8,
+                                    right: 8,
                                     zIndex: 5,
-                                    width: 30,
-                                    height: 30,
+                                    width: 26,
+                                    height: 26,
                                     borderRadius: '50%',
                                     background: 'rgba(255,255,255,0.9)',
                                     border: 'none',
@@ -511,7 +520,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                     transition: 'transform 0.2s ease',
                                 }}
                             >
-                                <svg width="14" height="14" viewBox="0 0 24 24"
+                                <svg width="12" height="12" viewBox="0 0 24 24"
                                     fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
                                     stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#94A3B8'}
                                     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -521,12 +530,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             </button>
 
                             {/* Image */}
-                            {(() => {
-                                // Debug images
-                                if (i < 5) console.log('[Card]', deal.city, CITY_IMAGES[deal.city || deal.destination]);
-                                return null;
-                            })()}
-                            <div style={{ overflow: 'hidden', height: isMobile ? 100 : 140, background: '#E8F0FE', width: '100%' }}>
+                            <div style={{ overflow: 'hidden', height: isMobile ? 90 : 95, background: '#E8F0FE', width: '100%' }}>
                                 <img
                                     className="scard-img card-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
@@ -536,31 +540,29 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                         if (target.src !== DEFAULT_IMAGE) target.src = DEFAULT_IMAGE;
                                     }}
                                     style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        display: 'block',
+                                        width: '100%', height: '100%', objectFit: 'cover',
+                                        display: 'block', background: '#EAF2FB',
                                     }}
                                 />
                             </div>
 
                             {/* Body */}
                             <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 14px', position: 'relative', zIndex: 2 }}>
-                                <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 15, color: '#1A2B42', marginBottom: 2 }}>
+                                <div style={{ fontWeight: 700, fontSize: isMobile ? 12 : 14, color: '#1A2B42', marginBottom: 2 }}>
                                     {deal.city}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#8FA3B8', marginBottom: 4 }}>
+                                <div style={{ fontSize: 10, color: '#8FA3B8', marginBottom: 4 }}>
                                     {deal.route} · {deal.airline || ''}{deal.stops === 0 ? ' · Direct' : deal.stops ? ` · ${deal.stops} escale${deal.stops > 1 ? 's' : ''}` : ''}
                                 </div>
 
                                 {/* Prix + rabais */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                                     <span style={{
                                         background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
                                         color: 'white',
-                                        padding: '5px 12px',
-                                        borderRadius: 10,
-                                        fontSize: isMobile ? 14 : 17,
+                                        padding: '4px 10px',
+                                        borderRadius: 8,
+                                        fontSize: isMobile ? 13 : 15,
                                         fontWeight: 800,
                                         fontFamily: "'Fredoka', sans-serif",
                                         boxShadow: '0 2px 8px rgba(46,125,219,0.2)',
@@ -571,9 +573,9 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                         <span style={{
                                             background: 'linear-gradient(135deg, #DC2626, #EF4444)',
                                             color: 'white',
-                                            padding: '3px 8px',
-                                            borderRadius: 6,
-                                            fontSize: 11,
+                                            padding: '2px 6px',
+                                            borderRadius: 5,
+                                            fontSize: 10,
                                             fontWeight: 800,
                                             boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
                                         }}>
@@ -584,15 +586,9 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
                                 {/* CTA */}
                                 <div className="see-flight" style={{
-                                    marginTop: 10,
-                                    fontSize: 12,
-                                    color: '#2E7DDB',
-                                    fontWeight: 700,
-                                    padding: '6px 0',
-                                    borderRadius: 8,
-                                    textAlign: 'center',
-                                    background: 'rgba(46,125,219,0.06)',
-                                    transition: 'all 0.2s ease',
+                                    marginTop: 6, fontSize: 10.5, color: '#2E7DDB', fontWeight: 700,
+                                    padding: '4px 0', borderRadius: 6, textAlign: 'center',
+                                    background: 'rgba(46,125,219,0.04)', transition: 'all 0.2s',
                                 }}>
                                     Voir ce vol →
                                 </div>

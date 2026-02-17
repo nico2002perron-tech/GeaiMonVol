@@ -2160,3 +2160,48 @@ a {
 .month-selector::-webkit-scrollbar {
   display: none;
 }
+/*  Animations  */
+@keyframes liveBlink {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(1.4); }
+}
+
+/*  Card hover  */
+.deal-card,
+.scard {
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s !important;
+}
+
+.deal-card:hover,
+.scard:hover {
+    transform: translateY(-6px) !important;
+    box-shadow: 0 16px 36px rgba(26,43,66,0.14) !important;
+}
+
+.deal-card:hover .scard-img,
+.deal-card:hover .card-img,
+.scard:hover .scard-img {
+    transform: scale(1.08);
+}
+
+.scard-img,
+.card-img {
+    transition: transform 0.5s ease;
+}
+
+.deal-card:hover .see-flight,
+.scard:hover .see-flight {
+    color: #fff !important;
+    background: #2E7DDB !important;
+}
+
+/*  Onglets  */
+.big-tab:hover {
+    background: rgba(46,125,219,0.03);
+}
+
+/*  Mois hover  */
+.month-btn:hover:not(.month-active) {
+    background: #E8F0FE;
+    color: #2E7DDB;
+}
