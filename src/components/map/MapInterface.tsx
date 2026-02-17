@@ -60,7 +60,7 @@ export default function MapInterface() {
                         height: isMobile ? '38vh' : 'calc(100vh - 280px)',
                         position: 'relative',
                         overflow: 'visible',
-                        marginBottom: 0,
+                        marginBottom: isMobile ? -20 : 0,
                         paddingBottom: 0,
                     }}>
                         <MapCanvas

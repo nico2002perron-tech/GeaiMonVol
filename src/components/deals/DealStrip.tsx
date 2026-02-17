@@ -486,8 +486,28 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                 <div className="scard-city" style={{ fontWeight: 700, fontSize: 13, color: '#1A2B42', marginBottom: 2 }}>{deal.city}</div>
                                 <div className="scard-route" style={{ fontSize: 11, color: '#64748B', marginBottom: 6 }}>{deal.route}</div>
                                 <div className="scard-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span className="scard-price" style={{ fontWeight: 800, fontSize: 15, color: '#2E7DDB' }}>{deal.price} $</span>
-                                    {deal.disc > 0 && <span className="scard-disc" style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', background: '#FEF2F2', padding: '2px 6px', borderRadius: 4 }}>-{deal.disc}%</span>}
+                                    <span style={{
+                                        background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
+                                        color: 'white',
+                                        padding: '4px 10px',
+                                        borderRadius: 8,
+                                        fontSize: isMobile ? 13 : 15,
+                                        fontWeight: 800,
+                                    }}>
+                                        {deal.price} $
+                                    </span>
+                                    {deal.disc > 0 && (
+                                        <span className="scard-disc" style={{
+                                            fontSize: 10,
+                                            fontWeight: 700,
+                                            color: 'white',
+                                            background: '#FF4D6A',
+                                            padding: '2px 6px',
+                                            borderRadius: 4
+                                        }}>
+                                            -{deal.disc}%
+                                        </span>
+                                    )}
                                 </div>
                                 <div style={{ marginTop: 8, fontSize: 11, color: '#2E7DDB', fontWeight: 600 }}>
                                     Voir ce vol →
