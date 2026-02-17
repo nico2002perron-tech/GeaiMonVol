@@ -83,9 +83,9 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
 
             if (isMobile) {
                 proj
-                    .center([-40, 35])
-                    .scale(w / 2.2)
-                    .translate([w / 2, h / 2]);
+                    .center([0, 20])
+                    .scale(w / 4)
+                    .translate([w / 2, h / 2.5]);
             } else {
                 proj
                     .center([10, 20])
