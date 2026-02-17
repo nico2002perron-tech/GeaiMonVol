@@ -225,24 +225,41 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                     )}
 
                     {/* Dates */}
-                    {departDate && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Départ</span>
-                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>{formatDate(departDate)}</span>
-                        </div>
-                    )}
-                    {returnDate && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Retour</span>
-                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>{formatDate(returnDate)}</span>
-                        </div>
-                    )}
-
-                    {/* Nuits */}
-                    {nights && nights > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Durée séjour</span>
-                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>{nights} nuits</span>
+                    {departDate && returnDate && (
+                        <div style={{
+                            marginTop: 16,
+                            padding: 14,
+                            background: '#F0F7FF',
+                            borderRadius: 10,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                        }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 11, color: '#8FA3B8' }}>Départ</div>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
+                                    {formatDate(departDate)}
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 18, color: '#2E7DDB' }}>→</div>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 11, color: '#8FA3B8' }}>Retour</div>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
+                                    {formatDate(returnDate)}
+                                </div>
+                            </div>
+                            {nights && nights > 0 && (
+                                <div style={{
+                                    background: '#2E7DDB',
+                                    color: 'white',
+                                    padding: '4px 10px',
+                                    borderRadius: 100,
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                }}>
+                                    {nights} nuits
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -277,7 +294,7 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                         fontFamily: "'Outfit', sans-serif",
                     }}
                 >
-                    Voir sur Google Flights ✈️
+                    Réserver ce vol – {deal.price}$ ✈️
                 </a>
 
                 <p style={{ marginTop: 8, fontSize: 11, color: '#8FA3B8', textAlign: 'center' }}>

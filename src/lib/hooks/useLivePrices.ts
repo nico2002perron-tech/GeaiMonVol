@@ -33,8 +33,11 @@ export function useLivePrices() {
                     const rawPrices = data.prices || (Array.isArray(data) ? data : []);
                     const mappedPrices = rawPrices.map((p: any) => ({
                         ...p,
-                        googleFlightsLink: p.raw_data?.google_flights_link || p.google_flights_link || p.googleFlightsLink || '',
+                        googleFlightsLink: p.raw_data?.google_flights_link || p.raw_data?.googleFlightsLink || '',
+                        departure_date: p.departure_date || p.raw_data?.departure_date || '',
+                        return_date: p.return_date || p.raw_data?.return_date || '',
                     }));
+
                     setPrices(mappedPrices);
                     setLastUpdated(data.updatedAt || new Date().toISOString());
                 }
