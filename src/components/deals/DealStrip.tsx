@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -89,20 +89,20 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
     const scrollRef = useRef<HTMLDivElement>(null);
     const { user } = useAuth();
     const router = useRouter();
-    const supabase = createClient();
+    const supabaseRef = useRef(createClient());
     const [watchedDeals, setWatchedDeals] = useState<string[]>([]);
 
     useEffect(() => {
         if (!user) return;
         const loadWatchlist = async () => {
-            const { data } = await supabase
+            const { data } = await supabaseRef.current
                 .from('watchlist')
                 .select('destination')
                 .eq('user_id', user.id);
             if (data) setWatchedDeals((data || []).map((w: any) => w.destination));
         };
         loadWatchlist();
-    }, [user, supabase]);
+    }, [user]);
 
     const toggleWatchlist = async (deal: any) => {
         if (!user) {
@@ -111,14 +111,14 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         }
         const isWatched = watchedDeals.includes(deal.city);
         if (isWatched) {
-            await supabase
+            await supabaseRef.current
                 .from('watchlist')
                 .delete()
                 .eq('user_id', user.id)
                 .eq('destination', deal.city);
             setWatchedDeals(prev => prev.filter(d => d !== deal.city));
         } else {
-            await supabase
+            await supabaseRef.current
                 .from('watchlist')
                 .upsert({
                     user_id: user.id,
@@ -205,62 +205,41 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         const container = scrollRef.current;
         if (!container || dealsCount === 0) return;
 
-        // Attendre que le DOM soit prêt et que les cards soient rendues
+        let animationId: number;
+        let isPaused = false;
+
         const startDelay = setTimeout(() => {
-            let isPaused = false;
-            let animationId: number;
-
-            // Mesurer la largeur d'un set de deals
-            // loopedDeals = 2x displayDeals, donc halfWidth = scrollWidth / 2
             const halfWidth = container.scrollWidth / 2;
-
             if (halfWidth <= 0) return;
 
             const tick = () => {
-                if (!isPaused && container) {
+                if (!isPaused) {
                     let pos = container.scrollLeft + 0.5;
-
-                    // Quand on atteint la fin du premier set, revenir au début
-                    if (pos >= halfWidth) {
-                        pos -= halfWidth;
-                    }
-
+                    if (pos >= halfWidth) pos -= halfWidth;
                     container.scrollLeft = pos;
                 }
                 animationId = requestAnimationFrame(tick);
             };
 
             animationId = requestAnimationFrame(tick);
-
-            // Pause handlers
-            const pause = () => { isPaused = true; };
-            const resume = () => { isPaused = false; };
-            const delayedResume = () => { setTimeout(resume, 2500); };
-
-            container.addEventListener('mouseenter', pause);
-            container.addEventListener('mouseleave', resume);
-            container.addEventListener('touchstart', pause, { passive: true });
-            container.addEventListener('touchend', delayedResume);
-
-            // Cleanup interne
-            const cleanup = () => {
-                cancelAnimationFrame(animationId);
-                container.removeEventListener('mouseenter', pause);
-                container.removeEventListener('mouseleave', resume);
-                container.removeEventListener('touchstart', pause);
-                container.removeEventListener('touchend', delayedResume);
-            };
-
-            // Stocker le cleanup pour le return du useEffect
-            (container as any).__carouselCleanup = cleanup;
         }, 300);
+
+        const pause = () => { isPaused = true; };
+        const resume = () => { isPaused = false; };
+        const delayedResume = () => { setTimeout(resume, 2500); };
+
+        container.addEventListener('mouseenter', pause);
+        container.addEventListener('mouseleave', resume);
+        container.addEventListener('touchstart', pause, { passive: true });
+        container.addEventListener('touchend', delayedResume);
 
         return () => {
             clearTimeout(startDelay);
-            const container = scrollRef.current;
-            if (container && (container as any).__carouselCleanup) {
-                (container as any).__carouselCleanup();
-            }
+            cancelAnimationFrame(animationId);
+            container.removeEventListener('mouseenter', pause);
+            container.removeEventListener('mouseleave', resume);
+            container.removeEventListener('touchstart', pause);
+            container.removeEventListener('touchend', delayedResume);
         };
     }, [dealsCount]);
 

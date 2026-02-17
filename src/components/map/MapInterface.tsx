@@ -50,7 +50,6 @@ export default function MapInterface() {
     }, []);
 
     const { prices, loading: pricesLoading, lastUpdated } = useLivePrices();
-    console.log('[MapInterface] Live prices:', prices?.length, prices);
 
     return (
         <>
@@ -138,7 +137,6 @@ export default function MapInterface() {
                             mapView={mapView}
                             isMobile={isMobile}
                             onRegionSelect={(region) => {
-                                console.log("Selected region:", region);
                                 setSelectedRegion(region);
                                 setSidebarOpen(true);
                             }}

@@ -5,66 +5,71 @@ import { calculateRealDiscount } from '@/lib/services/flights';
 export async function GET() {
     try {
         const supabase = await createServerSupabase();
-
-        // Derniers prix (24 dernières heures)
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { data: latestPrices, error } = await supabase
-            .from('price_history')
-            .select('*')
-            .gte('scanned_at', oneDayAgo)
-            .order('price', { ascending: true });
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        // Fetch latest prices AND 30-day history in parallel (2 queries instead of N+1)
+        const [latestResult, historyResult] = await Promise.all([
+            supabase
+                .from('price_history')
+                .select('*')
+                .gte('scanned_at', oneDayAgo)
+                .order('price', { ascending: true }),
+            supabase
+                .from('price_history')
+                .select('destination, price, scanned_at')
+                .gte('scanned_at', thirtyDaysAgo)
+                .order('scanned_at', { ascending: false }),
+        ]);
+
+        if (latestResult.error) {
+            return NextResponse.json({ error: latestResult.error.message }, { status: 500 });
         }
 
-        // Dédupliquer : garder le meilleur prix par destination
+        // Deduplicate: keep best price per destination
         const bestByDest: Record<string, any> = {};
-        for (const row of latestPrices || []) {
+        for (const row of latestResult.data || []) {
             if (!bestByDest[row.destination] || row.price < bestByDest[row.destination].price) {
                 bestByDest[row.destination] = row;
             }
         }
 
-        // Pour chaque destination, calculer le rabais réel basé sur l'historique
+        // Group history by destination (single pass)
+        const historyByDest: Record<string, Array<{ price: number; scanned_at: string }>> = {};
+        for (const row of historyResult.data || []) {
+            if (!historyByDest[row.destination]) {
+                historyByDest[row.destination] = [];
+            }
+            historyByDest[row.destination].push({
+                price: row.price,
+                scanned_at: row.scanned_at,
+            });
+        }
+
+        // Enrich prices with discount info — no additional DB queries
         const enrichedPrices = [];
         for (const [dest, price] of Object.entries(bestByDest)) {
-            // Chercher l'historique des 30 derniers jours
-            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { data: history } = await supabase
-                .from('price_history')
-                .select('price, scanned_at')
-                .eq('destination', dest)
-                .gte('scanned_at', thirtyDaysAgo)
-                .order('scanned_at', { ascending: false });
+            const history = historyByDest[dest] || [];
+            const discountInfo = calculateRealDiscount(price.price, history);
 
-            const discountInfo = calculateRealDiscount(
-                (price as any).price,
-                history || []
-            );
-
-            // Fallback : si pas assez d'historique (discount 0), utiliser les price_insights de Google
-            if (discountInfo.discount === 0 && (price as any).raw_data?.price_insights) {
-                const insights = (price as any).raw_data.price_insights;
+            // Fallback: if not enough history, use Google price_insights
+            if (discountInfo.discount === 0 && price.raw_data?.price_insights) {
+                const insights = price.raw_data.price_insights;
                 const typicalRange = insights.typical_price_range;
 
-                if (typicalRange && typicalRange.length >= 2) {
+                if (typicalRange?.length >= 2) {
                     const typicalAvg = Math.round((typicalRange[0] + typicalRange[1]) / 2);
-                    const currentPrice = (price as any).price;
 
-                    if (typicalAvg > currentPrice) {
-                        const googleDiscount = Math.round(((typicalAvg - currentPrice) / typicalAvg) * 100);
-
+                    if (typicalAvg > price.price) {
+                        const googleDiscount = Math.round(((typicalAvg - price.price) / typicalAvg) * 100);
                         enrichedPrices.push({
-                            ...(price as any),
+                            ...price,
                             discount: googleDiscount,
                             avgPrice: typicalAvg,
-                            lowestEver: currentPrice,
+                            lowestEver: price.price,
                             isGoodDeal: googleDiscount >= 15,
-                            dealLevel: insights.price_level === 'low' ? 'great'
-                                : insights.price_level === 'typical' ? 'normal'
-                                    : 'normal',
-                            priceLevel: insights.price_level, // "low", "typical", "high"
+                            dealLevel: insights.price_level === 'low' ? 'great' : 'normal',
+                            priceLevel: insights.price_level,
                         });
                         continue;
                     }
@@ -72,7 +77,7 @@ export async function GET() {
             }
 
             enrichedPrices.push({
-                ...(price as any),
+                ...price,
                 discount: discountInfo.discount,
                 avgPrice: discountInfo.avgPrice,
                 lowestEver: discountInfo.lowestEver,
@@ -81,18 +86,18 @@ export async function GET() {
             });
         }
 
-        // Trier : les meilleurs deals en premier
+        // Sort: best deals first
+        const levelOrder: Record<string, number> = {
+            lowest_ever: 0,
+            incredible: 1,
+            great: 2,
+            good: 3,
+            slight: 4,
+            normal: 5,
+        };
+
         enrichedPrices.sort((a, b) => {
-            // Priorité aux deals classés "incredible" et "lowest_ever"
-            const levelOrder: Record<string, number> = {
-                lowest_ever: 0,
-                incredible: 1,
-                great: 2,
-                good: 3,
-                slight: 4,
-                normal: 5,
-            };
-            const levelDiff = (levelOrder[a.dealLevel] || 5) - (levelOrder[b.dealLevel] || 5);
+            const levelDiff = (levelOrder[a.dealLevel] ?? 5) - (levelOrder[b.dealLevel] ?? 5);
             if (levelDiff !== 0) return levelDiff;
             return b.discount - a.discount;
         });
