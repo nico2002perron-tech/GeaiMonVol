@@ -40,7 +40,7 @@ const CITY_IMAGES: Record<string, string> = {
     'Dublin': 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=400&h=250&fit=crop',
     'Athènes': 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=400&h=250&fit=crop',
     'Reykjavik': 'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=400&h=250&fit=crop',
-    'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=250&fit=crop',
+    'Porto': 'https://images.unsplash.com/photo-155881400-74d7acaacd8b?w=400&h=250&fit=crop',
     'Madrid': 'https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=400&h=250&fit=crop',
     'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&h=250&fit=crop',
     'Montego Bay': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400&h=250&fit=crop',
@@ -216,63 +216,67 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     </span>
                 </span>
 
-                {/* Onglets - pleine largeur sur mobile */}
+                {/* Onglets - largeur égale */}
                 <div style={{
                     display: 'flex',
-                    gap: 4,
+                    gap: 3,
                     background: '#F0F4F8',
                     borderRadius: 100,
                     padding: 3,
                     width: isMobile ? '100%' : 'auto',
-                    justifyContent: isMobile ? 'space-between' : 'flex-end',
+                    minWidth: isMobile ? 'unset' : 320,
                 }}>
                     <button
                         onClick={() => { setActiveTab('international'); onViewChange?.('world'); }}
                         style={{
-                            padding: isMobile ? '5px 10px' : '6px 14px',
+                            flex: 1,
+                            padding: '6px 0',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: isMobile ? 11 : 12,
+                            fontSize: 11,
                             fontWeight: 600,
                             cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
+                            textAlign: 'center',
                             transition: 'all 0.2s',
                             background: activeTab === 'international' ? 'white' : 'none',
                             color: activeTab === 'international' ? '#1A2B42' : '#8FA3B8',
                             boxShadow: activeTab === 'international' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                            flex: isMobile ? 1 : 'unset',
                         }}
                     >
-                        ✈️ International
+                        ✈️ Intl
                     </button>
                     <button
                         onClick={() => { setActiveTab('canada'); onViewChange?.('canada'); }}
                         style={{
-                            padding: isMobile ? '5px 10px' : '6px 14px',
+                            flex: 1,
+                            padding: '6px 0',
                             borderRadius: 100,
                             border: 'none',
-                            fontSize: isMobile ? 11 : 12,
+                            fontSize: 11,
                             fontWeight: 600,
                             cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
+                            textAlign: 'center',
                             transition: 'all 0.2s',
                             background: activeTab === 'canada' ? 'white' : 'none',
                             color: activeTab === 'canada' ? '#1A2B42' : '#8FA3B8',
                             boxShadow: activeTab === 'canada' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                            flex: isMobile ? 1 : 'unset',
                         }}
                     >
-                        🍁 Intra-pays
+                        🍁 Canada
                     </button>
 
                     <button disabled style={{
-                        padding: isMobile ? '5px 8px' : '6px 14px',
+                        flex: 1,
+                        padding: '6px 0',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: isMobile ? 10 : 12,
+                        fontSize: 11,
                         fontWeight: 600,
                         cursor: 'default',
                         fontFamily: "'Outfit', sans-serif",
+                        textAlign: 'center',
                         background: 'rgba(26,43,66,0.04)',
                         color: '#8FA3B8',
                         position: 'relative',
@@ -282,7 +286,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         <span style={{
                             position: 'absolute',
                             top: -6,
-                            right: -8,
+                            right: 2,
                             background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                             color: 'white',
                             fontSize: 7,
@@ -293,23 +297,25 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     </button>
 
                     <button disabled style={{
-                        padding: isMobile ? '5px 8px' : '6px 14px',
+                        flex: 1,
+                        padding: '6px 0',
                         borderRadius: 100,
                         border: 'none',
-                        fontSize: isMobile ? 10 : 12,
+                        fontSize: 11,
                         fontWeight: 600,
                         cursor: 'default',
                         fontFamily: "'Outfit', sans-serif",
+                        textAlign: 'center',
                         background: 'rgba(26,43,66,0.04)',
                         color: '#8FA3B8',
                         position: 'relative',
                         opacity: 0.7,
                     }}>
-                        <span style={{ textDecoration: 'line-through' }}>📍 Plannings</span>
+                        <span style={{ textDecoration: 'line-through' }}>📍 Plans</span>
                         <span style={{
                             position: 'absolute',
                             top: -6,
-                            right: -8,
+                            right: 2,
                             background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                             color: 'white',
                             fontSize: 7,
