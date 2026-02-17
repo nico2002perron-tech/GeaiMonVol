@@ -172,50 +172,103 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         return true;
     });
 
-    const displayDealsCount = (displayDeals || []).length;
+    const displayDealsKey = (displayDeals || []).map(d => d.id || d.code || d.city).join(',');
+
     useEffect(() => {
         const container = scrollRef.current;
-        if (!container || displayDealsCount === 0) return;
+        if (!container) return;
 
-        let scrollAmount = 0;
-        let isPaused = false;
+        // Attendre que le contenu soit rendu et que les images aient une taille
+        const initTimeout = setTimeout(() => {
+            if (!container.scrollWidth || container.scrollWidth <= container.clientWidth) return;
 
-        const scroll = () => {
-            if (!isPaused) {
-                scrollAmount += 0.4; // Vitesse lente et smooth
-                // Reset quand on atteint la moitié (deals dupliqués)
-                const halfWidth = container.scrollWidth / 2;
-                if (halfWidth > 0 && scrollAmount >= halfWidth) {
-                    scrollAmount = 0;
+            let isPaused = false;
+            let animationId: number;
+
+            // Capturer la largeur d'un set de deals au moment de l'init
+            // scrollWidth = 2 sets (loopedDeals), donc 1 set = scrollWidth / 2
+            const getHalfWidth = () => {
+                // On recalcule à chaque frame serait instable, 
+                // donc on le snapshot une fois au départ
+                return container.scrollWidth / 2;
+            };
+            const halfWidth = getHalfWidth();
+
+            // S'assurer que halfWidth est valide
+            if (halfWidth <= 0 || !isFinite(halfWidth)) return;
+
+            const scroll = () => {
+                if (!isPaused) {
+                    // Lire la position actuelle (respecte le scroll manuel de l'user)
+                    let currentPos = container.scrollLeft;
+                    currentPos += 0.5; // vitesse en px/frame (~30px/sec à 60fps)
+
+                    // Reset seamless : quand on dépasse le set 1, revenir au début
+                    // Le set 2 est identique au set 1, donc le saut est invisible
+                    if (currentPos >= halfWidth) {
+                        currentPos = currentPos - halfWidth;
+                    }
+
+                    container.scrollLeft = currentPos;
                 }
-                container.scrollLeft = scrollAmount;
-            }
+                animationId = requestAnimationFrame(scroll);
+            };
+
             animationId = requestAnimationFrame(scroll);
-        };
 
-        let animationId = requestAnimationFrame(scroll);
+            // --- Pause / Resume ---
+            const pause = () => {
+                isPaused = true;
+            };
 
-        const pause = () => { isPaused = true; };
-        const resume = () => {
-            isPaused = false;
-            scrollAmount = container.scrollLeft; // Sync après pause
-        };
+            const resume = () => {
+                isPaused = false;
+            };
 
-        const touchResume = () => setTimeout(resume, 2500);
+            const delayedResume = () => {
+                // Sur mobile, attendre 2.5s après le touchend avant de reprendre
+                setTimeout(resume, 2500);
+            };
 
-        container.addEventListener('mouseenter', pause);
-        container.addEventListener('mouseleave', resume);
-        container.addEventListener('touchstart', pause, { passive: true });
-        container.addEventListener('touchend', touchResume);
+            // Pause au hover (desktop)
+            container.addEventListener('mouseenter', pause);
+            container.addEventListener('mouseleave', resume);
 
-        return () => {
-            cancelAnimationFrame(animationId);
-            container.removeEventListener('mouseenter', pause);
-            container.removeEventListener('mouseleave', resume);
-            container.removeEventListener('touchstart', pause);
-            container.removeEventListener('touchend', touchResume);
-        };
-    }, [displayDealsCount]);
+            // Pause au touch (mobile)
+            container.addEventListener('touchstart', pause, { passive: true });
+            container.addEventListener('touchend', delayedResume);
+
+            // Si l'user scroll manuellement (drag sur mobile), on pause aussi
+            let scrollTimeout: NodeJS.Timeout;
+            const onManualScroll = () => {
+                if (!isPaused) {
+                    isPaused = true;
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        // Vérifier si on a dépassé le halfWidth pendant le scroll manuel
+                        if (container.scrollLeft >= halfWidth) {
+                            container.scrollLeft = container.scrollLeft - halfWidth;
+                        }
+                        isPaused = false;
+                    }, 3000); // Reprend 3s après que l'user arrête de scroller
+                }
+            };
+            container.addEventListener('scroll', onManualScroll, { passive: true });
+
+            // Cleanup
+            return () => {
+                cancelAnimationFrame(animationId);
+                clearTimeout(scrollTimeout);
+                container.removeEventListener('mouseenter', pause);
+                container.removeEventListener('mouseleave', resume);
+                container.removeEventListener('touchstart', pause);
+                container.removeEventListener('touchend', delayedResume);
+                container.removeEventListener('scroll', onManualScroll);
+            };
+        }, 500); // Délai de 500ms pour laisser les images se charger
+
+        return () => clearTimeout(initTimeout);
+    }, [displayDealsKey]); // ← Dépendance stable (string au lieu de tableau)
 
     const loopedDeals = [...(displayDeals || []), ...(displayDeals || [])];
 
@@ -434,6 +487,7 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         padding: isMobile ? '8px 12px' : '10px 20px',
                         scrollbarWidth: 'none',
                         WebkitOverflowScrolling: 'touch',
+                        scrollBehavior: 'auto',
                     }}
                 >
                     {loopedDeals.map((deal: any, i: number) => (
