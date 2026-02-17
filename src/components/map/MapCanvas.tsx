@@ -57,13 +57,14 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
 interface MapCanvasProps {
     deals?: any[];
     mapView?: 'world' | 'canada';
+    isMobile?: boolean;
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
     onLeaveDeal: () => void;
     onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
 }
 
-export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
+export default function MapCanvas({ deals = [], mapView = 'world', isMobile = false, onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal }: MapCanvasProps) {
     const svgRef = useRef<SVGSVGElement>(null);
     const [projection, setProjection] = useState<d3.GeoProjection | null>(null);
     const [pins, setPins] = useState<any[]>([]);
@@ -73,21 +74,26 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
         if (typeof window === 'undefined') return;
 
         const updateDimensions = () => {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            if (!svgRef.current) return;
+            const w = svgRef.current.clientWidth || window.innerWidth;
+            const h = svgRef.current.clientHeight || window.innerHeight;
             setDimensions({ width: w, height: h });
 
             const proj = d3.geoNaturalEarth1()
-                .scale(w < 768 ? w / 4 : w / 5.5)
-                .translate([w / 2, w < 768 ? h * 0.42 : h * 0.44])
-                .center([10, 20]);
+                .center([10, 20])
+                .scale(w / (isMobile ? 3 : 5.5))
+                .translate([w / 2, h / 2]);
             setProjection(() => proj);
         };
 
         window.addEventListener('resize', updateDimensions);
-        updateDimensions();
-        return () => window.removeEventListener('resize', updateDimensions);
-    }, []);
+        // Small timeout to ensure container is rendered
+        const timer = setTimeout(updateDimensions, 50);
+        return () => {
+            window.removeEventListener('resize', updateDimensions);
+            clearTimeout(timer);
+        };
+    }, [isMobile]);
 
     // Stable key for deals to avoid re-rendering pins if data hasn't changed
     const dealsKey = JSON.stringify((deals || []).map(d => (d.destination_code || d.code || '') + (d.price || 0)));

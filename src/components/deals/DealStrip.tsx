@@ -337,9 +337,11 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                         className="month-selector"
                         style={{
                             display: 'flex',
-                            gap: 10,
+                            gap: 6,
                             overflowX: 'auto',
                             padding: '12px 0 4px',
+                            WebkitOverflowScrolling: 'touch',
+                            msOverflowStyle: 'none',
                             scrollbarWidth: 'none',
                         }}
                     >

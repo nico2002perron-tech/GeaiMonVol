@@ -1,9 +1,18 @@
-'use client';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import Link from 'next/link';
 
 export default function MapTopbar() {
     const { user, profile, loading } = useAuth();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        setIsMobile(window.innerWidth <= 768);
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
         <div style={{
             position: 'absolute',
@@ -14,9 +23,10 @@ export default function MapTopbar() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '14px 20px',
+            padding: isMobile ? '8px 12px' : '14px 24px',
             background: 'linear-gradient(180deg, rgba(244,248,251,0.95) 60%, rgba(244,248,251,0))',
             pointerEvents: 'none',
+            gap: 8,
         }}>
             {/* Logo */}
             <div style={{
@@ -26,8 +36,8 @@ export default function MapTopbar() {
                 pointerEvents: 'auto',
             }}>
                 <div style={{
-                    width: 34,
-                    height: 34,
+                    width: isMobile ? 28 : 34,
+                    height: isMobile ? 28 : 34,
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #2563EB, #3B82F6)',
                     display: 'flex',
@@ -35,13 +45,13 @@ export default function MapTopbar() {
                     justifyContent: 'center',
                     boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
                 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                    <svg width={isMobile ? 14 : 18} height={isMobile ? 14 : 18} viewBox="0 0 24 24" fill="white">
                         <path d="M3.64 14.26c-.24-.24-.24-.63 0-.87l6.36-6.36c.48-.48 1.12-.74 1.8-.74s1.32.26 1.8.74l3.06 3.06.18-2.04c.08-.72.64-1.28 1.36-1.36.72-.08 1.38.32 1.6 1l2.2 6.8c.16.48.06 1-.24 1.38-.3.38-.76.58-1.24.52l-7.08-1.08c-.72-.1-1.28-.66-1.36-1.38-.08-.72.32-1.38 1-1.6l2.14-.74-2.42-2.42c-.24-.24-.56-.36-.88-.36s-.64.12-.88.36L4.68 14.53c-.24.24-.63.24-.87 0l-.17-.27z" />
                     </svg>
                 </div>
                 <span style={{
                     fontFamily: "'Fredoka', sans-serif",
-                    fontSize: 19,
+                    fontSize: isMobile ? 16 : 19,
                     fontWeight: 700,
                     color: '#1A2B42',
                     letterSpacing: -0.3,
@@ -52,7 +62,7 @@ export default function MapTopbar() {
 
             {/* Center — subtle status */}
             <div style={{
-                display: 'flex',
+                display: isMobile ? 'none' : 'flex',
                 alignItems: 'center',
                 gap: 6,
                 fontSize: 12,
@@ -80,7 +90,7 @@ export default function MapTopbar() {
             }}>
                 <button
                     style={{
-                        display: 'flex',
+                        display: isMobile ? 'none' : 'flex',
                         alignItems: 'center',
                         gap: 5,
                         padding: '7px 14px',
@@ -127,11 +137,11 @@ export default function MapTopbar() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 6,
-                                        padding: '7px 14px',
+                                        padding: isMobile ? '6px 10px' : '7px 14px',
                                         borderRadius: 100,
                                         background: 'rgba(255,255,255,0.85)',
                                         border: '1px solid rgba(26,43,66,0.06)',
-                                        fontSize: 12,
+                                        fontSize: isMobile ? 11 : 12,
                                         fontWeight: 600,
                                         color: '#1A2B42',
                                         textDecoration: 'none',
@@ -161,11 +171,11 @@ export default function MapTopbar() {
                             <Link
                                 href="/auth"
                                 style={{
-                                    padding: '8px 18px',
+                                    padding: isMobile ? '6px 14px' : '8px 18px',
                                     borderRadius: 100,
                                     background: 'linear-gradient(135deg, #2E7DDB, #1E5FA8)',
                                     color: 'white',
-                                    fontSize: 12,
+                                    fontSize: isMobile ? 11 : 12,
                                     fontWeight: 700,
                                     textDecoration: 'none',
                                     fontFamily: "'Fredoka', sans-serif",

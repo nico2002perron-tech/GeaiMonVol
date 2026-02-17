@@ -25,6 +25,14 @@ export default function MapInterface() {
     const [selectedFlight, setSelectedFlight] = useState<any>(null); // State for booking
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        setIsMobile(window.innerWidth <= 768);
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
@@ -47,29 +55,37 @@ export default function MapInterface() {
             <div id="map-app">
                 <div id="app" className={appReady ? 'show' : ''} style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden' }}>
 
-                    <MapCanvas
-                        deals={prices} // Pass live prices to map
-                        mapView={mapView}
-                        onRegionSelect={(region) => {
-                            console.log("Selected region:", region);
-                            setSelectedRegion(region); // New state needed
-                            setSidebarOpen(true);
-                        }}
-                        onHoverDeal={(deal, e) => {
-                            setHoveredDeal(deal);
-                            setHoverPos({ x: e.clientX, y: e.clientY });
-                            setHoverVisible(true);
-                        }}
-                        onLeaveDeal={() => {
-                            setHoverVisible(false);
-                        }}
-                        onSelectDeal={(deal: any, e: any) => { // Added explicit types
-                            setSelectedFlight(deal);
-                            setBookingOpen(true);
-                            setConfettiPos({ x: e.clientX, y: e.clientY });
-                            setConfettiTrigger(prev => prev + 1);
-                        }}
-                    />
+                    <div style={{
+                        width: '100%',
+                        height: isMobile ? 'calc(100vh - 280px)' : 'calc(100vh - 300px)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                    }}>
+                        <MapCanvas
+                            deals={prices} // Pass live prices to map
+                            mapView={mapView}
+                            isMobile={isMobile}
+                            onRegionSelect={(region) => {
+                                console.log("Selected region:", region);
+                                setSelectedRegion(region); // New state needed
+                                setSidebarOpen(true);
+                            }}
+                            onHoverDeal={(deal, e) => {
+                                setHoveredDeal(deal);
+                                setHoverPos({ x: e.clientX, y: e.clientY });
+                                setHoverVisible(true);
+                            }}
+                            onLeaveDeal={() => {
+                                setHoverVisible(false);
+                            }}
+                            onSelectDeal={(deal: any, e: any) => { // Added explicit types
+                                setSelectedFlight(deal);
+                                setBookingOpen(true);
+                                setConfettiPos({ x: e.clientX, y: e.clientY });
+                                setConfettiTrigger(prev => prev + 1);
+                            }}
+                        />
+                    </div>
 
                     <MapTopbar />
                     <Onboarding />
