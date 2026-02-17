@@ -333,13 +333,16 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     </div>
 
                     {/* Sélecteur de mois */}
-                    <div style={{
-                        display: 'flex',
-                        gap: 10,
-                        overflowX: 'auto',
-                        padding: '12px 0 4px',
-                        scrollbarWidth: 'none',
-                    }}>
+                    <div
+                        className="month-selector"
+                        style={{
+                            display: 'flex',
+                            gap: 10,
+                            overflowX: 'auto',
+                            padding: '12px 0 4px',
+                            scrollbarWidth: 'none',
+                        }}
+                    >
                         <button
                             onClick={() => setSelectedMonth('all')}
                             style={{

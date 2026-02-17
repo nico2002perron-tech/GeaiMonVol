@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface DealDetail {
     city: string;
@@ -45,6 +45,15 @@ const AIRLINE_BAGGAGE: Record<string, { cabin: boolean; checked: boolean; label:
 };
 
 export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        setIsMobile(window.innerWidth <= 768);
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     if (!deal) return null;
 
     const stops = deal.stops ?? (deal.raw_data?.flights?.length
@@ -80,248 +89,292 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
     };
 
     return (
-        <div style={{
-            position: 'fixed',
-            top: 0,
-            right: 0,
-            width: 380,
-            height: '100vh',
-            background: 'white',
-            boxShadow: '-4px 0 20px rgba(0,0,0,0.1)',
-            zIndex: 1000,
-            overflowY: 'auto',
-            fontFamily: "'Outfit', sans-serif",
-            animation: 'slideIn 0.3s ease-out',
-        }}>
-            {/* Header avec image */}
-            <div style={{ position: 'relative' }}>
-                <img
-                    src={deal.img || `https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=200&fit=crop`}
-                    alt={deal.city}
-                    style={{ width: '100%', height: 180, objectFit: 'cover' }}
-                />
-                <button
-                    onClick={onClose}
-                    style={{
-                        position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        background: 'rgba(0,0,0,0.5)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 32,
-                        height: 32,
-                        fontSize: 18,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    ✕
-                </button>
-                {deal.discount && deal.discount > 0 && (
+        <>
+            {/* Overlay */}
+            <div
+                onClick={onClose}
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.4)',
+                    zIndex: 999,
+                    backdropFilter: isMobile ? 'none' : 'blur(2px)',
+                }}
+            />
+
+            <div style={{
+                position: 'fixed',
+                ...(isMobile ? {
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    width: '100%',
+                    maxHeight: '85vh',
+                    borderTopLeftRadius: 20,
+                    borderTopRightRadius: 20,
+                } : {
+                    top: 0,
+                    right: 0,
+                    width: 380,
+                    height: '100vh',
+                }),
+                background: 'white',
+                boxShadow: isMobile
+                    ? '0 -4px 20px rgba(0,0,0,0.15)'
+                    : '-4px 0 20px rgba(0,0,0,0.1)',
+                zIndex: 1000,
+                overflowY: 'auto',
+                fontFamily: "'Outfit', sans-serif",
+                animation: isMobile ? 'slideUp 0.3s ease-out' : 'slideIn 0.3s ease-out',
+            }}>
+                {isMobile && (
                     <div style={{
-                        position: 'absolute',
-                        top: 12,
-                        left: 12,
-                        background: '#FF4D6A',
-                        color: 'white',
-                        padding: '4px 10px',
-                        borderRadius: 100,
-                        fontSize: 13,
-                        fontWeight: 700,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        padding: '12px 0 0',
                     }}>
-                        -{deal.discount}%
+                        <div style={{
+                            width: 36,
+                            height: 4,
+                            borderRadius: 2,
+                            background: '#E2E8F0',
+                        }} />
                     </div>
                 )}
-            </div>
 
-            {/* Contenu */}
-            <div style={{ padding: 24 }}>
-                {/* Ville + pays */}
-                <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1A2B42' }}>
-                    {deal.city}
-                </h2>
-                {deal.country && (
-                    <p style={{ margin: '4px 0 0', fontSize: 14, color: '#8FA3B8' }}>
-                        {deal.country}
-                    </p>
-                )}
-
-                {/* Prix */}
-                <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                    <span style={{
-                        fontSize: 32,
-                        fontWeight: 800,
-                        color: '#2E7DDB',
-                    }}>
-                        {deal.price} $
-                    </span>
-                    {deal.avgPrice && deal.avgPrice > deal.price && (
-                        <span style={{
-                            fontSize: 16,
-                            color: '#8FA3B8',
-                            textDecoration: 'line-through',
+                {/* Header avec image */}
+                <div style={{ position: 'relative' }}>
+                    <img
+                        src={deal.img || `https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=200&fit=crop`}
+                        alt={deal.city}
+                        style={{ width: '100%', height: isMobile ? 140 : 180, objectFit: 'cover' }}
+                    />
+                    <button
+                        onClick={onClose}
+                        style={{
+                            position: 'absolute',
+                            top: 12,
+                            right: 12,
+                            background: 'rgba(0,0,0,0.5)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 32,
+                            height: 32,
+                            fontSize: 18,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        ✕
+                    </button>
+                    {deal.discount && deal.discount > 0 && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 12,
+                            left: 12,
+                            background: '#FF4D6A',
+                            color: 'white',
+                            padding: '4px 10px',
+                            borderRadius: 100,
+                            fontSize: 13,
+                            fontWeight: 700,
                         }}>
-                            {deal.avgPrice} $
-                        </span>
+                            -{deal.discount}%
+                        </div>
                     )}
-                    <span style={{ fontSize: 12, color: '#8FA3B8' }}>
-                        aller-retour
-                    </span>
                 </div>
 
-                {/* Prix level */}
-                {priceLevel && (
-                    <div style={{
-                        marginTop: 8,
-                        display: 'inline-block',
-                        padding: '3px 10px',
-                        borderRadius: 100,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background: priceLevel === 'low' ? '#E8F5E9' : priceLevel === 'high' ? '#FFEBEE' : '#F5F5F5',
-                        color: priceLevel === 'low' ? '#2E7D32' : priceLevel === 'high' ? '#C62828' : '#666',
-                    }}>
-                        {priceLevel === 'low' ? '📉 Prix bas' : priceLevel === 'high' ? '📈 Prix élevé' : '📊 Prix typique'}
-                    </div>
-                )}
+                {/* Contenu */}
+                <div style={{ padding: 24 }}>
+                    {/* Ville + pays */}
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1A2B42' }}>
+                        {deal.city}
+                    </h2>
+                    {deal.country && (
+                        <p style={{ margin: '4px 0 0', fontSize: 14, color: '#8FA3B8' }}>
+                            {deal.country}
+                        </p>
+                    )}
 
-                {typicalRange && typicalRange.length >= 2 && (
-                    <p style={{ marginTop: 6, fontSize: 12, color: '#8FA3B8' }}>
-                        Fourchette typique : {typicalRange[0]}$ – {typicalRange[1]}$
-                    </p>
-                )}
-
-                {/* Séparateur */}
-                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #F0F0F0' }} />
-
-                {/* Détails du vol */}
-                <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#1A2B42' }}>
-                    Détails du vol
-                </h3>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Route */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: '#8FA3B8' }}>Route</span>
-                        <span style={{ color: '#1A2B42', fontWeight: 600 }}>
-                            YUL → {deal.destination_code || ''}
+                    {/* Prix */}
+                    <div style={{ marginTop: 16, display: 'flex', alignItems: 'baseline', gap: 12 }}>
+                        <span style={{
+                            fontSize: 32,
+                            fontWeight: 800,
+                            color: '#2E7DDB',
+                        }}>
+                            {deal.price} $
+                        </span>
+                        {deal.avgPrice && deal.avgPrice > deal.price && (
+                            <span style={{
+                                fontSize: 16,
+                                color: '#8FA3B8',
+                                textDecoration: 'line-through',
+                            }}>
+                                {deal.avgPrice} $
+                            </span>
+                        )}
+                        <span style={{ fontSize: 12, color: '#8FA3B8' }}>
+                            aller-retour
                         </span>
                     </div>
 
-                    {/* Compagnie */}
-                    {airline && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Compagnie</span>
-                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>{airline}</span>
+                    {/* Prix level */}
+                    {priceLevel && (
+                        <div style={{
+                            marginTop: 8,
+                            display: 'inline-block',
+                            padding: '3px 10px',
+                            borderRadius: 100,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: priceLevel === 'low' ? '#E8F5E9' : priceLevel === 'high' ? '#FFEBEE' : '#F5F5F5',
+                            color: priceLevel === 'low' ? '#2E7D32' : priceLevel === 'high' ? '#C62828' : '#666',
+                        }}>
+                            {priceLevel === 'low' ? '📉 Prix bas' : priceLevel === 'high' ? '📈 Prix élevé' : '📊 Prix typique'}
                         </div>
                     )}
 
-                    {/* Escales */}
-                    {stops !== null && (
+                    {typicalRange && typicalRange.length >= 2 && (
+                        <p style={{ marginTop: 6, fontSize: 12, color: '#8FA3B8' }}>
+                            Fourchette typique : {typicalRange[0]}$ – {typicalRange[1]}$
+                        </p>
+                    )}
+
+                    {/* Séparateur */}
+                    <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #F0F0F0' }} />
+
+                    {/* Détails du vol */}
+                    <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#1A2B42' }}>
+                        Détails du vol
+                    </h3>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* Route */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Escales</span>
-                            <span style={{
-                                color: stops === 0 ? '#2E7D32' : '#1A2B42',
-                                fontWeight: 600
-                            }}>
-                                {stops === 0 ? '✅ Direct' : `${stops} escale${stops > 1 ? 's' : ''}`}
+                            <span style={{ color: '#8FA3B8' }}>Route</span>
+                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>
+                                YUL → {deal.destination_code || ''}
                             </span>
                         </div>
-                    )}
 
-                    {/* Durée */}
-                    {durationFormatted && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                            <span style={{ color: '#8FA3B8' }}>Durée</span>
-                            <span style={{ color: '#1A2B42', fontWeight: 600 }}>{durationFormatted}</span>
-                        </div>
-                    )}
+                        {/* Compagnie */}
+                        {airline && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#8FA3B8' }}>Compagnie</span>
+                                <span style={{ color: '#1A2B42', fontWeight: 600 }}>{airline}</span>
+                            </div>
+                        )}
 
-                    {/* Dates */}
-                    {departDate && returnDate && (
-                        <div style={{
-                            marginTop: 16,
-                            padding: 14,
-                            background: '#F0F7FF',
-                            borderRadius: 10,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                        }}>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 11, color: '#8FA3B8' }}>Départ</div>
-                                <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
-                                    {formatDate(departDate)}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: 18, color: '#2E7DDB' }}>→</div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 11, color: '#8FA3B8' }}>Retour</div>
-                                <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
-                                    {formatDate(returnDate)}
-                                </div>
-                            </div>
-                            {nights && nights > 0 && (
-                                <div style={{
-                                    background: '#2E7DDB',
-                                    color: 'white',
-                                    padding: '4px 10px',
-                                    borderRadius: 100,
-                                    fontSize: 12,
-                                    fontWeight: 700,
+                        {/* Escales */}
+                        {stops !== null && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#8FA3B8' }}>Escales</span>
+                                <span style={{
+                                    color: stops === 0 ? '#2E7D32' : '#1A2B42',
+                                    fontWeight: 600
                                 }}>
-                                    {nights} nuits
+                                    {stops === 0 ? '✅ Direct' : `${stops} escale${stops > 1 ? 's' : ''}`}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Durée */}
+                        {durationFormatted && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                                <span style={{ color: '#8FA3B8' }}>Durée</span>
+                                <span style={{ color: '#1A2B42', fontWeight: 600 }}>{durationFormatted}</span>
+                            </div>
+                        )}
+
+                        {/* Dates */}
+                        {departDate && returnDate && (
+                            <div style={{
+                                marginTop: 16,
+                                padding: 14,
+                                background: '#F0F7FF',
+                                borderRadius: 10,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                            }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 11, color: '#8FA3B8' }}>Départ</div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
+                                        {formatDate(departDate)}
+                                    </div>
                                 </div>
-                            )}
+                                <div style={{ fontSize: 18, color: '#2E7DDB' }}>→</div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 11, color: '#8FA3B8' }}>Retour</div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#1A2B42' }}>
+                                        {formatDate(returnDate)}
+                                    </div>
+                                </div>
+                                {nights && nights > 0 && (
+                                    <div style={{
+                                        background: '#2E7DDB',
+                                        color: 'white',
+                                        padding: '4px 10px',
+                                        borderRadius: 100,
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                    }}>
+                                        {nights} nuits
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Bagages */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                            <span style={{ color: '#8FA3B8' }}>Bagages</span>
+                            <span style={{
+                                color: AIRLINE_BAGGAGE[airline]?.cabin ? '#2E7D32' : '#C62828',
+                                fontWeight: 600,
+                                fontSize: 12,
+                            }}>
+                                {AIRLINE_BAGGAGE[airline]?.label || '📋 Vérifier avant de réserver'}
+                            </span>
                         </div>
-                    )}
-
-                    {/* Bagages */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                        <span style={{ color: '#8FA3B8' }}>Bagages</span>
-                        <span style={{
-                            color: AIRLINE_BAGGAGE[airline]?.cabin ? '#2E7D32' : '#C62828',
-                            fontWeight: 600,
-                            fontSize: 12,
-                        }}>
-                            {AIRLINE_BAGGAGE[airline]?.label || '📋 Vérifier avant de réserver'}
-                        </span>
                     </div>
+
+                    {/* Séparateur */}
+                    <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #F0F0F0' }} />
+
+                    {/* Bouton réserver */}
+                    <a
+                        href={googleLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'block',
+                            width: '100%',
+                            padding: '14px 0',
+                            background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
+                            color: 'white',
+                            textAlign: 'center',
+                            borderRadius: 12,
+                            fontSize: 15,
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            fontFamily: "'Outfit', sans-serif",
+                        }}
+                    >
+                        Réserver ce vol – {deal.price}$ ✈️
+                    </a>
+
+                    <p style={{ marginTop: 8, fontSize: 11, color: '#8FA3B8', textAlign: 'center' }}>
+                        Prix trouvé le {new Date().toLocaleDateString('fr-CA')} • Peut varier
+                    </p>
                 </div>
-
-                {/* Séparateur */}
-                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #F0F0F0' }} />
-
-                {/* Bouton réserver */}
-                <a
-                    href={googleLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                        display: 'block',
-                        width: '100%',
-                        padding: '14px 0',
-                        background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
-                        color: 'white',
-                        textAlign: 'center',
-                        borderRadius: 12,
-                        fontSize: 15,
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        fontFamily: "'Outfit', sans-serif",
-                    }}
-                >
-                    Réserver ce vol – {deal.price}$ ✈️
-                </a>
-
-                <p style={{ marginTop: 8, fontSize: 11, color: '#8FA3B8', textAlign: 'center' }}>
-                    Prix trouvé le {new Date().toLocaleDateString('fr-CA')} • Peut varier
-                </p>
             </div>
-        </div>
+        </>
     );
 }
