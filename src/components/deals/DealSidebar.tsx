@@ -27,6 +27,23 @@ interface DealSidebarProps {
     onClose: () => void;
 }
 
+const AIRLINE_BAGGAGE: Record<string, { cabin: boolean; checked: boolean; label: string }> = {
+    'Air Canada': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
+    'WestJet': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
+    'Air Transat': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
+    'Porter Airlines': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
+    'Delta': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
+    'United': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
+    'American Airlines': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
+    'JetBlue': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
+    'Southwest': { cabin: true, checked: true, label: '🧳 Cabine + 2 enregistrés inclus' },
+    'Flair Airlines': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
+    'Spirit': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
+    'Frontier': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
+    'Lynx Air': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
+    'Swoop': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
+};
+
 export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
     if (!deal) return null;
 
@@ -266,8 +283,12 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                     {/* Bagages */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                         <span style={{ color: '#8FA3B8' }}>Bagages</span>
-                        <span style={{ color: '#8FA3B8', fontWeight: 500, fontSize: 12 }}>
-                            Vérifier sur Google Flights
+                        <span style={{
+                            color: AIRLINE_BAGGAGE[airline]?.cabin ? '#2E7D32' : '#C62828',
+                            fontWeight: 600,
+                            fontSize: 12,
+                        }}>
+                            {AIRLINE_BAGGAGE[airline]?.label || '📋 Vérifier avant de réserver'}
                         </span>
                     </div>
                 </div>
