@@ -57,10 +57,10 @@ export default function MapInterface() {
 
                     <div style={{
                         width: '100%',
-                        height: isMobile ? '38vh' : 'calc(100vh - 280px)',
+                        height: isMobile ? 'calc(100vh - 320px)' : 'calc(100vh - 280px)',
                         position: 'relative',
-                        overflow: 'visible',
-                        marginBottom: isMobile ? -20 : 0,
+                        overflow: 'hidden',
+                        marginBottom: 0,
                         paddingBottom: 0,
                     }}>
                         <MapCanvas
