@@ -83,8 +83,8 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
 
             if (isMobile) {
                 proj
-                    .center([-30, 30])
-                    .scale(w / 2.8)
+                    .center([-40, 35])
+                    .scale(w / 2.2)
                     .translate([w / 2, h / 2]);
             } else {
                 proj
@@ -134,10 +134,13 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
                 });
             svg.call(zoom);
 
+            const path = d3.geoPath().projection(projection);
+
+            // Update existing land paths if they exist
+            g.selectAll(".land-path").attr("d", path as any);
+
             // Clear pins, arcs, and badges before re-render to avoid flashing/duplicates
             g.selectAll('.deal-pin, .discount-badge, path.flight-arc, .deal-pin-halo').remove();
-
-            const path = d3.geoPath().projection(projection);
 
             // Check if land is already rendered
             const landPaths = g.selectAll(".land-path");
