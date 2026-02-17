@@ -349,28 +349,22 @@ export default function MapInterface() {
                     <DealStrip
                         deals={prices}
                         loading={pricesLoading}
+                        activeTab={activeTab}
                         onViewChange={setMapView}
                         onDealClick={setSelectedDeal}
                     />
                 </div>
 
-                {/* Section 3 */}\n                <HowItWorks />
+                {/* Section 3 */}
+                <HowItWorks />
 
-                {/* Section 4 */}\n                <PremiumSection />
+                {/* Section 4 */}
+                <PremiumSection />
 
-                {/* Footer */}\n                <Footer />
+                {/* Footer */}
+                <Footer />
 
                 <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
-                <Sidebar
-                    isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
-                    selectedRegion={selectedRegion}
-                    onSelectFlight={(flight: any) => {
-                        setSelectedFlight(flight);
-                        setSidebarOpen(false);
-                        setBookingOpen(true);
-                    }}
-                />
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}

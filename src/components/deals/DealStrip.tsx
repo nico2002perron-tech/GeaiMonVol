@@ -64,12 +64,12 @@ const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1436491865332-7a61a109d
 interface DealStripProps {
     deals?: any[];
     loading?: boolean;
+    activeTab?: 'international' | 'canada';
     onViewChange?: (view: 'world' | 'canada') => void;
     onDealClick?: (deal: any) => void;
 }
 
-export default function DealStrip({ deals = [], loading = false, onViewChange, onDealClick }: DealStripProps) {
-    const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
+export default function DealStrip({ deals = [], loading = false, activeTab = 'international', onViewChange, onDealClick }: DealStripProps) {
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
     const [showPremiumStrip, setShowPremiumStrip] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -247,79 +247,6 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
 
     return (
         <div className="strip">
-            {/* Titre + Onglets */}
-            {/* 4 onglets pleine largeur */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 1fr 1fr',
-                background: 'white',
-                borderTop: '1px solid rgba(26,43,66,0.06)',
-                borderBottom: '1px solid rgba(26,43,66,0.06)',
-            }}>
-                {[
-                    { key: 'international', label: 'Monde', icon: '✈️', pro: false },
-                    { key: 'canada', label: 'Canada', icon: '🍁', pro: false },
-                    { key: 'hotels', label: 'Hôtels', icon: '🏨', pro: true },
-                    { key: 'planning', label: 'Planning', icon: '📍', pro: true },
-                ].map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => !tab.pro && setActiveTab(tab.key === 'international' ? 'international' : 'canada')}
-                        className="big-tab"
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            padding: '12px 0',
-                            border: 'none',
-                            background: activeTab === tab.key
-                                ? 'rgba(46,125,219,0.04)'
-                                : 'transparent',
-                            cursor: tab.pro ? 'default' : 'pointer',
-                            fontFamily: "'Outfit', sans-serif",
-                            fontSize: 13.5,
-                            fontWeight: activeTab === tab.key ? 700 : 600,
-                            color: activeTab === tab.key
-                                ? '#2E7DDB'
-                                : tab.pro ? '#B0BEC5' : '#5A7089',
-                            opacity: tab.pro ? 0.6 : 1,
-                            borderRight: tab.key !== 'planning'
-                                ? '1px solid rgba(26,43,66,0.04)'
-                                : 'none',
-                            position: 'relative',
-                            transition: 'all 0.2s ease',
-                        }}
-                    >
-                        <span style={{ fontSize: 16 }}>{tab.icon}</span>
-                        <span>{tab.pro ? <s>{tab.label}</s> : tab.label}</span>
-                        {tab.pro && (
-                            <span style={{
-                                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                                color: 'white',
-                                fontSize: 8,
-                                fontWeight: 800,
-                                padding: '1px 6px',
-                                borderRadius: 100,
-                                marginLeft: 2,
-                            }}>PRO</span>
-                        )}
-                        {/* Barre active en bas */}
-                        {activeTab === tab.key && (
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: '15%',
-                                right: '15%',
-                                height: 3,
-                                borderRadius: '3px 3px 0 0',
-                                background: '#2E7DDB',
-                            }} />
-                        )}
-                    </button>
-                ))}
-            </div>
-
             {/* Titre "Meilleurs deals" avec mois dynamiques */}
             <div style={{
                 display: 'flex',
