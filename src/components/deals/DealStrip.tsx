@@ -55,9 +55,10 @@ interface DealStripProps {
     deals?: any[];
     loading?: boolean;
     onViewChange?: (view: 'world' | 'canada') => void;
+    onDealClick?: (deal: any) => void;
 }
 
-export default function DealStrip({ deals = [], loading = false, onViewChange }: DealStripProps) {
+export default function DealStrip({ deals = [], loading = false, onViewChange, onDealClick }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
@@ -323,26 +324,9 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                             key={deal.id || i}
                             className="scard"
                             style={{ cursor: 'pointer' }}
-                            onClick={() => {
-                                const link = deal.googleFlightsLink || deal.google_flights_link || deal.raw_data?.google_flights_link;
-                                if (link) {
-                                    window.open(link, '_blank', 'noopener,noreferrer');
-                                } else {
-                                    // Fallback: construire le lien Google Flights manuellement
-                                    const origin = 'YUL';
-                                    const dest = deal.destination_code || deal.code || '';
-                                    const rawDate = deal.departure_date || deal.departureDate || '';
-                                    const rawReturnDate = deal.return_date || deal.returnDate || '';
-
-                                    // Format YYYY-MM-DD
-                                    const date = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
-                                    const returnDate = rawReturnDate.includes('T') ? rawReturnDate.split('T')[0] : rawReturnDate;
-
-                                    const url = `https://www.google.com/travel/flights?q=Flights+from+${origin}+to+${dest}+on+${date}+return+${returnDate}&curr=CAD&hl=fr`;
-                                    window.open(url, '_blank', 'noopener,noreferrer');
-                                }
-                            }}
+                            onClick={() => onDealClick?.(deal)}
                         >
+
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img
                                     className="scard-img"

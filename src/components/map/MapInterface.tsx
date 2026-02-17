@@ -14,6 +14,7 @@ import GeaiAssistant from './GeaiAssistant';
 import Confetti from './Confetti';
 import Onboarding from './Onboarding';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
+import DealSidebar from '@/components/deals/DealSidebar';
 
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,6 +24,7 @@ export default function MapInterface() {
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null); // State for booking
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
+    const [selectedDeal, setSelectedDeal] = useState<any>(null);
 
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
@@ -87,7 +89,9 @@ export default function MapInterface() {
                         deals={prices}
                         loading={pricesLoading}
                         onViewChange={setMapView}
+                        onDealClick={setSelectedDeal}
                     />
+                    <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
                     <Sidebar
                         isOpen={sidebarOpen}
                         onClose={() => setSidebarOpen(false)}
