@@ -157,10 +157,24 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
                         g.selectAll(".land-path")
                             .data(countries)
                             .enter().append("path")
-                            .attr("class", "land-path")
+                            .attr("class", (d: any) => {
+                                const countryName = d.properties?.name || '';
+                                // Marquer les pays avec des deals
+                                const CountriesWithDeals = [
+                                    'France', 'Spain', 'Portugal', 'Italy', 'Cuba', 'Mexico',
+                                    'Dominican Republic', 'United States of America', 'Thailand',
+                                    'United Arab Emirates', 'Canada', 'Greece', 'Ireland',
+                                    'Netherlands', 'United Kingdom', 'Morocco', 'Japan',
+                                    'Colombia', 'Peru', 'Brazil', 'Indonesia', 'Costa Rica',
+                                    'Jamaica', 'Vietnam'
+                                ];
+                                const hasDeal = CountriesWithDeals.includes(countryName);
+                                return `land-path${hasDeal ? ' has-deal' : ''}`;
+                            })
                             .attr("d", path as any)
                             .attr("data-name", (d: any) => d.properties?.name || '')
                             .attr("data-region", (d: any) => getRegionForCountry(d.properties?.name || '') || '')
+                            // ... (on mouse events as before)
                             .on("mouseenter", function (event: any, d: any) {
                                 const countryName = d.properties?.name || '';
                                 const region = getRegionForCountry(countryName);
@@ -242,8 +256,11 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
                         .attr('class', 'flight-arc');
                 }
 
-                // Pins
-                g.append('circle')
+                // Pins Group
+                const pinG = g.append('g').attr('class', 'deal-pin-group');
+
+                // Pins point
+                pinG.append('circle')
                     .attr('cx', x).attr('cy', y).attr('r', 5)
                     .attr('fill', '#2E7DDB').attr('stroke', 'white').attr('stroke-width', 1.5)
                     .attr('class', 'deal-pin')
@@ -252,10 +269,24 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
                     .on("mouseleave", onLeaveDeal)
                     .on("click", (e: any) => onSelectDeal?.(deal, e));
 
+                // City Name (Desktop only)
+                if (!isMobile) {
+                    pinG.append('text')
+                        .attr('x', x).attr('y', y + 15)
+                        .attr('text-anchor', 'middle')
+                        .attr('font-size', '9px')
+                        .attr('font-weight', '600')
+                        .attr('fill', '#1A2B42')
+                        .attr('font-family', "'Outfit', sans-serif")
+                        .style('text-shadow', '0 0 4px rgba(255,255,255,0.9), 0 0 8px rgba(255,255,255,0.7)')
+                        .style('pointer-events', 'none')
+                        .text(deal.city || deal.destination || '');
+                }
+
                 // Badges
                 const discount = deal.discount || deal.disc || 0;
                 if (discount > 0) {
-                    const badgeG = g.append('g')
+                    const badgeG = pinG.append('g')
                         .attr('transform', `translate(${x}, ${y - 20})`)
                         .attr('class', 'discount-badge')
                         .style('cursor', 'pointer')

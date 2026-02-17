@@ -126,12 +126,12 @@ export default function MapInterface() {
                         </div>
                     )}
 
+                    {/* Map Area - Fluid */}
                     <div style={{
-                        width: '100%',
                         flex: '1 1 auto',
                         minHeight: 0,
                         position: 'relative',
-                        overflow: 'hidden',
+                        background: '#E2EDF7', // Fond de carte plus foncé
                     }}>
                         <MapCanvas
                             deals={prices}

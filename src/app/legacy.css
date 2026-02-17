@@ -832,6 +832,7 @@
     border-top: 1px solid rgba(26, 43, 66, 0.06);
     padding: 0;
     flex-shrink: 0;
+    max-height: 280px;
 }
 
 .strip-head {
@@ -951,6 +952,22 @@
     transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.3s, border-color 0.3s;
     /* animation scardUp RETIRÉE — elle causait opacity:0 sur les cards du carrousel */
     position: relative;
+}
+
+.land-path {
+    fill: #C4D7EC;
+    stroke: #A8C0DA;
+    stroke-width: 0.5;
+    transition: all 0.3s ease;
+}
+
+.land-path.has-deal {
+    fill: #A3C4E3;
+}
+
+.land-path.has-deal:hover {
+    fill: #8BB4D9;
+    cursor: pointer;
 }
 
 .scard::before {
