@@ -60,6 +60,7 @@ interface DealStripProps {
 
 export default function DealStrip({ deals = [], loading = false, onViewChange, onDealClick }: DealStripProps) {
     const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
+    const [selectedMonth, setSelectedMonth] = useState<string>('all');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [isHovering, setIsHovering] = useState(false);
     const { user } = useAuth();
@@ -130,6 +131,19 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         return () => cancelAnimationFrame(animationId);
     }, [isHovering]);
 
+    const getNext12Months = () => {
+        const months = [];
+        const now = new Date();
+        for (let i = 0; i < 12; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const label = d.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '');
+            months.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+        }
+        return months;
+    };
+    const months = getNext12Months();
+
 
 
     const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -156,25 +170,36 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
             lat: FLIGHTS.find(f => f.city === p.destination)?.lat || 0,
             lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
             id: p.destination_code,
-            googleFlightsLink: p.googleFlightsLink || p.raw_data?.google_flights_link || ''
+            googleFlightsLink: p.googleFlightsLink || p.raw_data?.google_flights_link || '',
+            departure_date: p.departure_date || p.raw_data?.departure_date || '',
+            return_date: p.return_date || p.raw_data?.return_date || '',
         }))
         : [...FLIGHTS].sort((a, b) => (b.disc || 0) - (a.disc || 0)).map(f => ({
             ...f,
             code: f.route.split(' – ')[1] || '',
-            source: 'static'
+            source: 'static',
+            departure_date: '', // Ensure it exists for filtering
         }));
 
     const filteredDeals = (allMappedDeals || []).filter(deal => {
         const code = deal.code || '';
-        if (activeTab === 'canada') {
-            return CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
-        } else {
-            return !CANADA_CODES.includes(code) && deal.source !== 'google_flights_canada';
+        const isCanadian = CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
+
+        // Filtre par onglet
+        if (activeTab === 'canada' && !isCanadian) return false;
+        if (activeTab === 'international' && isCanadian) return false;
+
+        // Filtre par mois
+        if (selectedMonth !== 'all') {
+            const departDate = (deal as any).departure_date || (deal as any).dates?.split(' → ')[0] || '';
+            if (!departDate) return false;
+            if (!departDate.startsWith(selectedMonth)) return false;
         }
+
+        return true;
     });
 
     const displayDeals = filteredDeals;
-
 
     return (
         <div className="strip">
@@ -305,6 +330,55 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                                 PRO
                             </span>
                         </button>
+                    </div>
+
+                    {/* Sélecteur de mois */}
+                    <div style={{
+                        display: 'flex',
+                        gap: 10,
+                        overflowX: 'auto',
+                        padding: '12px 0 4px',
+                        scrollbarWidth: 'none',
+                    }}>
+                        <button
+                            onClick={() => setSelectedMonth('all')}
+                            style={{
+                                padding: '6px 14px',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif",
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.2s',
+                                background: selectedMonth === 'all' ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                                color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
+                            }}
+                        >
+                            Tous les mois
+                        </button>
+                        {months.map(m => (
+                            <button
+                                key={m.value}
+                                onClick={() => setSelectedMonth(m.value)}
+                                style={{
+                                    padding: '6px 14px',
+                                    borderRadius: 100,
+                                    border: 'none',
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    whiteSpace: 'nowrap',
+                                    transition: 'all 0.2s',
+                                    background: selectedMonth === m.value ? '#2E7DDB' : 'rgba(26,43,66,0.04)',
+                                    color: selectedMonth === m.value ? 'white' : '#8FA3B8',
+                                }}
+                            >
+                                {m.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
                 <button className="strip-more">Voir tout</button>
