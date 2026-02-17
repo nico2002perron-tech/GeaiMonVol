@@ -250,7 +250,7 @@ export default function MapCanvas({ deals = [], mapView = 'world', onRegionSelec
                     badgeG.append('circle').attr('cx', -18).attr('cy', 0).attr('r', 4).attr('fill', '#FF4D6A');
                     badgeG.append('text').attr('x', 4).attr('y', 4).attr('text-anchor', 'middle')
                         .attr('font-size', '11px').attr('font-weight', '700').attr('font-family', "'Outfit', sans-serif")
-                        .attr('fill', '#FF4D6A').text(`-${discount}%`);
+                        .attr('fill', '#FF4D6A').text(`-${Math.abs(Math.round(deal.discount || deal.percentage || deal.disc || 0))}%`);
                     badgeG.append('path').attr('d', 'M-4,12 L0,18 L4,12').attr('fill', 'white').attr('stroke', '#FF4D6A').attr('stroke-width', 1.5);
                 }
 
