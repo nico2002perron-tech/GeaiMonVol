@@ -6,23 +6,28 @@ interface DealDetail {
     city: string;
     destination?: string;
     country?: string;
+    code?: string;
     destination_code?: string;
     price: number;
     currency?: string;
     discount?: number;
+    disc?: number;
+    oldPrice?: number;
     avgPrice?: number;
     dealLevel?: string;
+    priceLevel?: string;
     airline?: string;
     departure_date?: string;
     return_date?: string;
     stops?: number;
     duration?: number;
+    route?: string;
+    dates?: string;
     source?: string;
     googleFlightsLink?: string;
     raw_data?: any;
     img?: string;
-    route?: string;
-    disc?: number;
+    imgSmall?: string;
 }
 
 interface DealSidebarProps {
@@ -152,7 +157,7 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                 <div style={{ position: 'relative' }}>
                     <img
                         src={deal.img || `https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=200&fit=crop`}
-                        alt={deal.city || deal.destination}
+                        alt={deal.city || deal.destination || 'Destination'}
                         style={{ width: '100%', height: isMobile ? 140 : 180, objectFit: 'cover' }}
                     />
                     <button

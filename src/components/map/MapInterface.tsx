@@ -53,11 +53,18 @@ export default function MapInterface() {
 
 
             <div id="map-app">
-                <div id="app" className={appReady ? 'show' : ''} style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+                <div id="app" className={appReady ? 'show' : ''} style={{
+                    position: 'relative',
+                    height: '100vh',
+                    width: '100vw',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                }}>
 
                     <div style={{
                         width: '100%',
-                        height: isMobile ? 'calc(100vh - 320px)' : 'calc(100vh - 280px)',
+                        height: isMobile ? '55vh' : 'calc(100vh - 280px)',
                         position: 'relative',
                         overflow: 'hidden',
                         marginBottom: 0,

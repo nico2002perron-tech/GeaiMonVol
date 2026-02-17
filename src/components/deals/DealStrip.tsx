@@ -177,13 +177,12 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
         const container = scrollRef.current;
         if (!container || displayDealsCount === 0) return;
 
-        let scrollAmount = container.scrollLeft;
-        let speed = 0.5;
+        let scrollAmount = 0;
         let isPaused = false;
 
         const scroll = () => {
             if (!isPaused) {
-                scrollAmount += speed;
+                scrollAmount += 0.5;
                 // Reset quand on atteint la moitié (deals dupliqués)
                 const halfWidth = container.scrollWidth / 2;
                 if (halfWidth > 0 && scrollAmount >= halfWidth) {
@@ -431,8 +430,8 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             key={`${deal.id || i}-${i}`}
                             className="scard"
                             style={{
-                                minWidth: isMobile ? 150 : 180,
-                                maxWidth: isMobile ? 150 : 180,
+                                minWidth: isMobile ? 160 : 180,
+                                maxWidth: isMobile ? 160 : 180,
                                 borderRadius: 12,
                                 overflow: 'hidden',
                                 background: 'white',
@@ -442,14 +441,14 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 100 : 150 }}>
+                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 90 : 150 }}>
                                 <img
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
                                     alt={deal.city}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 100 : 150,
+                                        height: isMobile ? 90 : 150,
                                         objectFit: 'cover',
                                         borderRadius: '10px 10px 0 0',
                                         display: 'block',
