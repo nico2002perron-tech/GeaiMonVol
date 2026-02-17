@@ -30,8 +30,8 @@ const CITY_IMAGES: Record<string, string> = {
     'Miami': 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=400&h=250&fit=crop',
     'Fort Lauderdale': 'https://images.unsplash.com/photo-1589083130544-0d6a2926e519?w=400&h=250&fit=crop',
     'Punta Cana': 'https://images.unsplash.com/photo-1535916707207-35f97e715e1c?w=400&h=250&fit=crop',
-    'Cuba (Varadero)': 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400&h=250&fit=crop',
-    'La Havane': 'https://images.unsplash.com/photo-1570299437522-25057f1bec96?w=400&h=250&fit=crop',
+    'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=400&h=250&fit=crop',
+    'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400&h=250&fit=crop',
     'Bogota': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400&h=250&fit=crop',
     'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400&h=250&fit=crop',
     'São Paulo': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400&h=250&fit=crop',
@@ -441,17 +441,24 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 90 : 150 }}>
+                            <div style={{ position: 'relative', overflow: 'hidden', height: isMobile ? 100 : 150 }}>
                                 <img
                                     className="scard-img"
                                     src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
-                                    alt={deal.city}
+                                    alt={deal.city || deal.destination || ''}
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        if (target.src !== DEFAULT_IMAGE) {
+                                            target.src = DEFAULT_IMAGE;
+                                        }
+                                    }}
                                     style={{
                                         width: '100%',
-                                        height: isMobile ? 90 : 150,
+                                        height: isMobile ? 100 : 150,
                                         objectFit: 'cover',
                                         borderRadius: '10px 10px 0 0',
                                         display: 'block',
+                                        background: '#E8F0FE',
                                     }}
                                 />
                                 <button

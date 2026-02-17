@@ -83,13 +83,13 @@ export default function MapCanvas({ deals = [], mapView = 'world', isMobile = fa
 
             if (isMobile) {
                 proj
-                    .center([10, 15])
-                    .scale(w / 3.8)
+                    .center([10, 20])
+                    .scale(w / 3.5)
                     .translate([w / 2, h / 2]);
             } else {
                 proj
-                    .center([10, 20])
-                    .scale(w / 5.5)
+                    .center([15, 20])
+                    .scale(w / 4.5)
                     .translate([w / 2, h / 2]);
             }
             setProjection(() => proj);
