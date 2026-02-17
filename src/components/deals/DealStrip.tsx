@@ -237,9 +237,20 @@ export default function DealStrip({ deals = [], loading = false, onViewChange, o
                     fontSize: isMobile ? 15 : 16,
                     fontWeight: 700,
                     fontFamily: "'Outfit', sans-serif",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
                 }}>
-                    <span style={{ color: '#1A2B42' }}>
+                    <span style={{ color: '#1A2B42', display: 'flex', alignItems: 'center', gap: 8 }}>
                         {activeTab === 'international' ? 'Meilleurs deals' : 'Vols à travers le'}
+                        <span style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: '#16A34A',
+                            display: 'inline-block',
+                            animation: 'liveBlink 2s ease-in-out infinite',
+                        }} />
                     </span>
                     {' '}
                     <span style={{ color: '#2E7DDB' }}>
