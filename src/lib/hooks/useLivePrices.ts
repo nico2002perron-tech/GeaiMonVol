@@ -14,6 +14,8 @@ interface LivePrice {
     avgPrice?: number;
     dealLevel?: string;
     priceLevel?: string;
+    googleFlightsLink?: string;
+    raw_data?: any;
 }
 
 export function useLivePrices() {
@@ -28,7 +30,12 @@ export function useLivePrices() {
                 const data = await res.json();
 
                 if (data) {
-                    setPrices(data.prices || (Array.isArray(data) ? data : []));
+                    const rawPrices = data.prices || (Array.isArray(data) ? data : []);
+                    const mappedPrices = rawPrices.map((p: any) => ({
+                        ...p,
+                        googleFlightsLink: p.raw_data?.google_flights_link || p.google_flights_link || p.googleFlightsLink || '',
+                    }));
+                    setPrices(mappedPrices);
                     setLastUpdated(data.updatedAt || new Date().toISOString());
                 }
             } catch (error) {

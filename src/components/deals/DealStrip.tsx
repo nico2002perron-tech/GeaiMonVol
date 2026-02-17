@@ -154,7 +154,8 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
             tags: [],
             lat: FLIGHTS.find(f => f.city === p.destination)?.lat || 0,
             lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
-            id: p.destination_code
+            id: p.destination_code,
+            googleFlightsLink: p.googleFlightsLink || p.raw_data?.google_flights_link || ''
         }))
         : [...FLIGHTS].sort((a, b) => (b.disc || 0) - (a.disc || 0)).map(f => ({
             ...f,
@@ -318,7 +319,30 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                     onMouseLeave={() => setIsHovering(false)}
                 >
                     {(displayDeals || []).slice(0, 7).map((deal: any, i: number) => (
-                        <div key={deal.id || i} className="scard">
+                        <div
+                            key={deal.id || i}
+                            className="scard"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                                const link = deal.googleFlightsLink || deal.google_flights_link || deal.raw_data?.google_flights_link;
+                                if (link) {
+                                    window.open(link, '_blank', 'noopener,noreferrer');
+                                } else {
+                                    // Fallback: construire le lien Google Flights manuellement
+                                    const origin = 'YUL';
+                                    const dest = deal.destination_code || deal.code || '';
+                                    const rawDate = deal.departure_date || deal.departureDate || '';
+                                    const rawReturnDate = deal.return_date || deal.returnDate || '';
+
+                                    // Format YYYY-MM-DD
+                                    const date = rawDate.includes('T') ? rawDate.split('T')[0] : rawDate;
+                                    const returnDate = rawReturnDate.includes('T') ? rawReturnDate.split('T')[0] : rawReturnDate;
+
+                                    const url = `https://www.google.com/travel/flights?q=Flights+from+${origin}+to+${dest}+on+${date}+return+${returnDate}&curr=CAD&hl=fr`;
+                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                }
+                            }}
+                        >
                             <div style={{ position: 'relative', overflow: 'hidden' }}>
                                 <img
                                     className="scard-img"
@@ -423,12 +447,20 @@ export default function DealStrip({ deals = [], loading = false, onViewChange }:
                                         {deal.oldPrice} $
                                     </div>
                                 )}
+                                <div style={{
+                                    marginTop: 8,
+                                    fontSize: 11,
+                                    color: '#2E7DDB',
+                                    fontWeight: 600,
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    Voir ce vol →
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-
         </div>
     );
 }
