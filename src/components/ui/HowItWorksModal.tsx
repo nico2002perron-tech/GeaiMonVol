@@ -12,10 +12,10 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
     if (!isOpen) return null;
 
     const steps = [
-        { title: "Explorez la carte", desc: "Survolez les continents pour découvrir les meilleurs deals en temps réel.", label: "Étape 1" },
-        { title: "Réservez votre vol", desc: "Sélectionnez un deal, choisissez vos dates et réservez en quelques clics.", label: "Étape 2" },
-        { title: "Partagez votre expérience", desc: "Au retour, Geai vous pose quelques questions pour aider les futurs voyageurs.", label: "Étape 3" },
-        { title: "Obtenez votre guide IA", desc: "Des guides personnalisés, créés à partir de vraies expériences de voyageurs.", label: "Étape 4" }
+        { title: "Explorez la carte", desc: "Survolez les continents pour découvrir les meilleurs deals en temps réel.", label: "Étape 1", mascot: "/mascots/step1-scanner.png" },
+        { title: "Réservez votre vol", desc: "Sélectionnez un deal, choisissez vos dates et réservez en quelques clics.", label: "Étape 2", mascot: "/mascots/step2-comparer.png" },
+        { title: "Partagez votre expérience", desc: "Au retour, Geai vous pose quelques questions pour aider les futurs voyageurs.", label: "Étape 3", mascot: "/mascots/step3-deals.png" },
+        { title: "Obtenez votre guide IA", desc: "Des guides personnalisés, créés à partir de vraies expériences de voyageurs.", label: "Étape 4", mascot: "/mascots/step4-voyage.png" }
     ];
 
     return (
@@ -56,9 +56,8 @@ export default function HowItWorksModal({ isOpen, onClose }: HowItWorksModalProp
                                 className={`step-card ${i === activeStep ? 'active' : ''}`}
                                 onClick={() => setActiveStep(i)}
                             >
-                                <div className="step-img-wrap">
-                                    {/* Placeholder SVG/Image */}
-                                    <div style={{ width: '100%', height: '140px', background: '#f4f8fb' }}></div>
+                                <div className="step-img-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f8fb' }}>
+                                    <img src={s.mascot} alt={s.title} style={{ height: '100px', width: 'auto', objectFit: 'contain' }} />
                                 </div>
                                 <div className="step-body">
                                     <div className="step-label">{s.label}</div>

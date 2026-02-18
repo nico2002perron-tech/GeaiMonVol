@@ -38,28 +38,28 @@ const STEPS = [
         num: '01',
         title: 'On scanne pour toi',
         desc: 'Notre geai bleu parcourt des centaines de vols chaque jour depuis Montréal pour dénicher les prix qui sortent de l\'ordinaire.',
-        mascot: '🔍',
+        mascot: '/mascots/step1-scanner.png',
         color: '#2E7DDB',
     },
     {
         num: '02',
         title: 'On compare les prix',
         desc: 'Chaque prix est comparé à l\'historique des 30 derniers jours. Si c\'est un rabais réel, on le garde. Sinon, poubelle.',
-        mascot: '📊',
+        mascot: '/mascots/step2-comparer.png',
         color: '#7C3AED',
     },
     {
         num: '03',
         title: 'Tu reçois les deals',
         desc: 'Les meilleurs deals apparaissent sur la carte en temps réel. Tu cliques, tu vois le prix, tu réserves directement.',
-        mascot: '🎯',
+        mascot: '/mascots/step3-deals.png',
         color: '#EA580C',
     },
     {
         num: '04',
         title: 'Tu pars en voyage',
         desc: 'C\'est aussi simple que ça. Pas de frais cachés, pas d\'intermédiaire. On te pointe vers le meilleur prix, tu réserves.',
-        mascot: '✈️',
+        mascot: '/mascots/step4-voyage.png',
         color: '#16A34A',
     },
 ];
@@ -158,10 +158,10 @@ export default function HowItWorks() {
                                 background: `linear-gradient(135deg, ${step.color}15, ${step.color}08)`,
                                 border: `2px solid ${step.color}20`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 26,
+                                overflow: 'hidden',
                                 animation: `float 3s ease-in-out ${i * 0.5}s infinite`,
                             }}>
-                                {step.mascot}
+                                <img src={step.mascot} alt={step.title} style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
                             </div>
                             <div style={{
                                 fontSize: 11, fontWeight: 800, color: step.color,
