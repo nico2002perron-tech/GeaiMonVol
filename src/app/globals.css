@@ -40,7 +40,7 @@ html {
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   background: var(--bg);
   color: var(--text-1);
   overflow-x: hidden;
@@ -156,7 +156,7 @@ nav {
   font-weight: 500;
   font-size: 14.5px;
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   transition: color .2s;
   display: flex;
   align-items: center;
@@ -306,7 +306,7 @@ nav {
 }
 
 .hero h1 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: clamp(36px, 5.5vw, 70px);
   font-weight: 900;
   line-height: 1.08;
@@ -360,7 +360,7 @@ nav {
   font-size: 13.5px;
   cursor: pointer;
   transition: all .2s;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -426,7 +426,7 @@ nav {
   padding: 12px 13px;
   color: var(--text-1);
   font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   outline: none;
   transition: all .2s;
 }
@@ -454,7 +454,7 @@ nav {
   border-radius: var(--r-xs);
   font-size: 15px;
   font-weight: 800;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -525,7 +525,7 @@ nav {
 }
 
 .section-header h2 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: clamp(26px, 3.4vw, 44px);
   font-weight: 900;
   letter-spacing: -1px;
@@ -1522,7 +1522,7 @@ nav {
 }
 
 .explorer h2 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: clamp(24px, 3vw, 38px);
   font-weight: 900;
   text-align: center;
@@ -1559,7 +1559,7 @@ nav {
   font-size: 13px;
   cursor: pointer;
   transition: all .2s;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .dtab.active {
@@ -1645,7 +1645,7 @@ nav {
 }
 
 .stat-n {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 34px;
   font-weight: 900;
   color: var(--blue)
@@ -1769,14 +1769,14 @@ nav {
 }
 
 .plan-price {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 42px;
   font-weight: 900;
   color: var(--text-1)
 }
 
 .plan-price span {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-3)
@@ -1815,7 +1815,7 @@ nav {
   border-radius: var(--r-xs);
   font-size: 14px;
   font-weight: 700;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   border: none;
   cursor: pointer;
   text-align: center;
@@ -1861,7 +1861,7 @@ nav {
 }
 
 .cta-box h2 {
-  font-family: 'Fraunces', serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 30px;
   font-weight: 900;
   color: var(--navy);
@@ -1888,7 +1888,7 @@ nav {
   border-radius: var(--r-xs);
   padding: 12px 14px;
   font-size: 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   color: var(--text-1);
   outline: none
 }
@@ -1904,7 +1904,7 @@ nav {
   border: none;
   border-radius: var(--r-xs);
   font-weight: 800;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
   cursor: pointer;
   white-space: nowrap;
   transition: all .2s;
@@ -2141,7 +2141,7 @@ a {
   transition: all 0.2s;
   text-align: left;
   width: 100%;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .nav-mobile-menu a:hover,

@@ -2036,6 +2036,57 @@ body {
             padding: 0 12px;
         }
 
+        #map-svg .land-path {
+            fill: rgba(255, 255, 255, 0.12);
+            stroke: rgba(255, 255, 255, 0.18);
+            stroke-width: 0.4;
+            cursor: pointer;
+            transition: fill 0.3s ease, stroke 0.3s ease;
+        }
+
+        #map-svg .land-path:hover {
+            fill: rgba(255, 255, 255, 0.2);
+            stroke: rgba(255, 255, 255, 0.3);
+        }
+
+        .land-path {
+            fill: rgba(255, 255, 255, 0.12);
+            stroke: rgba(255, 255, 255, 0.18);
+            stroke-width: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .land-path.has-deal {
+            fill: rgba(255, 255, 255, 0.22);
+        }
+
+        .land-path.has-deal:hover {
+            fill: rgba(255, 255, 255, 0.32);
+            cursor: pointer;
+        }
+
+        #map-svg .land-path.hovered {
+            fill: rgba(46, 125, 219, 0.3);
+            stroke: rgba(46, 125, 219, 0.5);
+            filter: drop-shadow(0 2px 8px rgba(46, 125, 219, .2));
+        }
+
+        #map-svg .land-path.dimmed {
+            fill: rgba(255, 255, 255, 0.05);
+            stroke: rgba(255, 255, 255, 0.06);
+            cursor: default;
+        }
+
+        #map-svg .land-path.region-hover {
+            fill: rgba(46, 125, 219, 0.35);
+            stroke: rgba(46, 125, 219, 0.6);
+        }
+
+        #map-svg .land-path.region-dimmed {
+            fill: rgba(255, 255, 255, 0.06);
+            stroke: rgba(255, 255, 255, 0.08);
+        }
+
         /* Pins mobile — smaller */
         .pin-pill {
             padding: 4px 10px;
