@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
     return (
@@ -19,14 +18,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
             {/* Gauche : logo + tagline */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <div style={{ position: 'relative', width: 28, height: 28 }}>
-                        <Image
-                            src="/logo_geai.png"
-                            alt="Logo"
-                            fill
-                            style={{ objectFit: 'contain' }}
-                        />
-                    </div>
+                    <span style={{ fontSize: 22 }}>🐦</span>
                     <span style={{
                         fontFamily: "'Fredoka', sans-serif",
                         fontWeight: 700,
@@ -59,27 +51,8 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                 </div>
             </div>
 
-            {/* Droite : compteur + inscrire */}
+            {/* Droite : Partagez + compteur + inscrire */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '3px 10px',
-                    borderRadius: 100,
-                    background: '#F0FDF4',
-                    border: '1px solid #BBF7D0',
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    color: '#16A34A',
-                }}>
-                    <span style={{
-                        width: 5, height: 5, borderRadius: '50%',
-                        background: '#16A34A',
-                        animation: 'liveBlink 2s ease-in-out infinite',
-                    }} />
-                    900+ scannés
-                </span>
                 <Link href="/recits" style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -101,6 +74,25 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                         fontFamily: "'Outfit', sans-serif",
                     }}>Partagez votre voyage</span>
                 </Link>
+                <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 10px',
+                    borderRadius: 100,
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    color: '#16A34A',
+                }}>
+                    <span style={{
+                        width: 5, height: 5, borderRadius: '50%',
+                        background: '#16A34A',
+                        animation: 'liveBlink 2s ease-in-out infinite',
+                    }} />
+                    900+ scannés
+                </span>
                 <button style={{
                     padding: '6px 16px',
                     borderRadius: 100,
