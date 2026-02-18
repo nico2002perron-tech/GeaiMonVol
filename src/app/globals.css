@@ -2668,3 +2668,246 @@ html {
     transform: translateY(4px);
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   HOW IT WORKS — Redesigned zigzag timeline
+   ═══════════════════════════════════════════════════════ */
+
+.hiw-title {
+  font-size: 38px;
+}
+
+.hiw-steps-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Vertical timeline line (desktop) */
+.hiw-steps-container::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 40px;
+  bottom: 40px;
+  width: 3px;
+  background: linear-gradient(180deg,
+      #2E7DDB 0%,
+      #7C3AED 33%,
+      #EA580C 66%,
+      #16A34A 100%);
+  opacity: 0.12;
+  border-radius: 10px;
+  transform: translateX(-50%);
+}
+
+.hiw-step-row {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.hiw-step-row:last-child {
+  margin-bottom: 0;
+}
+
+.hiw-step-row-reverse {
+  flex-direction: row-reverse;
+}
+
+/* Mascot side */
+.hiw-mascot-side {
+  flex: 0 0 42%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.hiw-mascot-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.hiw-mascot-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  opacity: 0.15;
+  animation: hiwMascotPulse 4s ease-in-out infinite;
+}
+
+.hiw-mascot-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed currentColor;
+  opacity: 0.2;
+  animation: hiwMascotSpin 30s linear infinite;
+}
+
+.hiw-mascot-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: white;
+  box-shadow:
+    0 12px 40px rgba(26, 43, 66, 0.08),
+    0 2px 8px rgba(26, 43, 66, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hiwMascotFloat 4s ease-in-out infinite;
+}
+
+.hiw-step-number {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 3;
+}
+
+/* Text side */
+.hiw-text-side {
+  flex: 1;
+}
+
+.hiw-step-desc {
+  max-width: 380px;
+}
+
+/* Center dot on timeline (desktop) */
+.hiw-center-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 5;
+}
+
+/* Animations */
+@keyframes hiwMascotFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes hiwMascotPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.15;
+  }
+
+  50% {
+    transform: scale(1.08);
+    opacity: 0.25;
+  }
+}
+
+@keyframes hiwMascotSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   HOW IT WORKS — Mobile responsive
+   ═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .hiw-title {
+    font-size: 28px;
+  }
+
+  .hiw-steps-container::before {
+    display: none;
+  }
+
+  .hiw-step-row,
+  .hiw-step-row.hiw-step-row-reverse {
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .hiw-mascot-side {
+    flex: none;
+  }
+
+  .hiw-mascot-container {
+    width: 180px;
+    height: 180px;
+  }
+
+  .hiw-text-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hiw-step-desc {
+    max-width: 320px;
+    text-align: center;
+  }
+
+  .hiw-center-dot {
+    display: none;
+  }
+
+  .hiw-step-number {
+    top: -4px;
+    right: -2px;
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hiw-title {
+    font-size: 24px;
+  }
+
+  .hiw-mascot-container {
+    width: 160px;
+    height: 160px;
+  }
+
+  .hiw-step-row,
+  .hiw-step-row.hiw-step-row-reverse {
+    margin-bottom: 40px;
+  }
+}

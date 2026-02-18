@@ -1,7 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
-// Renaming to avoid potential conflict with global Image
 const NextImage = Image;
 
 function useInView(ref: React.RefObject<HTMLDivElement | null>) {
@@ -11,26 +10,12 @@ function useInView(ref: React.RefObject<HTMLDivElement | null>) {
         if (!el) return;
         const obs = new IntersectionObserver(
             ([e]) => { if (e.isIntersecting) setVisible(true); },
-            { threshold: 0.15 }
+            { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
         );
         obs.observe(el);
         return () => obs.disconnect();
     }, []);
     return visible;
-}
-
-function AnimatedDiv({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-    const ref = useRef<HTMLDivElement>(null);
-    const visible = useInView(ref);
-    return (
-        <div ref={ref} style={{
-            opacity: visible ? 1 : 0,
-            transform: visible ? 'translateY(0)' : 'translateY(30px)',
-            transition: `all 0.6s cubic-bezier(.25,.46,.45,.94) ${delay}s`,
-        }}>
-            {children}
-        </div>
-    );
 }
 
 const STEPS = [
@@ -40,6 +25,7 @@ const STEPS = [
         desc: 'Notre geai bleu parcourt des centaines de vols chaque jour depuis Montréal pour dénicher les prix qui sortent de l\'ordinaire.',
         mascot: '/mascots/step1-scanner.png',
         color: '#2E7DDB',
+        colorDark: '#1B5BA0',
     },
     {
         num: '02',
@@ -47,6 +33,7 @@ const STEPS = [
         desc: 'Chaque prix est comparé à l\'historique des 30 derniers jours. Si c\'est un rabais réel, on le garde. Sinon, poubelle.',
         mascot: '/mascots/step2-comparer.png',
         color: '#7C3AED',
+        colorDark: '#5B21B6',
     },
     {
         num: '03',
@@ -54,6 +41,7 @@ const STEPS = [
         desc: 'Les meilleurs deals apparaissent sur la carte en temps réel. Tu cliques, tu vois le prix, tu réserves directement.',
         mascot: '/mascots/step3-deals.png',
         color: '#EA580C',
+        colorDark: '#C2410C',
     },
     {
         num: '04',
@@ -61,131 +49,203 @@ const STEPS = [
         desc: 'C\'est aussi simple que ça. Pas de frais cachés, pas d\'intermédiaire. On te pointe vers le meilleur prix, tu réserves.',
         mascot: '/mascots/step4-voyage.png',
         color: '#16A34A',
+        colorDark: '#15803D',
     },
 ];
 
-export default function HowItWorks() {
+function StepRow({ step, index }: { step: typeof STEPS[number]; index: number }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const visible = useInView(ref);
+    const isEven = index % 2 === 1;
+
     return (
-        <div style={{
+        <div
+            ref={ref}
+            className={`hiw-step-row ${isEven ? 'hiw-step-row-reverse' : ''}`}
+            style={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0)' : 'translateY(40px)',
+                transition: `all 0.7s cubic-bezier(.25,.46,.45,.94) ${index * 0.12}s`,
+            }}
+        >
+            {/* Mascot side */}
+            <div className="hiw-mascot-side">
+                <div className="hiw-mascot-container">
+                    {/* Glow */}
+                    <div
+                        className="hiw-mascot-glow"
+                        style={{
+                            background: `radial-gradient(circle, ${step.color}, transparent 70%)`,
+                        }}
+                    />
+                    {/* Dashed ring */}
+                    <div
+                        className="hiw-mascot-ring"
+                        style={{
+                            borderColor: step.color,
+                            animationDirection: isEven ? 'reverse' : 'normal',
+                        }}
+                    />
+                    {/* Image circle */}
+                    <div
+                        className="hiw-mascot-img-wrap"
+                        style={{ border: `3px solid ${step.color}25` }}
+                    >
+                        <img
+                            src={step.mascot}
+                            alt={step.title}
+                            style={{
+                                width: '72%',
+                                height: '72%',
+                                objectFit: 'contain',
+                                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))',
+                            }}
+                        />
+                    </div>
+                    {/* Step number badge */}
+                    <div
+                        className="hiw-step-number"
+                        style={{
+                            background: `linear-gradient(135deg, ${step.color}, ${step.colorDark})`,
+                        }}
+                    >
+                        {step.num}
+                    </div>
+                </div>
+            </div>
+
+            {/* Text side */}
+            <div className="hiw-text-side">
+                <div style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: step.color,
+                    letterSpacing: 1.5,
+                    textTransform: 'uppercase' as const,
+                    marginBottom: 8,
+                    opacity: 0.7,
+                    fontFamily: "'Outfit', sans-serif",
+                }}>
+                    ÉTAPE {step.num}
+                </div>
+                <h3 style={{
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: '#1A2B42',
+                    marginBottom: 12,
+                    lineHeight: 1.25,
+                }}>
+                    {step.title}
+                </h3>
+                <h3 style={{
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: '#1A2B42',
+                    marginBottom: 12,
+                    lineHeight: 1.25,
+                }}>
+                    {step.title}
+                </h3>
+                <p className="hiw-step-desc" style={{
+                    fontSize: 15,
+                    color: '#5A7089',
+                    lineHeight: 1.7,
+                    fontFamily: "'Outfit', sans-serif",
+                }}>
+                    {step.desc}
+                </p>
+            </div>
+
+            {/* Center dot on timeline (desktop) */}
+            <div className="hiw-center-dot" style={{ background: step.color }} />
+        </div>
+    );
+}
+
+export default function HowItWorks() {
+    const headerRef = useRef<HTMLDivElement>(null);
+    const headerVisible = useInView(headerRef);
+
+    return (
+        <section style={{
             background: '#F8FAFC',
-            padding: '80px 24px',
+            padding: '100px 24px',
             position: 'relative',
             overflow: 'hidden',
         }}>
-            {/* Orbes décoratifs */}
+            {/* Decorative orbs */}
             <div style={{
-                position: 'absolute', top: -100, right: -100,
+                position: 'absolute', top: -120, right: -80,
+                width: 500, height: 500, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(46,125,219,0.06), transparent 70%)',
+                pointerEvents: 'none',
+            }} />
+            <div style={{
+                position: 'absolute', bottom: -100, left: -60,
                 width: 400, height: 400, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(46,125,219,0.04), transparent 70%)',
-            }} />
-            <div style={{
-                position: 'absolute', bottom: -80, left: -80,
-                width: 300, height: 300, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(124,58,237,0.03), transparent 70%)',
+                background: 'radial-gradient(circle, rgba(124,58,237,0.04), transparent 70%)',
+                pointerEvents: 'none',
             }} />
 
-            {/* Titre */}
-            <AnimatedDiv>
-                <div style={{ textAlign: 'center', marginBottom: 60, position: 'relative', zIndex: 1 }}>
-                    <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '6px 16px', borderRadius: 100,
-                        background: 'rgba(46,125,219,0.08)', marginBottom: 16,
-                    }}>
-                        <div style={{ position: 'relative', width: 22, height: 22 }}>
-                            <NextImage
-                                src="/logo_geai.png"
-                                alt="Logo"
-                                fill
-                                style={{ objectFit: 'contain' }}
-                            />
-                        </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#2E7DDB', fontFamily: "'Outfit', sans-serif" }}>
-                            Comment ça marche ?
-                        </span>
-                    </div>
-                    <h2 style={{
-                        fontFamily: "'Fredoka', sans-serif",
-                        fontSize: 32, fontWeight: 700, color: '#1A2B42', marginBottom: 8,
-                    }}>
-                        Ton geai bleu cherche,<br />tu voyages.
-                    </h2>
-                    <p style={{
-                        fontSize: 15, color: '#5A7089', maxWidth: 500,
-                        margin: '0 auto', fontFamily: "'Outfit', sans-serif",
-                    }}>
-                        En 4 étapes simples, passe de "j'aimerais voyager" à "je pars quand ?!"
-                    </p>
-                </div>
-            </AnimatedDiv>
-
-            {/* 4 cards */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
-                gap: 24,
-                maxWidth: 1100,
-                margin: '0 auto',
-                position: 'relative',
-                zIndex: 1,
-            }}>
-                {/* Ligne de connexion */}
+            {/* Header */}
+            <div
+                ref={headerRef}
+                style={{
+                    textAlign: 'center',
+                    marginBottom: 72,
+                    position: 'relative',
+                    zIndex: 1,
+                    opacity: headerVisible ? 1 : 0,
+                    transform: headerVisible ? 'translateY(0)' : 'translateY(30px)',
+                    transition: 'all 0.6s cubic-bezier(.25,.46,.45,.94)',
+                }}
+            >
                 <div style={{
-                    position: 'absolute', top: 50, left: '12%', right: '12%',
-                    height: 2,
-                    background: 'linear-gradient(90deg, #2E7DDB, #7C3AED, #EA580C, #16A34A)',
-                    opacity: 0.15, borderRadius: 10,
-                }} />
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '6px 18px', borderRadius: 100,
+                    background: 'rgba(46,125,219,0.08)',
+                    border: '1px solid rgba(46,125,219,0.12)',
+                    marginBottom: 20,
+                }}>
+                    <div style={{ position: 'relative', width: 22, height: 22 }}>
+                        <NextImage
+                            src="/logo_geai.png"
+                            alt="Logo"
+                            fill
+                            style={{ objectFit: 'contain' }}
+                        />
+                    </div>
+                    <span style={{
+                        fontSize: 12, fontWeight: 700, color: '#2E7DDB',
+                        fontFamily: "'Outfit', sans-serif",
+                    }}>
+                        Comment ça marche ?
+                    </span>
+                </div>
+                <h2 className="hiw-title" style={{
+                    fontFamily: "'Fredoka', sans-serif",
+                    fontWeight: 700, color: '#1A2B42',
+                    marginBottom: 12, lineHeight: 1.15,
+                }}>
+                    Ton geai bleu cherche,<br />tu voyages.
+                </h2>
+                <p style={{
+                    fontSize: 16, color: '#5A7089', maxWidth: 480,
+                    margin: '0 auto', fontFamily: "'Outfit', sans-serif",
+                    lineHeight: 1.6,
+                }}>
+                    En 4 étapes simples, passe de «&nbsp;j&apos;aimerais voyager&nbsp;» à «&nbsp;je pars quand ?!&nbsp;»
+                </p>
+            </div>
 
+            {/* Steps — zigzag timeline */}
+            <div className="hiw-steps-container">
                 {STEPS.map((step, i) => (
-                    <AnimatedDiv key={i} delay={i * 0.15}>
-                        <div style={{
-                            background: 'white',
-                            borderRadius: 20,
-                            padding: '28px 24px',
-                            textAlign: 'center',
-                            border: '1px solid rgba(26,43,66,0.05)',
-                            boxShadow: '0 2px 12px rgba(26,43,66,0.04)',
-                            transition: 'transform 0.3s ease, box-shadow 0.3s',
-                            cursor: 'default',
-                        }}
-                            className="step-card"
-                        >
-                            {/* Mascotte */}
-                            <div style={{
-                                width: 56, height: 56, borderRadius: 16,
-                                margin: '0 auto 16px',
-                                background: `linear-gradient(135deg, ${step.color}15, ${step.color}08)`,
-                                border: `2px solid ${step.color}20`,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                overflow: 'hidden',
-                                animation: `float 3s ease-in-out ${i * 0.5}s infinite`,
-                            }}>
-                                <img src={step.mascot} alt={step.title} style={{ width: '85%', height: '85%', objectFit: 'contain' }} />
-                            </div>
-                            <div style={{
-                                fontSize: 11, fontWeight: 800, color: step.color,
-                                letterSpacing: 1, marginBottom: 8, opacity: 0.7,
-                                fontFamily: "'Outfit', sans-serif",
-                            }}>
-                                ÉTAPE {step.num}
-                            </div>
-                            <h3 style={{
-                                fontFamily: "'Fredoka', sans-serif",
-                                fontSize: 17, fontWeight: 700, color: '#1A2B42', marginBottom: 8,
-                            }}>
-                                {step.title}
-                            </h3>
-                            <p style={{
-                                fontSize: 13, color: '#5A7089', lineHeight: 1.6,
-                                fontFamily: "'Outfit', sans-serif",
-                            }}>
-                                {step.desc}
-                            </p>
-                        </div>
-                    </AnimatedDiv>
+                    <StepRow key={i} step={step} index={i} />
                 ))}
             </div>
-        </div>
+        </section>
     );
 }
