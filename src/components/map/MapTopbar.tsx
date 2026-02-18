@@ -80,7 +80,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                     }} />
                     900+ scannés
                 </span>
-                <button style={{
+                <Link href="/recits" style={{
                     padding: '6px 14px',
                     borderRadius: 100,
                     border: '1px solid rgba(26,43,66,0.1)',
@@ -92,15 +92,12 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                     fontFamily: "'Outfit', sans-serif",
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6
-                }} onClick={() => {
-                    const url = window.location.href;
-                    navigator.clipboard.writeText(url);
-                    alert('Lien copié ! Partagez-le avec vos amis.');
+                    gap: 6,
+                    textDecoration: 'none'
                 }}>
                     <span>🤝</span>
-                    Partager
-                </button>
+                    Récits
+                </Link>
                 <button style={{
                     padding: '6px 16px',
                     borderRadius: 100,

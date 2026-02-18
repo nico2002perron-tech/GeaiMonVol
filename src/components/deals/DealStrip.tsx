@@ -66,12 +66,7 @@ interface DealStripProps {
     onDealClick?: (deal: any) => void;
 }
 
-export default function DealStrip({
-    deals = [],
-    loading = false,
-    activeTab = 'international',
-    onDealClick
-}: DealStripProps) {
+export default function DealStrip({ deals = [], loading = false, activeTab = 'international', onViewChange, onDealClick }: DealStripProps) {
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
     const [isMobile, setIsMobile] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -183,14 +178,11 @@ export default function DealStrip({
     useEffect(() => {
         const container = scrollRef.current;
         if (!container || displayDeals.length === 0) return;
-
         let animationId: number;
         let isPaused = false;
-
         const startDelay = setTimeout(() => {
             const halfWidth = container.scrollWidth / 2;
             if (halfWidth <= 0) return;
-
             const tick = () => {
                 if (!isPaused) {
                     let pos = container.scrollLeft + 0.5;
@@ -200,23 +192,21 @@ export default function DealStrip({
                 animationId = requestAnimationFrame(tick);
             };
             animationId = requestAnimationFrame(tick);
-        }, 1000);
-
+        }, 300);
         const pause = () => { isPaused = true; };
         const resume = () => { isPaused = false; };
-
+        const delayedResume = () => { setTimeout(resume, 2500); };
         container.addEventListener('mouseenter', pause);
         container.addEventListener('mouseleave', resume);
         container.addEventListener('touchstart', pause, { passive: true });
-        container.addEventListener('touchend', resume);
-
+        container.addEventListener('touchend', delayedResume);
         return () => {
             clearTimeout(startDelay);
             cancelAnimationFrame(animationId);
             container.removeEventListener('mouseenter', pause);
             container.removeEventListener('mouseleave', resume);
             container.removeEventListener('touchstart', pause);
-            container.removeEventListener('touchend', resume);
+            container.removeEventListener('touchend', delayedResume);
         };
     }, [displayDeals.length]);
 

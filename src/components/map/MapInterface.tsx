@@ -14,8 +14,6 @@ import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import DealSidebar from '@/components/deals/DealSidebar';
 import HowItWorks from '../landing/HowItWorks';
 import PremiumSection from '../landing/PremiumSection';
-import LandingStories from '../landing/LandingStories';
-import DataTransparency from '../landing/DataTransparency';
 import Footer from '../landing/Footer';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -433,9 +431,6 @@ export default function MapInterface() {
 
                 {/* Section 3 */}
                 <HowItWorks />
-
-                <LandingStories />
-                <DataTransparency />
 
                 {/* Section 4 */}
                 <PremiumSection />

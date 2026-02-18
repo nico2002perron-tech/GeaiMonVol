@@ -2445,3 +2445,90 @@ html {
     transform: translateX(100%) rotate(45deg);
   }
 }
+/* ===== NEW: Animated arcs ===== */
+.flight-arc-animated {
+  animation: arc-dash-flow 1.5s linear infinite;
+}
+
+@keyframes arc-dash-flow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -20; }
+}
+
+/* ===== NEW: Pin glow halo pulse ===== */
+.pin-glow-halo {
+  animation: pin-glow 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pin-glow {
+  0%   { r: 9;  opacity: 0.35; }
+  50%  { r: 15; opacity: 0.1;  }
+  100% { r: 9;  opacity: 0.35; }
+}
+
+/* ===== NEW: Pin dot subtle pulse ===== */
+.pin-dot-pulse {
+  animation: pin-dot-breathe 3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pin-dot-breathe {
+  0%   { r: 5; }
+  50%  { r: 6; }
+  100% { r: 5; }
+}
+
+/* ===== NEW: Mini deal card hover ===== */
+.mini-deal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(26, 43, 66, 0.12) !important;
+}
+
+.mini-deal-card::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== NEW: Premium highlight card gold shimmer ===== */
+.premium-highlight-card {
+  position: relative;
+}
+
+.premium-gold-shimmer {
+  animation: gold-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1;   }
+  100% { opacity: 0.6; }
+}
+
+.premium-highlight-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 215, 0, 0.08) 50%,
+    transparent 70%
+  );
+  animation: gold-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes gold-sweep {
+  0%   { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* ===== Fix white bar / overflow ===== */
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}

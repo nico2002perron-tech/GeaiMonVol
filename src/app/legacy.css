@@ -1078,7 +1078,7 @@ body {
 
 /* ======== SIDEBAR ======== */
 .sidebar {
-    position: absolute;
+    position: fixed;
     top: 0;
     right: 0;
     width: 400px;
@@ -1323,7 +1323,7 @@ body {
 
 /* ======== BOOKING FLOW PANEL ======== */
 .book-panel {
-    position: absolute;
+    position: fixed;
     top: 0;
     right: 0;
     width: 460px;
