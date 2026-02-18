@@ -2587,7 +2587,12 @@ html {
   }
 }
 
-/* 2. Pin glow halo pulse */
+/* ===== Animated arcs ===== */
+.flight-arc-animated {
+  animation: arc-dash-flow 1.5s linear infinite;
+}
+
+/* ===== Pin glow halo pulse ===== */
 .pin-glow-halo {
   animation: pin-glow 2.5s ease-in-out infinite;
   transform-origin: center;
@@ -2610,75 +2615,33 @@ html {
   }
 }
 
-/* 3. Pin dot breathing */
+/* ===== Pin dot pulse ===== */
 .pin-dot-pulse {
   animation: pin-dot-breathe 3s ease-in-out infinite;
+  transform-origin: center;
 }
 
 @keyframes pin-dot-breathe {
-
-  0%,
-  100% {
-    transform: scale(1);
-    filter: brightness(1);
+  0% {
+    r: 5;
   }
 
   50% {
-    transform: scale(1.15);
-    filter: brightness(1.2);
-  }
-}
-
-/* 4. Premium highlight gold shimmer */
-.premium-highlight-card {
-  position: relative;
-}
-
-.premium-gold-shimmer {
-  animation: gold-shimmer 3s ease-in-out infinite;
-}
-
-@keyframes gold-shimmer {
-  0% {
-    opacity: 0.6;
-  }
-
-  50% {
-    opacity: 1;
+    r: 6;
   }
 
   100% {
-    opacity: 0.6;
+    r: 5;
   }
 }
 
-.premium-highlight-card::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg,
-      transparent 30%,
-      rgba(255, 215, 0, 0.08) 50%,
-      transparent 70%);
-  animation: gold-sweep 4s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 2;
+/* ===== Mini deal card hover ===== */
+.mini-deal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(26, 43, 66, 0.12) !important;
 }
 
-@keyframes gold-sweep {
-  0% {
-    transform: translateX(-100%) rotate(45deg);
-  }
-
-  100% {
-    transform: translateX(100%) rotate(45deg);
-  }
-}
-
-/* 5. Live status blink */
+/* ===== Live status blink ===== */
 @keyframes liveBlink {
 
   0%,
@@ -2693,7 +2656,7 @@ html {
   }
 }
 
-/* 6. Scroll hint bounce */
+/* ===== Scroll hint bounce ===== */
 @keyframes scrollHint {
 
   0%,
@@ -2704,11 +2667,4 @@ html {
   50% {
     transform: translateY(4px);
   }
-}
-
-/* 7. Hover effect on mini-cards */
-.mini-deal-card:hover {
-  transform: translateY(-3px);
-  background: white !important;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
 }

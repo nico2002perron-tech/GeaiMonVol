@@ -37,8 +37,7 @@ export default function MapInterface() {
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
-    const [showPremiumBanner, setShowPremiumBanner] = useState(true);
-    const [activeTab, setActiveTab] = useState<'international' | 'canada'>('international');
+    const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -63,6 +62,9 @@ export default function MapInterface() {
         } else if (tab === 'canada') {
             setActiveTab('canada');
             setMapView('canada');
+        } else if (tab === 'tout-inclus') {
+            setActiveTab('tout-inclus');
+            setMapView('world');
         }
     };
 
@@ -80,10 +82,9 @@ export default function MapInterface() {
     }, [prices, activeTab]);
 
     const tabs = [
-        { key: 'international', label: 'Monde', icon: '✈️', pro: false },
-        { key: 'canada', label: 'Canada', icon: '🍁', pro: false },
-        { key: 'hotels', label: 'Hôtels', icon: '🏨', pro: true },
-        { key: 'planning', label: 'Planning', icon: '📍', pro: true },
+        { key: 'international', label: 'Monde', icon: '✈️', desc: 'Tous les deals' },
+        { key: 'canada', label: 'Canada', icon: '🍁', desc: 'Vols intérieurs' },
+        { key: 'tout-inclus', label: 'Tout inclus', icon: '🏖️', desc: 'Vol + hôtel' },
     ];
 
     return (
@@ -96,92 +97,79 @@ export default function MapInterface() {
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <MapTopbar prices={prices} />
 
-                    {/* Premium banner */}
-                    {showPremiumBanner && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 16, padding: '7px 24px',
-                            background: 'linear-gradient(135deg, #1A2B42 0%, #2E4A6E 100%)',
-                            flexShrink: 0, position: 'relative', overflow: 'hidden',
-                        }}>
-                            <div style={{
-                                position: 'absolute', left: -30, top: -30, width: 80, height: 80, borderRadius: '50%',
-                                background: 'radial-gradient(circle, rgba(46,125,219,0.2) 0%, transparent 70%)',
-                            }} />
-                            <div style={{
-                                position: 'absolute', right: -20, top: -20, width: 60, height: 60, borderRadius: '50%',
-                                background: 'radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%)',
-                            }} />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, zIndex: 1 }}>
-                                <span style={{ fontSize: 14 }}>⚡</span>
-                                <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>
-                                    <strong style={{ fontWeight: 800 }}>Premium — 5$/mois</strong>
-                                    <span style={{ color: 'rgba(255,255,255,0.55)', marginLeft: 8 }}>
-                                        Alertes perso · Prix record · Guides IA
-                                    </span>
-                                </span>
-                            </div>
-                            <button onClick={() => { }} style={{
-                                padding: '4px 14px', borderRadius: 100, border: 'none',
-                                background: 'white', color: '#1A2B42', fontSize: 11,
-                                fontWeight: 700, cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif", zIndex: 1,
-                            }}>
-                                Essayer →
-                            </button>
-                            <button onClick={() => setShowPremiumBanner(false)} style={{
-                                position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                                background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)',
-                                fontSize: 14, cursor: 'pointer', zIndex: 1, padding: '4px 8px',
-                            }}>
-                                ✕
-                            </button>
-                        </div>
-                    )}
-
-                    {/* ONGLETS — REMONTÉS sous le premium banner */}
+                    {/* ONGLETS DARK — intégrés au thème */}
                     <div style={{
-                        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr',
-                        background: 'white',
-                        borderTop: '1px solid rgba(26,43,66,0.06)',
-                        borderBottom: '1px solid rgba(26,43,66,0.06)',
+                        background: 'linear-gradient(180deg, #0F1A2A 0%, #1B2D4F 100%)',
+                        padding: '0 28px',
+                        display: 'flex',
+                        justifyContent: 'center',
                         flexShrink: 0,
                     }}>
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => !tab.pro && handleTabChange(tab.key)}
-                                className="big-tab"
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    gap: 8, padding: '11px 0', border: 'none',
-                                    background: activeTab === tab.key ? 'rgba(46,125,219,0.04)' : 'transparent',
-                                    cursor: tab.pro ? 'default' : 'pointer',
-                                    fontFamily: "'Outfit', sans-serif", fontSize: 13.5,
-                                    fontWeight: activeTab === tab.key ? 700 : 600,
-                                    color: activeTab === tab.key ? '#2E7DDB' : tab.pro ? '#B0BEC5' : '#5A7089',
-                                    opacity: tab.pro ? 0.6 : 1,
-                                    borderRight: tab.key !== 'planning' ? '1px solid rgba(26,43,66,0.04)' : 'none',
-                                    position: 'relative', transition: 'all 0.2s ease',
-                                }}
-                            >
-                                <span style={{ fontSize: 16 }}>{tab.icon}</span>
-                                <span>{tab.pro ? <s>{tab.label}</s> : tab.label}</span>
-                                {tab.pro && (
-                                    <span style={{
-                                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                                        color: 'white', fontSize: 8, fontWeight: 800,
-                                        padding: '1px 6px', borderRadius: 100, marginLeft: 2,
-                                    }}>PRO</span>
-                                )}
-                                {activeTab === tab.key && (
-                                    <div style={{
-                                        position: 'absolute', bottom: 0, left: '15%', right: '15%',
-                                        height: 3, borderRadius: '3px 3px 0 0', background: '#2E7DDB',
-                                    }} />
-                                )}
-                            </button>
-                        ))}
+                        <div style={{ display: 'flex', gap: 6, padding: '14px 0' }}>
+                            {tabs.map(tab => {
+                                const isActive = activeTab === tab.key;
+                                return (
+                                    <button
+                                        key={tab.key}
+                                        onClick={() => handleTabChange(tab.key)}
+                                        style={{
+                                            padding: '10px 28px',
+                                            borderRadius: 12,
+                                            border: isActive
+                                                ? '1px solid rgba(96,165,250,0.3)'
+                                                : '1px solid rgba(255,255,255,0.06)',
+                                            background: isActive
+                                                ? 'linear-gradient(135deg, rgba(46,125,219,0.15), rgba(96,165,250,0.08))'
+                                                : 'rgba(255,255,255,0.02)',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 8,
+                                            transition: 'all 0.3s cubic-bezier(.25,.46,.45,.94)',
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            fontFamily: "'Outfit', sans-serif",
+                                        }}
+                                    >
+                                        {isActive && (
+                                            <div style={{
+                                                position: 'absolute', inset: 0,
+                                                background: 'radial-gradient(ellipse at center, rgba(96,165,250,0.08) 0%, transparent 70%)',
+                                                pointerEvents: 'none',
+                                            }} />
+                                        )}
+                                        <span style={{
+                                            fontSize: 18,
+                                            filter: isActive ? 'none' : 'grayscale(0.6)',
+                                            transition: 'filter 0.3s',
+                                        }}>{tab.icon}</span>
+                                        <div style={{ textAlign: 'left', position: 'relative', zIndex: 1 }}>
+                                            <div style={{
+                                                fontSize: 13,
+                                                fontWeight: isActive ? 700 : 500,
+                                                color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
+                                                transition: 'color 0.3s',
+                                                lineHeight: 1.2,
+                                            }}>{tab.label}</div>
+                                            <div style={{
+                                                fontSize: 9,
+                                                color: isActive ? 'rgba(96,165,250,0.8)' : 'rgba(255,255,255,0.2)',
+                                                fontWeight: 500,
+                                                transition: 'color 0.3s',
+                                            }}>{tab.desc}</div>
+                                        </div>
+                                        {isActive && (
+                                            <div style={{
+                                                width: 5, height: 5, borderRadius: '50%',
+                                                background: '#60A5FA',
+                                                boxShadow: '0 0 8px #60A5FA',
+                                                marginLeft: 2,
+                                            }} />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* Map Area — prend l'espace restant */}
@@ -293,7 +281,7 @@ export default function MapInterface() {
                                     return (
                                         <div
                                             key={`mini-${code}-${i}`}
-                                            className={`mini-deal-card${isPremiumHighlight ? ' premium-highlight-card' : ''}`}
+                                            className="mini-deal-card"
                                             onClick={() => setSelectedDeal({
                                                 city, code, price: deal.price, airline: deal.airline,
                                                 stops: deal.stops, route: `YUL – ${code}`,
@@ -310,39 +298,26 @@ export default function MapInterface() {
                                                 padding: isMobile ? '7px 10px' : '8px 12px',
                                                 borderRadius: 10,
                                                 background: 'rgba(255,255,255,0.88)',
-                                                border: isPremiumHighlight
-                                                    ? '1.5px solid rgba(212,175,55,0.35)'
-                                                    : '1px solid rgba(26,43,66,0.08)',
+                                                border: '1px solid rgba(26,43,66,0.08)',
                                                 backdropFilter: 'blur(8px)',
                                                 cursor: 'pointer', flexShrink: 0,
                                                 transition: 'all 0.2s ease',
-                                                boxShadow: isPremiumHighlight
-                                                    ? '0 2px 10px rgba(212,175,55,0.1)'
-                                                    : '0 2px 8px rgba(26,43,66,0.06)',
+                                                boxShadow: '0 2px 8px rgba(26,43,66,0.06)',
                                                 position: 'relative', overflow: 'hidden',
                                             }}
                                         >
                                             {isPremiumHighlight && (
-                                                <>
-                                                    <div className="premium-gold-shimmer" style={{
-                                                        position: 'absolute', inset: 0,
-                                                        background: 'linear-gradient(135deg, rgba(212,175,55,0.03) 0%, rgba(255,215,0,0.06) 50%, rgba(212,175,55,0.03) 100%)',
-                                                        borderRadius: 10, pointerEvents: 'none', zIndex: 2,
-                                                    }} />
-                                                    <div style={{
-                                                        position: 'absolute', top: 4, right: 4,
-                                                        background: 'linear-gradient(135deg, #D4AF37, #F5D060)',
-                                                        borderRadius: 100, padding: '2px 7px',
-                                                        display: 'flex', alignItems: 'center', gap: 3,
-                                                        zIndex: 3, boxShadow: '0 1px 4px rgba(212,175,55,0.2)',
-                                                    }}>
-                                                        <span style={{ fontSize: 7 }}>⚡</span>
-                                                        <span style={{
-                                                            fontSize: 7, fontWeight: 800, color: '#5C4813',
-                                                            fontFamily: "'Outfit', sans-serif",
-                                                        }}>Alerte perso</span>
-                                                    </div>
-                                                </>
+                                                <div style={{
+                                                    position: 'absolute', top: -6, right: -4,
+                                                    background: col.bg, color: 'white',
+                                                    borderRadius: 100, padding: '2px 7px',
+                                                    display: 'flex', alignItems: 'center', gap: 3,
+                                                    zIndex: 3, boxShadow: `0 2px 8px ${col.bg}40`,
+                                                    fontSize: 7.5, fontWeight: 800,
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                }}>
+                                                    ⚡ Alerte perso
+                                                </div>
                                             )}
                                             <div style={{
                                                 display: 'flex', alignItems: 'center',
@@ -426,7 +401,7 @@ export default function MapInterface() {
                     <DealStrip
                         deals={prices}
                         loading={pricesLoading}
-                        activeTab={activeTab}
+                        activeTab={activeTab === 'tout-inclus' ? 'international' : activeTab}
                         onViewChange={setMapView}
                         onDealClick={setSelectedDeal}
                     />
