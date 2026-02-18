@@ -95,8 +95,8 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
                             src={step.mascot}
                             alt={step.title}
                             style={{
-                                width: '72%',
-                                height: '72%',
+                                width: index === 0 ? '82%' : '72%',
+                                height: index === 0 ? '82%' : '72%',
                                 objectFit: 'contain',
                                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))',
                             }}
