@@ -35,7 +35,8 @@
 }
 
 html {
-  scroll-behavior: smooth
+  scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -2445,14 +2446,20 @@ html {
     transform: translateX(100%) rotate(45deg);
   }
 }
+
 /* ===== NEW: Animated arcs ===== */
 .flight-arc-animated {
   animation: arc-dash-flow 1.5s linear infinite;
 }
 
 @keyframes arc-dash-flow {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -20; }
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -20;
+  }
 }
 
 /* ===== NEW: Pin glow halo pulse ===== */
@@ -2462,9 +2469,20 @@ html {
 }
 
 @keyframes pin-glow {
-  0%   { r: 9;  opacity: 0.35; }
-  50%  { r: 15; opacity: 0.1;  }
-  100% { r: 9;  opacity: 0.35; }
+  0% {
+    r: 9;
+    opacity: 0.35;
+  }
+
+  50% {
+    r: 15;
+    opacity: 0.1;
+  }
+
+  100% {
+    r: 9;
+    opacity: 0.35;
+  }
 }
 
 /* ===== NEW: Pin dot subtle pulse ===== */
@@ -2474,9 +2492,17 @@ html {
 }
 
 @keyframes pin-dot-breathe {
-  0%   { r: 5; }
-  50%  { r: 6; }
-  100% { r: 5; }
+  0% {
+    r: 5;
+  }
+
+  50% {
+    r: 6;
+  }
+
+  100% {
+    r: 5;
+  }
 }
 
 /* ===== NEW: Mini deal card hover ===== */
@@ -2499,9 +2525,17 @@ html {
 }
 
 @keyframes gold-shimmer {
-  0%   { opacity: 0.6; }
-  50%  { opacity: 1;   }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .premium-highlight-card::after {
@@ -2511,24 +2545,170 @@ html {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent 30%,
-    rgba(255, 215, 0, 0.08) 50%,
-    transparent 70%
-  );
+  background: linear-gradient(45deg,
+      transparent 30%,
+      rgba(255, 215, 0, 0.08) 50%,
+      transparent 70%);
   animation: gold-sweep 4s ease-in-out infinite;
   pointer-events: none;
   z-index: 2;
 }
 
 @keyframes gold-sweep {
-  0%   { transform: translateX(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) rotate(45deg); }
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
 }
 
 /* ===== Fix white bar / overflow ===== */
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+}
+
+/* ===== GEAIMONVOL V2 ANIMATIONS ===== */
+
+/* 1. Flight arcs animated dash flow */
+.flight-arc-animated {
+  animation: arc-dash-flow 1.5s linear infinite;
+}
+
+@keyframes arc-dash-flow {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+/* 2. Pin glow halo pulse */
+.pin-glow-halo {
+  animation: pin-glow 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes pin-glow {
+  0% {
+    r: 9;
+    opacity: 0.35;
+  }
+
+  50% {
+    r: 15;
+    opacity: 0.1;
+  }
+
+  100% {
+    r: 9;
+    opacity: 0.35;
+  }
+}
+
+/* 3. Pin dot breathing */
+.pin-dot-pulse {
+  animation: pin-dot-breathe 3s ease-in-out infinite;
+}
+
+@keyframes pin-dot-breathe {
+
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+  }
+}
+
+/* 4. Premium highlight gold shimmer */
+.premium-highlight-card {
+  position: relative;
+}
+
+.premium-gold-shimmer {
+  animation: gold-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.premium-highlight-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg,
+      transparent 30%,
+      rgba(255, 215, 0, 0.08) 50%,
+      transparent 70%);
+  animation: gold-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes gold-sweep {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+
+  100% {
+    transform: translateX(100%) rotate(45deg);
+  }
+}
+
+/* 5. Live status blink */
+@keyframes liveBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* 6. Scroll hint bounce */
+@keyframes scrollHint {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+/* 7. Hover effect on mini-cards */
+.mini-deal-card:hover {
+  transform: translateY(-3px);
+  background: white !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
 }

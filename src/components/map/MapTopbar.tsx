@@ -81,22 +81,25 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                     900+ scannés
                 </span>
                 <Link href="/recits" style={{
-                    padding: '6px 14px',
-                    borderRadius: 100,
-                    border: '1px solid rgba(26,43,66,0.1)',
-                    background: 'white',
-                    color: '#1A2B42',
-                    fontWeight: 700,
-                    fontSize: 11,
-                    cursor: 'pointer',
-                    fontFamily: "'Outfit', sans-serif",
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    textDecoration: 'none'
+                    gap: 5,
+                    padding: '4px 12px',
+                    borderRadius: 100,
+                    background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(46,125,219,0.06))',
+                    border: '1px solid rgba(124,58,237,0.12)',
+                    textDecoration: 'none',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
                 }}>
-                    <span>🤝</span>
-                    Récits
+                    <span style={{ fontSize: 11 }}>✍️</span>
+                    <span style={{
+                        fontSize: 10.5, fontWeight: 700,
+                        background: 'linear-gradient(135deg, #7C3AED, #2E7DDB)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        fontFamily: "'Outfit', sans-serif",
+                    }}>Partagez votre voyage</span>
                 </Link>
                 <button style={{
                     padding: '6px 16px',

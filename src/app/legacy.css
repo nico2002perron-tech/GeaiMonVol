@@ -10,6 +10,8 @@
 body {
     overflow-x: hidden;
     width: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 :root {
@@ -439,16 +441,16 @@ body {
 }
 
 #map-svg .land-path {
-    fill: #DCEAF5;
-    stroke: #C2D8EA;
+    fill: rgba(255, 255, 255, 0.12);
+    stroke: rgba(255, 255, 255, 0.18);
     stroke-width: 0.4;
     cursor: pointer;
     transition: fill 0.3s ease, stroke 0.3s ease;
 }
 
 #map-svg .land-path:hover {
-    fill: #C7E0F2;
-    stroke: #A8CBE2;
+    fill: rgba(255, 255, 255, 0.22);
+    stroke: rgba(255, 255, 255, 0.28);
 }
 
 #map-svg .land-path.hovered {

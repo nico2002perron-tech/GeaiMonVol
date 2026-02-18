@@ -265,36 +265,100 @@ export default function MapCanvas({
                 height={dimensions.height}
                 style={{ display: 'block' }}
             >
-                {/* SVG Defs for animated arc gradient */}
+                {/* SVG Defs for animated arc gradient + glow */}
                 <defs>
                     <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#2E7DDB" stopOpacity={0.6} />
+                        <stop offset="0%" stopColor="#60A5FA" stopOpacity={0.9} />
+                        <stop offset="50%" stopColor="#38BDF8" stopOpacity={0.6} />
                         <stop offset="100%" stopColor="#06B6D4" stopOpacity={0.3} />
                     </linearGradient>
+                    <filter id="arcGlow">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <filter id="pinGlow">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
                 </defs>
 
                 {/* D3 inserts g.d3-land here via useEffect */}
 
                 {/* React-managed overlay: arcs + pins + badges */}
                 <g className="react-overlay">
-                    {/* Flight arcs — animated dash */}
+                    {/* Flight arcs — animated dash with glow */}
                     {yulPos && pins.map((pin, i) => (
                         <path
                             key={`arc-${pin.deal.destination_code || i}`}
                             d={getArcPath(pin.x, pin.y)}
                             stroke="url(#arcGradient)"
-                            strokeWidth={1.2}
+                            strokeWidth={1.8}
                             fill="none"
-                            opacity={0.35}
-                            strokeDasharray="6,4"
+                            opacity={0.6}
+                            strokeDasharray="8,4"
                             className="flight-arc-animated"
+                            filter="url(#arcGlow)"
                         />
                     ))}
 
-                    {/* Deal pins with pulse/glow and colored badges */}
+                    {/* YUL departure pin — special */}
+                    {yulPos && (
+                        <g>
+                            {/* Outer pulse ring */}
+                            <circle
+                                cx={yulPos[0]}
+                                cy={yulPos[1]}
+                                r={16}
+                                fill="none"
+                                stroke="#60A5FA"
+                                strokeWidth={1.5}
+                                opacity={0.3}
+                                className="pin-glow-halo"
+                            />
+                            {/* Inner glow */}
+                            <circle
+                                cx={yulPos[0]}
+                                cy={yulPos[1]}
+                                r={8}
+                                fill="#2E7DDB"
+                                opacity={0.15}
+                            />
+                            {/* Pin dot */}
+                            <circle
+                                cx={yulPos[0]}
+                                cy={yulPos[1]}
+                                r={5}
+                                fill="white"
+                                stroke="#2E7DDB"
+                                strokeWidth={2}
+                                filter="url(#pinGlow)"
+                            />
+                            {/* YUL label */}
+                            <text
+                                x={yulPos[0]}
+                                y={yulPos[1] - 12}
+                                textAnchor="middle"
+                                fontSize="9px"
+                                fontWeight="800"
+                                fill="white"
+                                fontFamily="'Outfit', sans-serif"
+                                opacity={0.9}
+                                style={{ pointerEvents: 'none' }}
+                            >
+                                YUL
+                            </text>
+                        </g>
+                    )}
+
+                    {/* Deal pins with pulse/glow and colored badges — NO city names */}
                     {pins.map((pin, i) => {
                         const discount = pin.deal.discount || pin.deal.disc || 0;
-                        const cityName = pin.deal.city || pin.deal.destination || '';
                         const level = pin.deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
                         const pinColor = BADGE_COLORS[level] || '#2E7DDB';
 
@@ -308,7 +372,7 @@ export default function MapCanvas({
                                     fill="none"
                                     stroke={pinColor}
                                     strokeWidth={2}
-                                    opacity={0.3}
+                                    opacity={0.4}
                                     className="pin-glow-halo"
                                 />
 
@@ -318,47 +382,29 @@ export default function MapCanvas({
                                     cy={pin.y}
                                     r={5}
                                     fill={pinColor}
-                                    stroke="white"
+                                    stroke="rgba(255,255,255,0.9)"
                                     strokeWidth={1.5}
                                     style={{ cursor: 'pointer' }}
                                     className="pin-dot-pulse"
+                                    filter="url(#pinGlow)"
                                     onMouseEnter={(e) => onHoverDeal(pin.deal, e)}
                                     onMouseLeave={onLeaveDeal}
                                     onClick={(e) => onSelectDeal?.(pin.deal, e)}
                                 />
 
-                                {/* City name — desktop only */}
-                                {!isMobile && (
-                                    <text
-                                        x={pin.x}
-                                        y={pin.y + 17}
-                                        textAnchor="middle"
-                                        fontSize="8.5px"
-                                        fontWeight="700"
-                                        fill="#1A2B42"
-                                        fontFamily="'Outfit', sans-serif"
-                                        style={{
-                                            textShadow: '0 0 6px rgba(255,255,255,1), 0 0 12px rgba(255,255,255,0.8)',
-                                            pointerEvents: 'none',
-                                        }}
-                                    >
-                                        {cityName}
-                                    </text>
-                                )}
-
                                 {/* Discount badge — colored by deal level */}
                                 {discount > 0 && (
                                     <g
-                                        transform={`translate(${pin.x}, ${pin.y - 22})`}
+                                        transform={`translate(${pin.x}, ${pin.y - 18})`}
                                         style={{ cursor: 'pointer' }}
                                         onMouseEnter={(e) => onHoverDeal(pin.deal, e)}
                                         onMouseLeave={onLeaveDeal}
                                         onClick={(e) => onSelectDeal?.(pin.deal, e)}
                                     >
-                                        <rect x={-24} y={-10} width={48} height={20} rx={10}
+                                        <rect x={-22} y={-9} width={44} height={18} rx={9}
                                             fill={pinColor} opacity={0.95} />
-                                        <text x={0} y={4} textAnchor="middle"
-                                            fontSize="10px" fontWeight="800"
+                                        <text x={0} y={3} textAnchor="middle"
+                                            fontSize="9.5px" fontWeight="800"
                                             fontFamily="'Outfit', sans-serif"
                                             fill="white">
                                             -{Math.abs(Math.round(discount))}%

@@ -14,6 +14,8 @@ import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import DealSidebar from '@/components/deals/DealSidebar';
 import HowItWorks from '../landing/HowItWorks';
 import PremiumSection from '../landing/PremiumSection';
+import RecitsSection from '../landing/RecitsSection';
+import TransparenceSection from '../landing/TransparenceSection';
 import Footer from '../landing/Footer';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -185,7 +187,7 @@ export default function MapInterface() {
                     {/* Map Area — prend l'espace restant */}
                     <div style={{
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
-                        background: '#E2EDF7', overflow: 'hidden',
+                        background: '#1B2D4F', overflow: 'hidden',
                     }}>
                         {/* Légende des couleurs — haut droite */}
                         <div style={{
@@ -193,18 +195,18 @@ export default function MapInterface() {
                             top: isMobile ? 8 : 12,
                             right: isMobile ? 8 : 16,
                             zIndex: 30,
-                            background: 'rgba(255,255,255,0.92)',
-                            backdropFilter: 'blur(8px)',
+                            background: 'rgba(15,26,42,0.75)',
+                            backdropFilter: 'blur(12px)',
                             borderRadius: 10,
                             padding: isMobile ? '6px 10px' : '8px 14px',
-                            border: '1px solid rgba(26,43,66,0.08)',
-                            boxShadow: '0 2px 8px rgba(26,43,66,0.06)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 4,
                         }}>
                             <span style={{
-                                fontSize: 8, fontWeight: 800, color: '#8FA3B8',
+                                fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
                                 letterSpacing: 0.5, textTransform: 'uppercase' as const,
                                 fontFamily: "'Outfit', sans-serif", marginBottom: 1,
                             }}>
@@ -220,10 +222,11 @@ export default function MapInterface() {
                                     <div style={{
                                         width: 8, height: 8, borderRadius: '50%',
                                         background: item.color, flexShrink: 0,
+                                        boxShadow: `0 0 6px ${item.color}60`,
                                     }} />
                                     <span style={{
                                         fontSize: isMobile ? 9 : 10, fontWeight: 600,
-                                        color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
+                                        color: 'rgba(255,255,255,0.85)', fontFamily: "'Outfit', sans-serif",
                                     }}>
                                         {item.icon} {item.label}
                                     </span>
@@ -256,13 +259,13 @@ export default function MapInterface() {
                         {/* Mini carousel + scroll hint — en bas de la carte */}
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-                            background: 'linear-gradient(to top, rgba(226,237,247,0.97) 0%, rgba(226,237,247,0.8) 60%, transparent 100%)',
+                            background: 'linear-gradient(to top, rgba(27,45,79,0.97) 0%, rgba(27,45,79,0.8) 60%, transparent 100%)',
                             padding: isMobile ? '20px 12px 6px' : '24px 16px 6px',
                         }}>
                             {/* Title */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                                 <span style={{
-                                    fontSize: 11, fontWeight: 700, color: '#1A2B42',
+                                    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)',
                                     fontFamily: "'Outfit', sans-serif",
                                 }}>
                                     🔥 Top deals {activeTab === 'canada' ? 'Canada' : 'du moment'}
@@ -392,14 +395,14 @@ export default function MapInterface() {
                                 gap: 4, padding: '6px 0 2px',
                             }}>
                                 <span style={{
-                                    fontSize: 10, color: '#5A7089', fontWeight: 600,
+                                    fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 600,
                                     fontFamily: "'Outfit', sans-serif",
                                 }}>
                                     Voir tous les deals
                                 </span>
                                 <div style={{ animation: 'scrollHint 2s ease-in-out infinite' }}>
                                     <svg width="14" height="14" viewBox="0 0 24 24"
-                                        fill="none" stroke="#2E7DDB" strokeWidth="2.5"
+                                        fill="none" stroke="#60A5FA" strokeWidth="2.5"
                                         strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M6 9l6 6 6-6" />
                                     </svg>
@@ -434,6 +437,14 @@ export default function MapInterface() {
 
                 {/* Section 4 */}
                 <PremiumSection />
+
+                {/* Section 5 — Récits de voyageurs */}
+                <div id="recits-section">
+                    <RecitsSection />
+                </div>
+
+                {/* Section 6 — Transparence IA & données */}
+                <TransparenceSection />
 
                 {/* Footer */}
                 <Footer />
