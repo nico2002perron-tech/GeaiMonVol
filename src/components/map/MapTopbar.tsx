@@ -17,7 +17,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                 {/* Left: Logo + Montreal */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <img src="/mascots/logo.png" alt="Logo Geai" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                        <img src="/mascots/logo.png" alt="Logo Geai" style={{ width: 28, height: 28, objectFit: 'contain' }} />
                         <span style={{
                             fontFamily: "'Fredoka', sans-serif",
                             fontWeight: 700,
