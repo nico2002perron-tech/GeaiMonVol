@@ -2332,8 +2332,8 @@ html {
   display: none;
 }
 
-/* ===== NEW: Premium locked card gold shimmer ===== */
-.premium-locked-card {
+/* ===== NEW: Premium highlight card gold shimmer ===== */
+.premium-highlight-card {
   position: relative;
 }
 
@@ -2355,7 +2355,7 @@ html {
   }
 }
 
-.premium-locked-card::after {
+.premium-highlight-card::after {
   content: '';
   position: absolute;
   top: -50%;

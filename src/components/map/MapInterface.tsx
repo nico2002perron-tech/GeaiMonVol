@@ -241,11 +241,12 @@ export default function MapInterface() {
                                     const discount = deal.discount || deal.disc || 0;
                                     const city = deal.destination || deal.city || '';
                                     const code = deal.destination_code || deal.code || '';
+                                    const isPremiumHighlight = i === 0 || i === 2;
 
                                     return (
                                         <div
                                             key={`mini-${code}-${i}`}
-                                            className="mini-deal-card"
+                                            className={`mini-deal-card${isPremiumHighlight ? ' premium-highlight-card' : ''}`}
                                             onClick={() => setSelectedDeal({
                                                 city, code, price: deal.price, airline: deal.airline,
                                                 stops: deal.stops, route: `YUL – ${code}`,
@@ -262,41 +263,70 @@ export default function MapInterface() {
                                                 padding: isMobile ? '7px 10px' : '8px 12px',
                                                 borderRadius: 10,
                                                 background: 'rgba(255,255,255,0.88)',
-                                                border: '1px solid rgba(26,43,66,0.08)',
+                                                border: isPremiumHighlight
+                                                    ? '1.5px solid rgba(212,175,55,0.35)'
+                                                    : '1px solid rgba(26,43,66,0.08)',
                                                 backdropFilter: 'blur(8px)',
                                                 cursor: 'pointer', flexShrink: 0,
                                                 transition: 'all 0.2s ease',
-                                                boxShadow: '0 2px 8px rgba(26,43,66,0.06)',
+                                                boxShadow: isPremiumHighlight
+                                                    ? '0 2px 10px rgba(212,175,55,0.1)'
+                                                    : '0 2px 8px rgba(26,43,66,0.06)',
+                                                position: 'relative', overflow: 'hidden',
                                             }}
                                         >
+                                            {isPremiumHighlight && (
+                                                <>
+                                                    <div className="premium-gold-shimmer" style={{
+                                                        position: 'absolute', inset: 0,
+                                                        background: 'linear-gradient(135deg, rgba(212,175,55,0.03) 0%, rgba(255,215,0,0.06) 50%, rgba(212,175,55,0.03) 100%)',
+                                                        borderRadius: 10, pointerEvents: 'none', zIndex: 2,
+                                                    }} />
+                                                    <div style={{
+                                                        position: 'absolute', top: 4, right: 4,
+                                                        background: 'linear-gradient(135deg, #D4AF37, #F5D060)',
+                                                        borderRadius: 100, padding: '2px 7px',
+                                                        display: 'flex', alignItems: 'center', gap: 3,
+                                                        zIndex: 3, boxShadow: '0 1px 4px rgba(212,175,55,0.2)',
+                                                    }}>
+                                                        <span style={{ fontSize: 7 }}>⚡</span>
+                                                        <span style={{
+                                                            fontSize: 7, fontWeight: 800, color: '#5C4813',
+                                                            fontFamily: "'Outfit', sans-serif",
+                                                        }}>Alerte perso</span>
+                                                    </div>
+                                                </>
+                                            )}
                                             <div style={{
                                                 display: 'flex', alignItems: 'center',
                                                 justifyContent: 'space-between', marginBottom: 3,
+                                                position: 'relative', zIndex: 1,
                                             }}>
                                                 <span style={{
                                                     fontSize: isMobile ? 11 : 12, fontWeight: 700,
                                                     color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
-                                                }}>
-                                                    {city}
-                                                </span>
+                                                }}>{city}</span>
                                                 <span style={{
                                                     fontSize: 7, fontWeight: 800,
                                                     background: col.bg, color: 'white',
                                                     padding: '1px 5px', borderRadius: 100,
-                                                }}>
-                                                    {col.icon}
-                                                </span>
+                                                }}>{col.icon}</span>
                                             </div>
                                             <div style={{
                                                 fontSize: 9, color: '#8FA3B8', marginBottom: 5,
                                                 fontFamily: "'Outfit', sans-serif",
+                                                position: 'relative', zIndex: 1,
                                             }}>
                                                 YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 5,
+                                                position: 'relative', zIndex: 1,
+                                            }}>
                                                 <span style={{
                                                     fontSize: isMobile ? 13 : 15, fontWeight: 800,
-                                                    color: '#2E7DDB', fontFamily: "'Fredoka', sans-serif",
+                                                    color: '#2E7DDB',
+                                                    fontFamily: "'Fredoka', sans-serif",
                                                 }}>
                                                     {deal.price}$
                                                 </span>
