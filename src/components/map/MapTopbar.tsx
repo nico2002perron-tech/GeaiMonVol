@@ -81,6 +81,27 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                     900+ scannés
                 </span>
                 <button style={{
+                    padding: '6px 14px',
+                    borderRadius: 100,
+                    border: '1px solid rgba(26,43,66,0.1)',
+                    background: 'white',
+                    color: '#1A2B42',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    cursor: 'pointer',
+                    fontFamily: "'Outfit', sans-serif",
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
+                }} onClick={() => {
+                    const url = window.location.href;
+                    navigator.clipboard.writeText(url);
+                    alert('Lien copié ! Partagez-le avec vos amis.');
+                }}>
+                    <span>🤝</span>
+                    Partager
+                </button>
+                <button style={{
                     padding: '6px 16px',
                     borderRadius: 100,
                     border: 'none',

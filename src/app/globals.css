@@ -797,8 +797,73 @@ nav {
 /* Hero mascot enhanced float */
 .hero-mascot {
   animation: float 3.5s ease-in-out infinite;
-  filter: drop-shadow(0 8px 24px rgba(60, 131, 213, .25))
+  filter: drop-shadow(0 8px 24px rgba(60, 131, 213, .25));
 }
+
+/* V2 Upgrade Animations */
+@keyframes liveBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes scrollHint {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@keyframes premiumSlide {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ring-expand {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.flight-arc-animated {
+  stroke-dasharray: 6, 4;
+  animation: dash-flow 20s linear infinite;
+}
+
+.pin-glow-halo {
+  animation: ring-expand 3s ease-out infinite;
+}
+
+.pin-dot-pulse {
+  animation: subtle-bob 2s ease-in-out infinite;
+}
+
 
 /* Tag hover micro-interaction */
 .tag:hover,

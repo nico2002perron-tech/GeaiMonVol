@@ -7,6 +7,11 @@
     box-sizing: border-box
 }
 
+body {
+    overflow-x: hidden;
+    width: 100%;
+}
+
 :root {
     --bg: #F4F8FB;
     --bg-white: #FFFFFF;
@@ -45,6 +50,7 @@
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     position: relative;
+    overflow-x: hidden;
 }
 
 /* ======== LOADER ======== */

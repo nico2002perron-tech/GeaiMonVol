@@ -3,17 +3,13 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { HOTELS } from '@/lib/data/hotels';
 import { FLIGHTS } from '@/lib/data/flights';
-import { useLivePrices } from '@/lib/hooks/useLivePrices';
 
 const DEAL_BADGES: Record<string, { label: string; bg: string; icon: string }> = {
     lowest_ever: { label: 'PRIX RECORD', bg: '#7C3AED', icon: '⚡' },
     incredible: { label: 'INCROYABLE', bg: '#DC2626', icon: '🔥' },
     great: { label: 'SUPER DEAL', bg: '#EA580C', icon: '✨' },
-    good: { label: 'BON PRIX', bg: '#2563EB', icon: '👍' },
-    slight: { label: '', bg: '', icon: '' },
-    normal: { label: '', bg: '', icon: '' },
+    good: { label: 'BON PRIX', bg: '#2E7DDB', icon: '👍' },
 };
 
 const CITY_IMAGES: Record<string, string> = {
@@ -60,6 +56,7 @@ const CITY_IMAGES: Record<string, string> = {
 };
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
+const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
 interface DealStripProps {
     deals?: any[];
@@ -69,15 +66,19 @@ interface DealStripProps {
     onDealClick?: (deal: any) => void;
 }
 
-export default function DealStrip({ deals = [], loading = false, activeTab = 'international', onViewChange, onDealClick }: DealStripProps) {
+export default function DealStrip({
+    deals = [],
+    loading = false,
+    activeTab = 'international',
+    onDealClick
+}: DealStripProps) {
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
-    const [showPremiumStrip, setShowPremiumStrip] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setShowPremiumStrip(true), 8000);
-        return () => clearTimeout(timer);
-    }, []);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const { user } = useAuth();
+    const router = useRouter();
+    const supabaseRef = useRef(createClient());
+    const [watchedDeals, setWatchedDeals] = useState<string[]>([]);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -86,12 +87,6 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const { user } = useAuth();
-    const router = useRouter();
-    const supabaseRef = useRef(createClient());
-    const [watchedDeals, setWatchedDeals] = useState<string[]>([]);
-
     useEffect(() => {
         if (!user) return;
         const loadWatchlist = async () => {
@@ -99,7 +94,7 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
                 .from('watchlist')
                 .select('destination')
                 .eq('user_id', user.id);
-            if (data) setWatchedDeals((data || []).map((w: any) => w.destination));
+            if (data) setWatchedDeals(data.map((w: any) => w.destination));
         };
         loadWatchlist();
     }, [user]);
@@ -130,7 +125,7 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
         }
     };
 
-    const months = (() => {
+    const months = useMemo(() => {
         const ms = [];
         const now = new Date();
         for (let i = 0; i < 12; i++) {
@@ -140,12 +135,10 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
             ms.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
         }
         return ms;
-    })();
+    }, []);
 
-    const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
-
-    const allMappedDeals = (deals || []).length > 0
-        ? (deals || []).map(p => ({
+    const displayDeals = useMemo(() => {
+        const mapped = (deals || []).map(p => ({
             city: p.destination,
             code: p.destination_code,
             price: p.price,
@@ -161,49 +154,35 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
             img: FLIGHTS.find(f => f.city === p.destination)?.img || '',
             imgSmall: FLIGHTS.find(f => f.city === p.destination)?.imgSmall || '',
             country: FLIGHTS.find(f => f.city === p.destination)?.country || '',
-            tags: [],
-            lat: FLIGHTS.find(f => f.city === p.destination)?.lat || 0,
-            lon: FLIGHTS.find(f => f.city === p.destination)?.lon || 0,
             id: p.destination_code,
             googleFlightsLink: p.googleFlightsLink || p.raw_data?.google_flights_link || '',
             departure_date: p.departure_date || p.raw_data?.departure_date || '',
             return_date: p.return_date || p.raw_data?.return_date || '',
-        }))
-        : [...FLIGHTS].sort((a, b) => (b.disc || 0) - (a.disc || 0)).map(f => ({
-            ...f,
-            code: f.route.split(' – ')[1] || '',
-            source: 'static',
-            departure_date: '',
         }));
 
-    const displayDeals = (allMappedDeals || []).filter(deal => {
-        const code = deal.code || '';
-        const isCanadian = CANADA_CODES.includes(code) || deal.source === 'google_flights_canada';
-        if (activeTab === 'canada' && !isCanadian) return false;
-        if (activeTab === 'international' && isCanadian) return false;
-        if (selectedMonth !== 'all') {
-            const departDate = (deal as any).departure_date || (deal as any).dates?.split(' → ')[0] || '';
-            if (!departDate || !departDate.startsWith(selectedMonth)) return false;
-        }
-        return true;
-    });
-
-    // Ajouter après la définition de displayDeals
-    const availableMonths = months.filter(m => {
-        return (allMappedDeals || []).some(d => {
-            const dep = d.departure_date || (d.dates || '').split(' → ')[0] || '';
-            return dep.startsWith(m.value) && (
-                activeTab === 'canada' ? (CANADA_CODES.includes(d.code) || d.source === 'google_flights_canada') :
-                    !(CANADA_CODES.includes(d.code) || d.source === 'google_flights_canada')
-            );
+        return mapped.filter(deal => {
+            const isCanadian = CANADA_CODES.includes(deal.code);
+            if (activeTab === 'canada' && !isCanadian) return false;
+            if (activeTab === 'international' && isCanadian) return false;
+            if (selectedMonth !== 'all' && !deal.departure_date.startsWith(selectedMonth)) return false;
+            return true;
         });
-    });
+    }, [deals, activeTab, selectedMonth]);
 
-    const dealsCount = (displayDeals || []).length;
+    const availableMonths = useMemo(() => {
+        return months.filter(m => {
+            return (deals || []).some(d => {
+                const dep = d.departure_date || '';
+                const isCanadian = CANADA_CODES.includes(d.destination_code);
+                const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
+                return isCorrectTab && dep.startsWith(m.value);
+            });
+        });
+    }, [deals, activeTab, months]);
 
     useEffect(() => {
         const container = scrollRef.current;
-        if (!container || dealsCount === 0) return;
+        if (!container || displayDeals.length === 0) return;
 
         let animationId: number;
         let isPaused = false;
@@ -220,18 +199,16 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
                 }
                 animationId = requestAnimationFrame(tick);
             };
-
             animationId = requestAnimationFrame(tick);
-        }, 300);
+        }, 1000);
 
         const pause = () => { isPaused = true; };
         const resume = () => { isPaused = false; };
-        const delayedResume = () => { setTimeout(resume, 2500); };
 
         container.addEventListener('mouseenter', pause);
         container.addEventListener('mouseleave', resume);
         container.addEventListener('touchstart', pause, { passive: true });
-        container.addEventListener('touchend', delayedResume);
+        container.addEventListener('touchend', resume);
 
         return () => {
             clearTimeout(startDelay);
@@ -239,340 +216,174 @@ export default function DealStrip({ deals = [], loading = false, activeTab = 'in
             container.removeEventListener('mouseenter', pause);
             container.removeEventListener('mouseleave', resume);
             container.removeEventListener('touchstart', pause);
-            container.removeEventListener('touchend', delayedResume);
+            container.removeEventListener('touchend', resume);
         };
-    }, [dealsCount]);
+    }, [displayDeals.length]);
 
-    const loopedDeals = [...(displayDeals || []), ...(displayDeals || [])];
+    const loopedDeals = useMemo(() => [...displayDeals, ...displayDeals], [displayDeals]);
+
+    if (loading && deals.length === 0) {
+        return (
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#8FA3B8' }}>
+                <div className="loader" style={{ margin: '0 auto 12px' }} />
+                Chargement des meilleurs deals...
+            </div>
+        );
+    }
 
     return (
-        <div className="strip">
-            {/* Titre "Meilleurs deals" avec mois dynamiques */}
+        <div className="strip" style={{ background: 'white', paddingBottom: 20 }}>
             <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 24px 0',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '24px 24px 12px', flexWrap: 'wrap', gap: 12
             }}>
-                {/* Titre */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{
-                        fontFamily: "'Fredoka', sans-serif",
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: '#1A2B42',
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h2 style={{
+                        fontFamily: "'Fredoka', sans-serif", fontSize: 20,
+                        fontWeight: 700, color: '#1A2B42', margin: 0
                     }}>
-                        Meilleurs deals
-                    </span>
+                        Les pépites {activeTab === 'international' ? 'du monde' : 'du Canada'}
+                    </h2>
                     <span style={{
-                        width: 5, height: 5, borderRadius: '50%',
-                        background: '#16A34A',
-                        animation: 'liveBlink 2s ease-in-out infinite',
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: '#16A34A', animation: 'liveBlink 2s infinite'
                     }} />
-                    <span style={{
-                        fontFamily: "'Fredoka', sans-serif",
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: '#2E7DDB',
-                    }}>
-                        {activeTab === 'international' ? 'dans le monde' : 'au Canada'}
-                    </span>
                 </div>
 
-                {/* Mois dynamiques — seulement ceux qui ont des deals */}
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
                     <button
                         onClick={() => setSelectedMonth('all')}
                         style={{
-                            padding: '3px 10px',
-                            borderRadius: 100,
-                            border: 'none',
-                            fontSize: 10.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
+                            padding: '5px 14px', borderRadius: 100, border: 'none',
+                            fontSize: 12, fontWeight: 700, cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
-                            background: selectedMonth === 'all' ? '#2E7DDB' : '#F0F4F8',
-                            color: selectedMonth === 'all' ? 'white' : '#8FA3B8',
+                            background: selectedMonth === 'all' ? '#2E7DDB' : '#F4F8FB',
+                            color: selectedMonth === 'all' ? 'white' : '#5A7089',
                         }}
                     >
                         Tous
                     </button>
-                    {availableMonths.map(m => {
-                        const count = displayDeals.filter(d => {
-                            const dep = d.departure_date || d.dates?.split(' → ')[0] || '';
-                            return dep.startsWith(m.value);
-                        }).length;
-                        // Ne pas afficher le mois s'il n'y a pas de deals
-                        if (count === 0) return null;
-                        return (
-                            <button
-                                key={m.value}
-                                onClick={() => setSelectedMonth(m.value)}
-                                className="month-btn"
-                                style={{
-                                    padding: '3px 10px',
-                                    borderRadius: 100,
-                                    border: 'none',
-                                    fontSize: 10.5,
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    whiteSpace: 'nowrap',
-                                    background: selectedMonth === m.value ? '#2E7DDB' : '#F0F4F8',
-                                    color: selectedMonth === m.value ? 'white' : '#8FA3B8',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 4,
-                                }}
-                            >
-                                {m.label}
-                                <span style={{
-                                    fontSize: 8.5,
-                                    fontWeight: 800,
-                                    color: selectedMonth === m.value
-                                        ? 'rgba(255,255,255,0.7)'
-                                        : '#B0BEC5',
-                                }}>
-                                    {count}
-                                </span>
-                            </button>
-                        );
-                    })}
+                    {availableMonths.map(m => (
+                        <button
+                            key={m.value}
+                            onClick={() => setSelectedMonth(m.value)}
+                            style={{
+                                padding: '5px 14px', borderRadius: 100, border: 'none',
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap',
+                                background: selectedMonth === m.value ? '#2E7DDB' : '#F4F8FB',
+                                color: selectedMonth === m.value ? 'white' : '#5A7089',
+                            }}
+                        >
+                            {m.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* Ligne 3 — Carrousel de cards */}
             <div style={{ position: 'relative' }}>
-                {/* Fade gauche */}
                 <div style={{
-                    position: 'absolute', top: 0, left: 0, width: 35, height: '100%',
-                    background: 'linear-gradient(to right, white, transparent)',
-                    zIndex: 3, pointerEvents: 'none',
+                    position: 'absolute', top: 0, left: 0, width: 60, height: '100%',
+                    background: 'linear-gradient(to right, white, transparent)', zIndex: 3, pointerEvents: 'none'
                 }} />
-                {/* Fade droite */}
                 <div style={{
-                    position: 'absolute', top: 0, right: 0, width: 35, height: '100%',
-                    background: 'linear-gradient(to left, white, transparent)',
-                    zIndex: 3, pointerEvents: 'none',
+                    position: 'absolute', top: 0, right: 0, width: 60, height: '100%',
+                    background: 'linear-gradient(to left, white, transparent)', zIndex: 3, pointerEvents: 'none'
                 }} />
+
                 <div
-                    className="strip-row"
-                    id="stripRow"
                     ref={scrollRef}
                     style={{
-                        display: 'flex',
-                        gap: isMobile ? 10 : 16,
-                        overflowX: 'auto',
-                        padding: isMobile ? '8px 12px 16px' : '12px 24px 20px',
-                        scrollbarWidth: 'none',
+                        display: 'flex', gap: 16, overflowX: 'auto',
+                        padding: '12px 24px 20px', scrollbarWidth: 'none',
                         WebkitOverflowScrolling: 'touch',
-                        scrollBehavior: 'auto',
                     }}
                 >
                     {loopedDeals.map((deal: any, i: number) => (
                         <div
-                            key={`${deal.id || i}-${i}`}
-                            className="scard deal-card"
+                            key={`${deal.id}-${i}`}
+                            className="deal-card-v2"
                             style={{
-                                minWidth: isMobile ? 155 : 170,
-                                maxWidth: isMobile ? 155 : 170,
-                                borderRadius: 12,
-                                overflow: 'hidden',
-                                background: 'white',
-                                border: '1px solid rgba(26,43,66,0.06)',
-                                boxShadow: '0 2px 12px rgba(26,43,66,0.06)',
-                                flexShrink: 0,
-                                cursor: 'pointer',
-                                position: 'relative',
+                                minWidth: isMobile ? 180 : 210,
+                                borderRadius: 16, overflow: 'hidden',
+                                background: 'white', border: '1px solid rgba(26,43,66,0.08)',
+                                boxShadow: '0 4px 15px rgba(26,43,66,0.05)',
+                                flexShrink: 0, cursor: 'pointer', position: 'relative',
+                                transform: 'translateZ(0)', transition: 'transform 0.3s ease'
                             }}
                             onClick={() => onDealClick?.(deal)}
                         >
-                            {/* Badge deal level */}
-                            {(() => {
-                                const badge = DEAL_BADGES[deal.dealLevel] || {};
-                                return badge.label ? (
-                                    <div style={{
-                                        position: 'absolute', top: 6, left: 6, zIndex: 5,
-                                        background: badge.bg, color: 'white',
-                                        padding: '2px 7px', borderRadius: 100,
-                                        fontSize: 7.5, fontWeight: 800, letterSpacing: 0.3,
-                                        display: 'flex', alignItems: 'center', gap: 2,
-                                        boxShadow: `0 1px 4px ${badge.bg}30`,
-                                    }}>
-                                        {badge.icon} {badge.label}
-                                    </div>
-                                ) : null;
-                            })()}
+                            {DEAL_BADGES[deal.dealLevel]?.label && (
+                                <div style={{
+                                    position: 'absolute', top: 10, left: 10, zIndex: 5,
+                                    background: DEAL_BADGES[deal.dealLevel].bg, color: 'white',
+                                    padding: '3px 10px', borderRadius: 100,
+                                    fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+                                    display: 'flex', alignItems: 'center', gap: 4,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                }}>
+                                    {DEAL_BADGES[deal.dealLevel].icon} {DEAL_BADGES[deal.dealLevel].label}
+                                </div>
+                            )}
 
-                            {/* Coeur watchlist */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
-                                style={{
-                                    position: 'absolute',
-                                    top: 8,
-                                    right: 8,
-                                    zIndex: 5,
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: '50%',
-                                    background: 'rgba(255,255,255,0.9)',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    backdropFilter: 'blur(4px)',
-                                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                                    transition: 'transform 0.2s ease',
-                                }}
-                            >
-                                <svg width="12" height="12" viewBox="0 0 24 24"
-                                    fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
-                                    stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#94A3B8'}
-                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                >
-                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                </svg>
-                            </button>
-
-                            {/* Image */}
-                            <div style={{ overflow: 'hidden', height: isMobile ? 90 : 95, background: '#E8F0FE', width: '100%' }}>
+                            <div style={{ height: isMobile ? 110 : 130, position: 'relative' }}>
                                 <img
-                                    className="scard-img card-img"
-                                    src={CITY_IMAGES[deal.city || deal.destination] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
-                                    alt={deal.city || deal.destination || ''}
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        if (target.src !== DEFAULT_IMAGE) target.src = DEFAULT_IMAGE;
-                                    }}
-                                    style={{
-                                        width: '100%', height: '100%', objectFit: 'cover',
-                                        display: 'block', background: '#EAF2FB',
-                                    }}
+                                    src={CITY_IMAGES[deal.city] || deal.imgSmall || deal.img || DEFAULT_IMAGE}
+                                    alt={deal.city}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_IMAGE; }}
                                 />
+                                <div style={{
+                                    position: 'absolute', inset: 0,
+                                    background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4))'
+                                }} />
                             </div>
 
-                            {/* Body */}
-                            <div style={{ padding: isMobile ? '8px 10px 10px' : '10px 14px 14px', position: 'relative', zIndex: 2 }}>
-                                <div style={{ fontWeight: 700, fontSize: isMobile ? 12 : 14, color: '#1A2B42', marginBottom: 2 }}>
+                            <div style={{ padding: 14 }}>
+                                <div style={{ fontWeight: 700, fontSize: 16, color: '#1A2B42', marginBottom: 2 }}>
                                     {deal.city}
                                 </div>
-                                <div style={{ fontSize: 10, color: '#8FA3B8', marginBottom: 4 }}>
-                                    {deal.route} · {deal.airline || ''}{deal.stops === 0 ? ' · Direct' : deal.stops ? ` · ${deal.stops} escale${deal.stops > 1 ? 's' : ''}` : ''}
+                                <div style={{ fontSize: 11, color: '#8FA3B8', marginBottom: 10 }}>
+                                    {deal.route} · {deal.stops === 0 ? 'Direct' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
                                 </div>
 
-                                {/* Prix + rabais */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                    <span style={{
-                                        background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
-                                        color: 'white',
-                                        padding: '4px 10px',
-                                        borderRadius: 8,
-                                        fontSize: isMobile ? 13 : 15,
-                                        fontWeight: 800,
-                                        fontFamily: "'Fredoka', sans-serif",
-                                        boxShadow: '0 2px 8px rgba(46,125,219,0.2)',
-                                    }}>
-                                        {deal.price} $
-                                    </span>
-                                    {deal.disc > 0 && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <span style={{
-                                            background: 'linear-gradient(135deg, #DC2626, #EF4444)',
-                                            color: 'white',
-                                            padding: '2px 6px',
-                                            borderRadius: 5,
-                                            fontSize: 10,
-                                            fontWeight: 800,
-                                            boxShadow: '0 2px 6px rgba(220,38,38,0.2)',
+                                            fontSize: 18, fontWeight: 800, color: '#2E7DDB',
+                                            fontFamily: "'Fredoka', sans-serif"
                                         }}>
-                                            -{Math.round(deal.disc)}%
+                                            {deal.price}$
                                         </span>
-                                    )}
-                                </div>
-
-                                {/* CTA */}
-                                <div className="see-flight" style={{
-                                    marginTop: 6, fontSize: 10.5, color: '#2E7DDB', fontWeight: 700,
-                                    padding: '4px 0', borderRadius: 6, textAlign: 'center',
-                                    background: 'rgba(46,125,219,0.04)', transition: 'all 0.2s',
-                                }}>
-                                    Voir ce vol →
+                                        {deal.disc > 0 && (
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800, color: '#DC2626',
+                                                background: '#FEE2E2', padding: '2px 6px', borderRadius: 6
+                                            }}>
+                                                -{Math.round(deal.disc)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); toggleWatchlist(deal); }}
+                                        style={{
+                                            background: 'none', border: 'none', cursor: 'pointer', padding: 5
+                                        }}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24"
+                                            fill={watchedDeals.includes(deal.city) ? '#EF4444' : 'none'}
+                                            stroke={watchedDeals.includes(deal.city) ? '#EF4444' : '#94A3B8'}
+                                            strokeWidth="2.5"
+                                        >
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                        </svg>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
-
-            {/* Premium upsell intégré */}
-            {showPremiumStrip && (
-                <div style={{
-                    margin: isMobile ? '0 12px 12px' : '0 24px 16px',
-                    padding: isMobile ? '12px 16px' : '14px 20px',
-                    borderRadius: 14,
-                    background: 'linear-gradient(135deg, #1A2B42 0%, #2E4A6E 100%)',
-                    display: 'flex',
-                    alignItems: isMobile ? 'flex-start' : 'center',
-                    justifyContent: 'space-between',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: isMobile ? 12 : 0,
-                    position: 'relative',
-                    overflow: 'hidden',
-                    animation: 'premiumSlide 0.5s ease both',
-                }}>
-                    {/* Orbe décoratif */}
-                    <div style={{
-                        position: 'absolute', right: -20, top: -20,
-                        width: 100, height: 100, borderRadius: '50%',
-                        background: 'radial-gradient(circle, rgba(46,125,219,0.3) 0%, transparent 70%)',
-                    }} />
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, zIndex: 1 }}>
-                        <div style={{
-                            width: 36, height: 36, borderRadius: 10,
-                            background: 'linear-gradient(135deg, #2E7DDB, #06B6D4)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 16, flexShrink: 0,
-                        }}>
-                            ⚡
-                        </div>
-                        <div>
-                            <div style={{ color: 'white', fontWeight: 700, fontSize: 14, fontFamily: "'Outfit', sans-serif" }}>
-                                Premium — 5$/mois
-                            </div>
-                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontFamily: "'Outfit', sans-serif" }}>
-                                Alertes perso · Prix record · Guides IA
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 8, zIndex: 1 }}>
-                        <button
-                            onClick={() => setShowPremiumStrip(false)}
-                            style={{
-                                padding: '7px 16px', borderRadius: 100,
-                                border: '1px solid rgba(255,255,255,0.2)',
-                                background: 'none', color: 'rgba(255,255,255,0.7)',
-                                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                            }}
-                        >
-                            Plus tard
-                        </button>
-                        <button
-                            onClick={() => { /* router.push('/pricing') */ }}
-                            style={{
-                                padding: '7px 18px', borderRadius: 100, border: 'none',
-                                background: 'white', color: '#1A2B42',
-                                fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                fontFamily: "'Outfit', sans-serif",
-                            }}
-                        >
-                            Essayer →
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

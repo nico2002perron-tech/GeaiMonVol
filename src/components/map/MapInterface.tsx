@@ -14,6 +14,8 @@ import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import DealSidebar from '@/components/deals/DealSidebar';
 import HowItWorks from '../landing/HowItWorks';
 import PremiumSection from '../landing/PremiumSection';
+import LandingStories from '../landing/LandingStories';
+import DataTransparency from '../landing/DataTransparency';
 import Footer from '../landing/Footer';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -187,6 +189,50 @@ export default function MapInterface() {
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
                         background: '#E2EDF7', overflow: 'hidden',
                     }}>
+                        {/* Légende des couleurs — haut droite */}
+                        <div style={{
+                            position: 'absolute',
+                            top: isMobile ? 8 : 12,
+                            right: isMobile ? 8 : 16,
+                            zIndex: 30,
+                            background: 'rgba(255,255,255,0.92)',
+                            backdropFilter: 'blur(8px)',
+                            borderRadius: 10,
+                            padding: isMobile ? '6px 10px' : '8px 14px',
+                            border: '1px solid rgba(26,43,66,0.08)',
+                            boxShadow: '0 2px 8px rgba(26,43,66,0.06)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 4,
+                        }}>
+                            <span style={{
+                                fontSize: 8, fontWeight: 800, color: '#8FA3B8',
+                                letterSpacing: 0.5, textTransform: 'uppercase' as const,
+                                fontFamily: "'Outfit', sans-serif", marginBottom: 1,
+                            }}>
+                                Niveaux de deal
+                            </span>
+                            {[
+                                { color: '#7C3AED', label: 'Prix record', icon: '⚡' },
+                                { color: '#DC2626', label: 'Incroyable', icon: '🔥' },
+                                { color: '#EA580C', label: 'Super deal', icon: '✨' },
+                                { color: '#2E7DDB', label: 'Bon prix', icon: '👍' },
+                            ].map(item => (
+                                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{
+                                        width: 8, height: 8, borderRadius: '50%',
+                                        background: item.color, flexShrink: 0,
+                                    }} />
+                                    <span style={{
+                                        fontSize: isMobile ? 9 : 10, fontWeight: 600,
+                                        color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        {item.icon} {item.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
                         <MapCanvas
                             deals={prices}
                             mapView={mapView}
@@ -229,7 +275,7 @@ export default function MapInterface() {
                                 }} />
                             </div>
 
-                            {/* Mini cards */}
+                            {/* Mini cards — 1er et 3e meilleurs deals ont badge premium */}
                             <div style={{
                                 display: 'flex', gap: isMobile ? 8 : 10,
                                 overflowX: 'auto', paddingBottom: 6,
@@ -387,6 +433,9 @@ export default function MapInterface() {
 
                 {/* Section 3 */}
                 <HowItWorks />
+
+                <LandingStories />
+                <DataTransparency />
 
                 {/* Section 4 */}
                 <PremiumSection />
