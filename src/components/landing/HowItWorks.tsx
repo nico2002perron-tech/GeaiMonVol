@@ -1,5 +1,8 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
+// Renaming to avoid potential conflict with global Image
+const NextImage = Image;
 
 function useInView(ref: React.RefObject<HTMLDivElement | null>) {
     const [visible, setVisible] = useState(false);
@@ -89,7 +92,14 @@ export default function HowItWorks() {
                         padding: '6px 16px', borderRadius: 100,
                         background: 'rgba(46,125,219,0.08)', marginBottom: 16,
                     }}>
-                        <span style={{ fontSize: 16 }}>🐦</span>
+                        <div style={{ position: 'relative', width: 22, height: 22 }}>
+                            <NextImage
+                                src="/logo_geai.png"
+                                alt="Logo"
+                                fill
+                                style={{ objectFit: 'contain' }}
+                            />
+                        </div>
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#2E7DDB', fontFamily: "'Outfit', sans-serif" }}>
                             Comment ça marche ?
                         </span>

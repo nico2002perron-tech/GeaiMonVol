@@ -13,7 +13,7 @@ export default function Navbar({ onOpenHowItWorks }: NavbarProps) {
     return (
         <nav>
             <Link href="/" className="logo">
-                <Image src="/Gemini_Generated_Image_o243yho243yho243.png" alt="GeaiMonVol" className="logo-img" width={40} height={40} />
+                <Image src="/logo_geai.png" alt="GeaiMonVol" className="logo-img" width={40} height={40} />
                 <div className="logo-word">
                     <span className="jet">Geai</span>
                     <span className="bleu">MonVol</span>

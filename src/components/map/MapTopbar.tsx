@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
     return (
@@ -18,7 +19,14 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
             {/* Gauche : logo + tagline */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 22 }}>🐦</span>
+                    <div style={{ position: 'relative', width: 28, height: 28 }}>
+                        <Image
+                            src="/logo_geai.png"
+                            alt="Logo"
+                            fill
+                            style={{ objectFit: 'contain' }}
+                        />
+                    </div>
                     <span style={{
                         fontFamily: "'Fredoka', sans-serif",
                         fontWeight: 700,

@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 export default function Footer() {
     return (
         <div style={{
@@ -9,7 +11,14 @@ export default function Footer() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 gap: 6, marginBottom: 8,
             }}>
-                <span style={{ fontSize: 18 }}>🐦</span>
+                <div style={{ position: 'relative', width: 22, height: 22 }}>
+                    <Image
+                        src="/logo_geai.png"
+                        alt="Logo"
+                        fill
+                        style={{ objectFit: 'contain' }}
+                    />
+                </div>
                 <span style={{
                     fontFamily: "'Fredoka', sans-serif",
                     fontWeight: 700, fontSize: 15,

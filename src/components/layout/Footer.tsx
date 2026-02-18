@@ -7,7 +7,7 @@ export default function Footer() {
             <div className="footer-inner">
                 <Link href="#" className="logo">
                     <Image
-                        src="/Gemini_Generated_Image_o243yho243yho243.png"
+                        src="/logo_geai.png"
                         alt=""
                         className="logo-img"
                         width={30}
