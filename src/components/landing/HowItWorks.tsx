@@ -3,19 +3,23 @@ import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 const NextImage = Image;
 
-function useInView(ref: React.RefObject<HTMLDivElement | null>) {
+function useInView(ref: React.RefObject<HTMLDivElement | null>, threshold = 0.15) {
     const [visible, setVisible] = useState(false);
+    const [ratio, setRatio] = useState(0);
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
         const obs = new IntersectionObserver(
-            ([e]) => { if (e.isIntersecting) setVisible(true); },
-            { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
+            ([e]) => {
+                if (e.isIntersecting) setVisible(true);
+                setRatio(e.intersectionRatio);
+            },
+            { threshold: [0, 0.15, 0.3, 0.5, 0.7, 1], rootMargin: '0px 0px -30px 0px' }
         );
         obs.observe(el);
         return () => obs.disconnect();
     }, []);
-    return visible;
+    return { visible, ratio };
 }
 
 const STEPS = [
@@ -55,22 +59,20 @@ const STEPS = [
 
 function StepRow({ step, index }: { step: typeof STEPS[number]; index: number }) {
     const ref = useRef<HTMLDivElement>(null);
-    const visible = useInView(ref);
+    const { visible } = useInView(ref);
     const isEven = index % 2 === 1;
 
     return (
         <div
             ref={ref}
-            className={`hiw-step-row ${isEven ? 'hiw-step-row-reverse' : ''}`}
+            className={`hiw-step-row ${isEven ? 'hiw-step-row-reverse' : ''} ${visible ? 'hiw-step-visible' : ''}`}
             style={{
-                opacity: visible ? 1 : 0,
-                transform: visible ? 'translateY(0)' : 'translateY(40px)',
-                transition: `all 0.7s cubic-bezier(.25,.46,.45,.94) ${index * 0.12}s`,
+                transitionDelay: `${index * 0.1}s`,
             }}
         >
             {/* Mascot side */}
             <div className="hiw-mascot-side">
-                <div className="hiw-mascot-container">
+                <div className={`hiw-mascot-container ${visible ? 'hiw-mascot-animate' : ''}`}>
                     {/* Glow */}
                     <div
                         className="hiw-mascot-glow"
@@ -95,8 +97,8 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
                             src={step.mascot}
                             alt={step.title}
                             style={{
-                                width: index === 0 ? '82%' : '72%',
-                                height: index === 0 ? '82%' : '72%',
+                                width: '72%',
+                                height: '72%',
                                 objectFit: 'contain',
                                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.08))',
                             }}
@@ -138,16 +140,6 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
                 }}>
                     {step.title}
                 </h3>
-                <h3 style={{
-                    fontFamily: "'Fredoka', sans-serif",
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: '#1A2B42',
-                    marginBottom: 12,
-                    lineHeight: 1.25,
-                }}>
-                    {step.title}
-                </h3>
                 <p className="hiw-step-desc" style={{
                     fontSize: 15,
                     color: '#5A7089',
@@ -158,7 +150,7 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
                 </p>
             </div>
 
-            {/* Center dot on timeline (desktop) */}
+            {/* Center dot on timeline (desktop only) */}
             <div className="hiw-center-dot" style={{ background: step.color }} />
         </div>
     );
@@ -166,7 +158,7 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
 
 export default function HowItWorks() {
     const headerRef = useRef<HTMLDivElement>(null);
-    const headerVisible = useInView(headerRef);
+    const { visible: headerVisible } = useInView(headerRef);
 
     return (
         <section style={{
@@ -192,15 +184,7 @@ export default function HowItWorks() {
             {/* Header */}
             <div
                 ref={headerRef}
-                style={{
-                    textAlign: 'center',
-                    marginBottom: 72,
-                    position: 'relative',
-                    zIndex: 1,
-                    opacity: headerVisible ? 1 : 0,
-                    transform: headerVisible ? 'translateY(0)' : 'translateY(30px)',
-                    transition: 'all 0.6s cubic-bezier(.25,.46,.45,.94)',
-                }}
+                className={`hiw-header ${headerVisible ? 'hiw-header-visible' : ''}`}
             >
                 <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -238,6 +222,16 @@ export default function HowItWorks() {
                 }}>
                     En 4 étapes simples, passe de «&nbsp;j&apos;aimerais voyager&nbsp;» à «&nbsp;je pars quand ?!&nbsp;»
                 </p>
+
+                {/* Scroll hint arrow */}
+                <div className="hiw-scroll-hint">
+                    <span style={{ fontSize: 11, color: '#8FA3B8', fontWeight: 600 }}>Découvre comment</span>
+                    <div className="hiw-scroll-arrow">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E7DDB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9l6 6 6-6" />
+                        </svg>
+                    </div>
+                </div>
             </div>
 
             {/* Steps — zigzag timeline */}
