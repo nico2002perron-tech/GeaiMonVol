@@ -166,38 +166,19 @@ export default function MapCanvas({
         // Always include YUL (Montreal) as departure
         coords.push([-73.74, 45.47]);
 
-        if (mapView === 'canada' && coords.length > 1) {
-            // Canada: auto-fit to show all Canadian deals
-            const geojsonBounds: GeoJSON.Feature = {
-                type: 'Feature',
-                geometry: {
-                    type: 'MultiPoint',
-                    coordinates: coords,
-                },
-                properties: {},
-            };
-
-            const padding = isMobile ? 60 : 100;
-
-            proj.fitExtent(
-                [[padding, padding], [dimensions.width - padding, dimensions.height - padding]],
-                geojsonBounds
-            );
-
-            // Zoom out a bit for breathing room
-            const currentScale = proj.scale();
-            proj.scale(currentScale * 0.6);
-
-            const maxScale = isMobile ? dimensions.width / 3 : dimensions.width / 3.5;
-            if (proj.scale() > maxScale) {
-                proj.scale(maxScale);
+        if (mapView === 'canada') {
+            // Canada: show North America, centered on Canada
+            if (isMobile) {
+                proj.center([-85, 55]).scale(dimensions.width / 2.2).translate([dimensions.width / 2, dimensions.height / 2]);
+            } else {
+                proj.center([-85, 55]).scale(dimensions.width / 2.8).translate([dimensions.width / 2, dimensions.height / 2]);
             }
         } else {
-            // World: show the full map
+            // World: show the full map, zoomed out nicely
             if (isMobile) {
-                proj.center([10, 20]).scale(dimensions.width / 3.5).translate([dimensions.width / 2, dimensions.height / 2]);
+                proj.center([10, 15]).scale(dimensions.width / 4.2).translate([dimensions.width / 2, dimensions.height / 2]);
             } else {
-                proj.center([15, 20]).scale(dimensions.width / 4.5).translate([dimensions.width / 2, dimensions.height / 2]);
+                proj.center([15, 15]).scale(dimensions.width / 5.5).translate([dimensions.width / 2, dimensions.height / 2]);
             }
         }
 
