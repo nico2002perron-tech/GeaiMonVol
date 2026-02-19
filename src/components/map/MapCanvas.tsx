@@ -149,13 +149,54 @@ export default function MapCanvas({
     const projection = useMemo(() => {
         if (dimensions.width === 0) return null;
         const proj = d3.geoNaturalEarth1();
-        if (isMobile) {
-            proj.center([10, 20]).scale(dimensions.width / 3.5).translate([dimensions.width / 2, dimensions.height / 2]);
-        } else {
-            proj.center([15, 20]).scale(dimensions.width / 4.5).translate([dimensions.width / 2, dimensions.height / 2]);
+
+        // Collect coordinates of visible deals to compute bounds
+        const coords: [number, number][] = [];
+        const filteredDeals = (deals || []).filter((deal) => {
+            const code = deal.destination_code || deal.code || '';
+            const isCanadian = CANADA_CODES.includes(code);
+            return mapView === 'canada' ? isCanadian : !isCanadian;
+        });
+
+        for (const deal of filteredDeals) {
+            const c = getCoords(deal);
+            if (c) coords.push([c.lng, c.lat]);
         }
+
+        // Always include YUL (Montreal) as departure
+        coords.push([-73.74, 45.47]);
+
+        if (coords.length > 1) {
+            // Compute bounding box
+            const lngs = coords.map(c => c[0]);
+            const lats = coords.map(c => c[1]);
+            const padding = isMobile ? 40 : 60;
+
+            // Use fitExtent to auto-fit all deal points
+            const geojsonBounds: GeoJSON.Feature = {
+                type: 'Feature',
+                geometry: {
+                    type: 'MultiPoint',
+                    coordinates: coords,
+                },
+                properties: {},
+            };
+
+            proj.fitExtent(
+                [[padding, padding], [dimensions.width - padding, dimensions.height - padding]],
+                geojsonBounds
+            );
+        } else {
+            // Fallback: default world view
+            if (isMobile) {
+                proj.center([10, 20]).scale(dimensions.width / 3.5).translate([dimensions.width / 2, dimensions.height / 2]);
+            } else {
+                proj.center([15, 20]).scale(dimensions.width / 4.5).translate([dimensions.width / 2, dimensions.height / 2]);
+            }
+        }
+
         return proj;
-    }, [dimensions.width, dimensions.height, isMobile]);
+    }, [dimensions.width, dimensions.height, isMobile, mapView, deals]);
 
     const visibleDeals = useMemo(() => {
         return (deals || []).filter((deal) => {
@@ -198,14 +239,9 @@ export default function MapCanvas({
         const path = d3.geoPath().projection(projection);
 
         if (!zoomInitializedRef.current) {
-            const reactG = svg.select<SVGGElement>('g.react-overlay');
-            const zoom = d3.zoom<SVGSVGElement, unknown>()
-                .scaleExtent([1, 8])
-                .on('zoom', (event) => {
-                    g.attr('transform', event.transform.toString());
-                    reactG.attr('transform', event.transform.toString());
-                });
-            svg.call(zoom);
+            // No user zoom/drag — the map auto-fits to deals
+            // Remove any existing zoom behavior
+            svg.on('.zoom', null);
             zoomInitializedRef.current = true;
         }
 
@@ -257,13 +293,13 @@ export default function MapCanvas({
     }, [yulPos]);
 
     return (
-        <div id="map-container" style={{ width: '100%', height: '100%', margin: 0, padding: 0 }}>
+        <div id="map-container" style={{ width: '100%', height: '100%', margin: 0, padding: 0, touchAction: 'none', overflow: 'hidden' }}>
             <svg
                 id="map-svg"
                 ref={svgRef}
                 width={dimensions.width}
                 height={dimensions.height}
-                style={{ display: 'block' }}
+                style={{ display: 'block', transition: 'all 0.6s ease-in-out' }}
             >
                 {/* SVG Defs for animated arc gradient + glow */}
                 <defs>
