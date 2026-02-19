@@ -19,6 +19,7 @@ import TransparenceSection from '../landing/TransparenceSection';
 import Footer from '../landing/Footer';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
+const QUEBEC_CODES = ['YQB', 'YUL'];
 
 const LEVEL_COLORS: Record<string, { bg: string; icon: string }> = {
     lowest_ever: { bg: '#7C3AED', icon: '⚡' },
@@ -34,10 +35,10 @@ export default function MapInterface() {
     const [appReady, setAppReady] = useState(true);
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
-    const [mapView, setMapView] = useState<'world' | 'canada'>('world');
+    const [mapView, setMapView] = useState<'world' | 'canada' | 'quebec'>('world');
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
-    const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
+    const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus' | 'quebec'>('international');
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -62,6 +63,9 @@ export default function MapInterface() {
         } else if (tab === 'canada') {
             setActiveTab('canada');
             setMapView('canada');
+        } else if (tab === 'quebec') {
+            setActiveTab('quebec');
+            setMapView('quebec');
         } else if (tab === 'tout-inclus') {
             setActiveTab('tout-inclus');
             setMapView('world');
@@ -75,6 +79,8 @@ export default function MapInterface() {
             .filter((d: any) => {
                 const code = d.destination_code || d.code || '';
                 const isCanadian = CANADA_CODES.includes(code);
+                const isQuebec = QUEBEC_CODES.includes(code);
+                if (activeTab === 'quebec') return isQuebec;
                 return activeTab === 'canada' ? isCanadian : !isCanadian;
             })
             .sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0))
@@ -84,6 +90,7 @@ export default function MapInterface() {
     const tabs = [
         { key: 'international', label: 'Monde', icon: '✈️', desc: 'Tous les deals' },
         { key: 'canada', label: 'Canada', icon: '🍁', desc: 'Vols intérieurs' },
+        { key: 'quebec', label: 'Québec', icon: '⚜️', desc: 'Voyage au Québec' },
         { key: 'tout-inclus', label: 'Tout inclus', icon: '🏖️', desc: 'Vol + hôtel' },
     ];
 
@@ -229,6 +236,11 @@ export default function MapInterface() {
                             onRegionSelect={(region) => {
                                 setSelectedRegion(region);
                                 setSidebarOpen(true);
+                            }}
+                            onHoverDeal={(deal, e) => {
+                                setHoveredDeal(deal);
+                                setHoverPos({ x: e.clientX, y: e.clientY });
+                                setHoverVisible(true);
                             }}
                             onHoverDeal={(deal, e) => {
                                 setHoveredDeal(deal);
