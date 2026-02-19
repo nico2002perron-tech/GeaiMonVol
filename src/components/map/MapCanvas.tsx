@@ -7,6 +7,7 @@ import { getRegionForCountry } from '@/lib/data/regions';
 import { PRIORITY_DESTINATIONS } from '@/lib/services/flights';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
+const QUEBEC_CODES = ['YQB', 'YUL'];
 
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
     'Toronto': { lat: 43.65, lng: -79.38 },
@@ -92,7 +93,7 @@ interface DealPin {
 
 interface MapCanvasProps {
     deals?: any[];
-    mapView?: 'world' | 'canada';
+    mapView?: 'world' | 'canada' | 'quebec';
     isMobile?: boolean;
     onRegionSelect: (region: string) => void;
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
@@ -155,7 +156,10 @@ export default function MapCanvas({
         const filteredDeals = (deals || []).filter((deal) => {
             const code = deal.destination_code || deal.code || '';
             const isCanadian = CANADA_CODES.includes(code);
-            return mapView === 'canada' ? isCanadian : !isCanadian;
+            const isQuebec = QUEBEC_CODES.includes(code);
+            if (mapView === 'quebec') return isQuebec;
+            if (mapView === 'canada') return isCanadian;
+            return !isCanadian;
         });
 
         for (const deal of filteredDeals) {
@@ -166,7 +170,14 @@ export default function MapCanvas({
         // Always include YUL (Montreal) as departure
         coords.push([-73.74, 45.47]);
 
-        if (mapView === 'canada') {
+        if (mapView === 'quebec') {
+            // Quebec: zoom on Quebec/Eastern Canada
+            if (isMobile) {
+                proj.center([-72, 48]).scale(dimensions.width / 0.8).translate([dimensions.width / 2, dimensions.height / 2]);
+            } else {
+                proj.center([-72, 48]).scale(dimensions.width / 1.2).translate([dimensions.width / 2, dimensions.height / 2]);
+            }
+        } else if (mapView === 'canada') {
             // Canada: show North America, centered on Canada
             if (isMobile) {
                 proj.center([-85, 55]).scale(dimensions.width / 2.2).translate([dimensions.width / 2, dimensions.height / 2]);
@@ -189,7 +200,10 @@ export default function MapCanvas({
         return (deals || []).filter((deal) => {
             const code = deal.destination_code || deal.code || '';
             const isCanadian = CANADA_CODES.includes(code);
-            return mapView === 'canada' ? isCanadian : !isCanadian;
+            const isQuebec = QUEBEC_CODES.includes(code);
+            if (mapView === 'quebec') return isQuebec;
+            if (mapView === 'canada') return isCanadian;
+            return !isCanadian;
         });
     }, [deals, mapView]);
 
