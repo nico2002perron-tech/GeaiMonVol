@@ -167,11 +167,6 @@ export default function MapCanvas({
         coords.push([-73.74, 45.47]);
 
         if (coords.length > 1) {
-            // Compute bounding box
-            const lngs = coords.map(c => c[0]);
-            const lats = coords.map(c => c[1]);
-            const padding = isMobile ? 40 : 60;
-
             // Use fitExtent to auto-fit all deal points
             const geojsonBounds: GeoJSON.Feature = {
                 type: 'Feature',
@@ -182,10 +177,24 @@ export default function MapCanvas({
                 properties: {},
             };
 
+            const padding = isMobile ? 60 : 100;
+
             proj.fitExtent(
                 [[padding, padding], [dimensions.width - padding, dimensions.height - padding]],
                 geojsonBounds
             );
+
+            // Zoom out to show more geographic context
+            // Reduce scale by 30% for world, 40% for Canada (more breathing room)
+            const zoomOutFactor = mapView === 'canada' ? 0.6 : 0.7;
+            const currentScale = proj.scale();
+            proj.scale(currentScale * zoomOutFactor);
+
+            // Cap max scale so it never looks too zoomed in
+            const maxScale = isMobile ? dimensions.width / 3 : dimensions.width / 3.5;
+            if (proj.scale() > maxScale) {
+                proj.scale(maxScale);
+            }
         } else {
             // Fallback: default world view
             if (isMobile) {
