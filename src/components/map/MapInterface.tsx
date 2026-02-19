@@ -17,6 +17,9 @@ import PremiumSection from '../landing/PremiumSection';
 import RecitsSection from '../landing/RecitsSection';
 import TransparenceSection from '../landing/TransparenceSection';
 import Footer from '../landing/Footer';
+import QuebecPlanner from './QuebecPlanner';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { createClient } from '@/lib/supabase/client';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 const QUEBEC_CODES = ['YQB', 'YUL'];
