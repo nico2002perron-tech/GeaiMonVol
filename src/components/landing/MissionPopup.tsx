@@ -86,6 +86,10 @@ export default function MissionPopup() {
                 @keyframes mmFadeUp{to{opacity:1;transform:translateY(0)}}
                 @keyframes mmHalo{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:.7;transform:scale(1.06)}}
                 @keyframes mmShimmer{0%{left:-100%}50%,100%{left:200%}}
+                @keyframes mmSparkle {
+                    0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+                    50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+                }
             `}</style>
 
             {/* Overlay */}
@@ -178,14 +182,23 @@ export default function MissionPopup() {
                             }}>
                                 <img
                                     ref={mascotImgRef}
-                                    src="/mascots/logo.png"
+                                    src="/mascots/photo%20pour%20popup.png"
                                     alt="Geai bleu"
                                     style={{
-                                        width: '78%', height: '78%', objectFit: 'contain',
+                                        width: '100%', height: '100%', objectFit: 'cover',
                                         filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.06))',
                                         transition: 'transform .15s ease-out',
                                     }}
                                 />
+                            </div>
+                            {/* Eye sparkles */}
+                            <div style={{ position: 'absolute', top: '38%', left: '33%', zIndex: 5, pointerEvents: 'none' }}>
+                                <span style={{ position: 'absolute', fontSize: 10, color: 'white', animation: 'mmSparkle 2s ease-in-out infinite', filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.9))' }}>✦</span>
+                                <span style={{ position: 'absolute', fontSize: 7, top: 4, left: 6, color: 'white', animation: 'mmSparkle 2s ease-in-out infinite 0.5s', filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.8))' }}>✦</span>
+                            </div>
+                            <div style={{ position: 'absolute', top: '38%', right: '33%', zIndex: 5, pointerEvents: 'none' }}>
+                                <span style={{ position: 'absolute', fontSize: 10, color: 'white', animation: 'mmSparkle 2s ease-in-out infinite 0.3s', filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.9))' }}>✦</span>
+                                <span style={{ position: 'absolute', fontSize: 7, top: 4, left: -4, color: 'white', animation: 'mmSparkle 2s ease-in-out infinite 0.8s', filter: 'drop-shadow(0 0 2px rgba(255,255,255,0.8))' }}>✦</span>
                             </div>
                         </div>
                     </div>
