@@ -17,6 +17,9 @@ import PremiumSection from '../landing/PremiumSection';
 import RecitsSection from '../landing/RecitsSection';
 import TransparenceSection from '../landing/TransparenceSection';
 import Footer from '../landing/Footer';
+import QuebecPlanner from './QuebecPlanner';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { createClient } from '@/lib/supabase/client';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
@@ -38,6 +41,11 @@ export default function MapInterface() {
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
     const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
+    const { user, loading: authLoading } = useAuth();
+    const [showQuebecPlanner, setShowQuebecPlanner] = useState(false);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    const [quizCount, setQuizCount] = useState(0);
+    const [quizLimitReached, setQuizLimitReached] = useState(false);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -45,6 +53,40 @@ export default function MapInterface() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        const supabase = createClient();
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        supabase
+            .from('quebec_quiz_usage')
+            .select('id', { count: 'exact' })
+            .eq('user_id', user.id)
+            .gte('created_at', startOfMonth)
+            .then(({ count }) => {
+                const c = count || 0;
+                setQuizCount(c);
+                setQuizLimitReached(c >= 2);
+            });
+    }, [user, showQuebecPlanner]);
+
+    const handleQuebecClick = () => {
+        if (!user) {
+            setShowLoginPrompt(true);
+            setTimeout(() => setShowLoginPrompt(false), 4000);
+            return;
+        }
+        if (quizLimitReached) {
+            setShowLoginPrompt(true);
+            setTimeout(() => setShowLoginPrompt(false), 4000);
+            return;
+        }
+        setShowQuebecPlanner(true);
+        const supabase = createClient();
+        supabase.from('quebec_quiz_usage').insert({ user_id: user.id });
+    };
 
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
@@ -102,7 +144,8 @@ export default function MapInterface() {
                         background: 'linear-gradient(180deg, #0F1A2A 0%, #1B2D4F 100%)',
                         padding: '0 28px',
                         display: 'flex',
-                        justifyContent: 'center',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
                         flexShrink: 0,
                     }}>
                         <div style={{ display: 'flex', gap: 6, padding: '14px 0' }}>
@@ -170,6 +213,31 @@ export default function MapInterface() {
                                 );
                             })}
                         </div>
+                        <button
+                            onClick={handleQuebecClick}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                padding: isMobile ? '8px 14px' : '10px 20px',
+                                borderRadius: 14, border: 'none', cursor: 'pointer',
+                                fontFamily: "'Fredoka', sans-serif",
+                                background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)',
+                                color: 'white',
+                                fontSize: isMobile ? 11 : 13,
+                                fontWeight: 700,
+                                boxShadow: '0 4px 16px rgba(46,125,219,0.25), 0 0 20px rgba(46,125,219,0.1)',
+                                transition: 'all 0.3s ease',
+                                whiteSpace: 'nowrap' as const,
+                                marginLeft: 'auto',
+                            }}
+                        >
+                            <span style={{ fontSize: isMobile ? 14 : 16 }}>⚜️</span>
+                            <span>{isMobile ? 'Québec' : 'Planifie ton Québec'}</span>
+                            <span style={{
+                                fontSize: 9, fontWeight: 600,
+                                padding: '2px 6px', borderRadius: 100,
+                                background: 'rgba(255,255,255,0.15)',
+                            }}>GRATUIT</span>
+                        </button>
                     </div>
 
                     {/* Map Area — prend l'espace restant */}
@@ -444,6 +512,35 @@ export default function MapInterface() {
                 <GeaiAssistant onOpen={() => setBookingOpen(true)} />
                 <Confetti trigger={confettiTrigger} x={confettiPos.x} y={confettiPos.y} />
             </div>
+            {showQuebecPlanner && <QuebecPlanner onClose={() => setShowQuebecPlanner(false)} />}
+            {showLoginPrompt && (
+                <div style={{
+                    position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                    zIndex: 2000, padding: '12px 24px', borderRadius: 14,
+                    background: 'linear-gradient(135deg, #1A2B42, #0F1D2F)',
+                    color: 'white', fontFamily: "'Fredoka', sans-serif",
+                    fontSize: 14, fontWeight: 600,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                    {!user ? (
+                        <>
+                            <span>🔒</span>
+                            <span>Connecte-toi pour planifier ton voyage</span>
+                            <a href="/auth" style={{
+                                padding: '4px 12px', borderRadius: 100,
+                                background: '#2E7DDB', color: 'white',
+                                fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                            }}>Se connecter</a>
+                        </>
+                    ) : (
+                        <>
+                            <span>⚜️</span>
+                            <span>Tu as utilisé tes 2 quiz gratuits ce mois-ci</span>
+                        </>
+                    )}
+                </div>
+            )}
         </>
     );
 }
