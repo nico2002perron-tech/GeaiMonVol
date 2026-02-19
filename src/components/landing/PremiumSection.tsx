@@ -228,14 +228,14 @@ function FeatureCard({ visGradient, emoji, label, labelColor, title, desc, child
         >
             {/* Visual top */}
             <div style={{
-                position: 'relative', minHeight: 200,
+                position: 'relative', height: 240,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 overflow: 'hidden', background: visGradient,
             }}>
                 {children}
             </div>
             {/* Text bottom */}
-            <div style={{ padding: '20px 20px 24px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '20px 20px 24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
                 <div style={{
                     fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase' as const,
                     marginBottom: 8, fontFamily: "'Fredoka', sans-serif",
