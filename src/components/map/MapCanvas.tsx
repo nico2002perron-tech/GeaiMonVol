@@ -166,8 +166,8 @@ export default function MapCanvas({
         // Always include YUL (Montreal) as departure
         coords.push([-73.74, 45.47]);
 
-        if (coords.length > 1) {
-            // Use fitExtent to auto-fit all deal points
+        if (mapView === 'canada' && coords.length > 1) {
+            // Canada: auto-fit to show all Canadian deals
             const geojsonBounds: GeoJSON.Feature = {
                 type: 'Feature',
                 geometry: {
@@ -184,19 +184,16 @@ export default function MapCanvas({
                 geojsonBounds
             );
 
-            // Zoom out to show more geographic context
-            // Reduce scale by 30% for world, 40% for Canada (more breathing room)
-            const zoomOutFactor = mapView === 'canada' ? 0.6 : 0.7;
+            // Zoom out a bit for breathing room
             const currentScale = proj.scale();
-            proj.scale(currentScale * zoomOutFactor);
+            proj.scale(currentScale * 0.6);
 
-            // Cap max scale so it never looks too zoomed in
             const maxScale = isMobile ? dimensions.width / 3 : dimensions.width / 3.5;
             if (proj.scale() > maxScale) {
                 proj.scale(maxScale);
             }
         } else {
-            // Fallback: default world view
+            // World: show the full map
             if (isMobile) {
                 proj.center([10, 20]).scale(dimensions.width / 3.5).translate([dimensions.width / 2, dimensions.height / 2]);
             } else {
