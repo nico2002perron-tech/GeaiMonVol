@@ -72,6 +72,198 @@ function getMonths() {
     return ms;
 }
 
+// ═══════════════════════════════════════════════════════
+// INFINITE AUTO-SCROLL CAROUSEL
+// ═══════════════════════════════════════════════════════
+function InfiniteCarousel({ deals, isMobile, onDealClick }: {
+    deals: any[];
+    isMobile: boolean;
+    onDealClick: (deal: any) => void;
+}) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Duplicate deals for seamless infinite loop
+    const loopedDeals = useMemo(() => {
+        if (deals.length === 0) return [];
+        return [...deals, ...deals];
+    }, [deals]);
+
+    // Auto-scroll effect
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (!container || deals.length === 0) return;
+
+        let animationId: number;
+        let isPaused = false;
+
+        const startDelay = setTimeout(() => {
+            const halfWidth = container.scrollWidth / 2;
+            if (halfWidth <= 0) return;
+
+            const tick = () => {
+                if (!isPaused) {
+                    let pos = container.scrollLeft + 0.5;
+                    if (pos >= halfWidth) pos -= halfWidth;
+                    container.scrollLeft = pos;
+                }
+                animationId = requestAnimationFrame(tick);
+            };
+            animationId = requestAnimationFrame(tick);
+        }, 400);
+
+        const pause = () => { isPaused = true; };
+        const resume = () => { isPaused = false; };
+        const delayedResume = () => { setTimeout(resume, 2500); };
+
+        container.addEventListener('mouseenter', pause);
+        container.addEventListener('mouseleave', resume);
+        container.addEventListener('touchstart', pause, { passive: true });
+        container.addEventListener('touchend', delayedResume);
+
+        return () => {
+            clearTimeout(startDelay);
+            cancelAnimationFrame(animationId);
+            container.removeEventListener('mouseenter', pause);
+            container.removeEventListener('mouseleave', resume);
+            container.removeEventListener('touchstart', pause);
+            container.removeEventListener('touchend', delayedResume);
+        };
+    }, [deals.length]);
+
+    if (deals.length === 0) {
+        return (
+            <div style={{
+                padding: '32px 24px', textAlign: 'center',
+                background: 'white', color: '#8FA3B8', fontSize: 14,
+                fontFamily: "'Outfit', sans-serif",
+            }}>
+                Aucun deal pour cette période
+            </div>
+        );
+    }
+
+    return (
+        <div style={{ background: 'white', paddingBottom: 16 }}>
+            {/* Fade edges */}
+            <div style={{ position: 'relative' }}>
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, width: 50, height: '100%',
+                    background: 'linear-gradient(to right, white, transparent)',
+                    zIndex: 3, pointerEvents: 'none',
+                }} />
+                <div style={{
+                    position: 'absolute', top: 0, right: 0, width: 50, height: '100%',
+                    background: 'linear-gradient(to left, white, transparent)',
+                    zIndex: 3, pointerEvents: 'none',
+                }} />
+
+                <div
+                    ref={scrollRef}
+                    className="carousel-scroll"
+                    style={{
+                        display: 'flex', gap: 16,
+                        overflowX: 'auto', padding: '16px 24px 12px',
+                        WebkitOverflowScrolling: 'touch',
+                    }}
+                >
+                    {loopedDeals.map((deal: any, i: number) => {
+                        const level = deal.dealLevel || 'good';
+                        const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
+                        const discount = deal.discount || deal.disc || 0;
+                        const city = deal.destination || deal.city || '';
+                        const code = deal.destination_code || deal.code || '';
+                        const img = CITY_IMAGES[city];
+
+                        return (
+                            <div
+                                key={`inf-${code}-${i}`}
+                                className="carousel-card"
+                                onClick={() => onDealClick(deal)}
+                                style={{
+                                    minWidth: isMobile ? 180 : 210,
+                                    borderRadius: 16, overflow: 'hidden',
+                                    background: 'white',
+                                    border: '1px solid rgba(26,43,66,0.08)',
+                                    boxShadow: '0 4px 15px rgba(26,43,66,0.05)',
+                                    cursor: 'pointer', flexShrink: 0,
+                                    position: 'relative',
+                                    transform: 'translateZ(0)',
+                                }}
+                            >
+                                {/* Badge */}
+                                {col.label && (
+                                    <div style={{
+                                        position: 'absolute', top: 10, left: 10, zIndex: 5,
+                                        background: col.bg, color: 'white',
+                                        padding: '3px 10px', borderRadius: 100,
+                                        fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+                                        display: 'flex', alignItems: 'center', gap: 4,
+                                        boxShadow: `0 2px 8px ${col.bg}30`,
+                                        fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        {col.icon} {col.label}
+                                    </div>
+                                )}
+
+                                {/* Image */}
+                                <div style={{ height: isMobile ? 110 : 130, position: 'relative' }}>
+                                    <img
+                                        src={img || 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop'}
+                                        alt={city}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src =
+                                                'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
+                                        }}
+                                    />
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4))',
+                                    }} />
+                                </div>
+
+                                {/* Content */}
+                                <div style={{ padding: 14 }}>
+                                    <div style={{
+                                        fontWeight: 700, fontSize: 16, color: '#1A2B42', marginBottom: 2,
+                                        fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        {city}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 11, color: '#8FA3B8', marginBottom: 10,
+                                        fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        YUL → {code} · {deal.stops === 0 ? 'Direct' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span style={{
+                                                fontSize: 18, fontWeight: 800, color: '#2E7DDB',
+                                                fontFamily: "'Fredoka', sans-serif",
+                                            }}>
+                                                {deal.price}$
+                                            </span>
+                                            {discount > 0 && (
+                                                <span style={{
+                                                    fontSize: 10, fontWeight: 800, color: col.bg,
+                                                    background: `${col.bg}15`, padding: '2px 6px', borderRadius: 6,
+                                                }}>
+                                                    -{Math.round(discount)}%
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [bookingOpen, setBookingOpen] = useState(false);
@@ -536,25 +728,25 @@ export default function MapInterface() {
                             }}
                         />
 
-                        {/* ═══ BAS DE LA CARTE : MOIS + CARROUSEL ═══ */}
+                        {/* ═══ BAS DE LA CARTE : MOIS SEULEMENT ═══ */}
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-                            background: 'linear-gradient(to top, rgba(27,45,79,0.97) 0%, rgba(27,45,79,0.85) 70%, transparent 100%)',
-                            padding: isMobile ? '16px 10px 6px' : '20px 16px 6px',
+                            background: 'linear-gradient(to top, rgba(27,45,79,0.95) 0%, rgba(27,45,79,0.6) 60%, transparent 100%)',
+                            padding: isMobile ? '20px 12px 10px' : '24px 16px 12px',
                         }}>
-                            {/* ── Month pills ── */}
                             <div style={{
-                                display: 'flex', gap: 5, marginBottom: 8,
+                                display: 'flex', gap: 5,
                                 overflowX: 'auto', paddingBottom: 2,
                                 scrollbarWidth: 'none',
+                                justifyContent: 'center',
                             }}>
                                 <button
                                     className="month-pill"
                                     onClick={() => setSelectedMonth('all')}
                                     style={{
-                                        padding: isMobile ? '5px 12px' : '6px 16px',
+                                        padding: isMobile ? '6px 14px' : '8px 20px',
                                         borderRadius: 100, border: 'none', cursor: 'pointer',
-                                        fontSize: 11, fontWeight: 700,
+                                        fontSize: 12, fontWeight: 700,
                                         fontFamily: "'Outfit', sans-serif",
                                         whiteSpace: 'nowrap',
                                         background: selectedMonth === 'all'
@@ -572,9 +764,9 @@ export default function MapInterface() {
                                         className="month-pill"
                                         onClick={() => setSelectedMonth(m.value)}
                                         style={{
-                                            padding: isMobile ? '5px 12px' : '6px 16px',
+                                            padding: isMobile ? '6px 14px' : '8px 20px',
                                             borderRadius: 100, border: 'none', cursor: 'pointer',
-                                            fontSize: 11, fontWeight: 700,
+                                            fontSize: 12, fontWeight: 700,
                                             fontFamily: "'Outfit', sans-serif",
                                             whiteSpace: 'nowrap',
                                             background: selectedMonth === m.value
@@ -588,139 +780,16 @@ export default function MapInterface() {
                                     </button>
                                 ))}
                             </div>
-
-                            {/* ── Carousel of deals ── */}
-                            <div
-                                ref={carouselRef}
-                                className="carousel-scroll"
-                                style={{
-                                    display: 'flex', gap: isMobile ? 8 : 10,
-                                    overflowX: 'auto', paddingBottom: 6,
-                                    WebkitOverflowScrolling: 'touch',
-                                }}
-                            >
-                                {carouselDeals.length === 0 && (
-                                    <div style={{
-                                        padding: '12px 20px', fontSize: 12,
-                                        color: 'rgba(255,255,255,0.35)',
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        Aucun deal pour cette période
-                                    </div>
-                                )}
-                                {carouselDeals.map((deal: any, i: number) => {
-                                    const level = deal.dealLevel || 'good';
-                                    const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
-                                    const discount = deal.discount || deal.disc || 0;
-                                    const city = deal.destination || deal.city || '';
-                                    const code = deal.destination_code || deal.code || '';
-                                    const img = CITY_IMAGES[city];
-
-                                    return (
-                                        <div
-                                            key={`carousel-${code}-${i}`}
-                                            className="carousel-card"
-                                            onClick={() => handleDealClick(deal)}
-                                            style={{
-                                                minWidth: isMobile ? 155 : 185,
-                                                borderRadius: 12,
-                                                overflow: 'hidden',
-                                                background: 'rgba(255,255,255,0.92)',
-                                                border: '1px solid rgba(26,43,66,0.06)',
-                                                backdropFilter: 'blur(8px)',
-                                                cursor: 'pointer', flexShrink: 0,
-                                                boxShadow: '0 2px 10px rgba(26,43,66,0.06)',
-                                                position: 'relative',
-                                            }}
-                                        >
-                                            {/* Image */}
-                                            {img && (
-                                                <div style={{ height: isMobile ? 65 : 75, position: 'relative', overflow: 'hidden' }}>
-                                                    <img
-                                                        src={img}
-                                                        alt={city}
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                    <div style={{
-                                                        position: 'absolute', inset: 0,
-                                                        background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.3))',
-                                                    }} />
-                                                    {/* Badge */}
-                                                    <div style={{
-                                                        position: 'absolute', top: 5, left: 5,
-                                                        background: col.bg, color: 'white',
-                                                        borderRadius: 100, padding: '2px 7px',
-                                                        fontSize: 7, fontWeight: 800,
-                                                        fontFamily: "'Outfit', sans-serif",
-                                                        display: 'flex', alignItems: 'center', gap: 3,
-                                                        boxShadow: `0 2px 6px ${col.bg}40`,
-                                                    }}>
-                                                        {col.icon} {col.label}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {/* Info */}
-                                            <div style={{ padding: isMobile ? '8px 10px' : '10px 12px' }}>
-                                                <div style={{
-                                                    display: 'flex', alignItems: 'center',
-                                                    justifyContent: 'space-between', marginBottom: 2,
-                                                }}>
-                                                    <span style={{
-                                                        fontSize: isMobile ? 12 : 13, fontWeight: 700,
-                                                        color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
-                                                    }}>{city}</span>
-                                                </div>
-                                                <div style={{
-                                                    fontSize: 9, color: '#8FA3B8', marginBottom: 6,
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                }}>
-                                                    YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
-                                                </div>
-                                                <div style={{
-                                                    display: 'flex', alignItems: 'center', gap: 6,
-                                                }}>
-                                                    <span style={{
-                                                        fontSize: isMobile ? 15 : 17, fontWeight: 800,
-                                                        color: '#2E7DDB',
-                                                        fontFamily: "'Fredoka', sans-serif",
-                                                    }}>
-                                                        {deal.price}$
-                                                    </span>
-                                                    {discount > 0 && (
-                                                        <span style={{ fontSize: 10, fontWeight: 700, color: col.bg }}>
-                                                            -{Math.round(discount)}%
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Scroll hint */}
-                            <a href="#deals" style={{
-                                textDecoration: 'none', display: 'flex',
-                                alignItems: 'center', justifyContent: 'center',
-                                gap: 4, padding: '4px 0 2px',
-                            }}>
-                                <span style={{
-                                    fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600,
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
-                                    Voir tous les deals
-                                </span>
-                                <div style={{ animation: 'scrollHint 2s ease-in-out infinite' }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24"
-                                        fill="none" stroke="#60A5FA" strokeWidth="2.5"
-                                        strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M6 9l6 6 6-6" />
-                                    </svg>
-                                </div>
-                            </a>
                         </div>
                     </div>
                 </div>
+
+                {/* ═══════════ CARROUSEL INFINI SOUS LA CARTE ═══════════ */}
+                <InfiniteCarousel
+                    deals={carouselDeals}
+                    isMobile={isMobile}
+                    onDealClick={handleDealClick}
+                />
 
                 <Onboarding />
 
