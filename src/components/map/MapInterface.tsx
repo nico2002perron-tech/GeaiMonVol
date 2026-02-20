@@ -462,8 +462,7 @@ export default function MapInterface() {
     const { user, loading: authLoading } = useAuth();
     const [showQuebecPlanner, setShowQuebecPlanner] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-    const [quizCount, setQuizCount] = useState(0);
-    const [quizLimitReached, setQuizLimitReached] = useState(false);
+
     const carouselRef = useRef<HTMLDivElement>(null);
 
     const months = useMemo(() => getMonths(), []);
@@ -475,23 +474,7 @@ export default function MapInterface() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    useEffect(() => {
-        if (!user) return;
-        const supabase = createClient();
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        supabase
-            .from('quebec_quiz_usage')
-            .select('id', { count: 'exact' })
-            .eq('user_id', user.id)
-            .gte('created_at', startOfMonth)
-            .then(({ count }) => {
-                const c = count || 0;
-                setQuizCount(c);
-                setQuizLimitReached(c >= 2);
-            });
-    }, [user, showQuebecPlanner]);
 
     const handleQuebecClick = () => {
         if (!user) {
@@ -499,14 +482,7 @@ export default function MapInterface() {
             setTimeout(() => setShowLoginPrompt(false), 4000);
             return;
         }
-        if (quizLimitReached) {
-            setShowLoginPrompt(true);
-            setTimeout(() => setShowLoginPrompt(false), 4000);
-            return;
-        }
         setShowQuebecPlanner(true);
-        const supabase = createClient();
-        supabase.from('quebec_quiz_usage').insert({ user_id: user.id });
     };
 
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
