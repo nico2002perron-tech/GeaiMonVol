@@ -5,13 +5,11 @@ export async function POST(req: NextRequest) {
     try {
         const supabase = await createServerSupabase();
 
-        // ── Auth check ──
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
             return NextResponse.json({ error: 'Connecte-toi pour générer un guide.' }, { status: 401 });
         }
 
-        // ── Check plan + guide usage ──
         const { data: profile } = await supabase
             .from('profiles')
             .select('plan')
@@ -20,7 +18,6 @@ export async function POST(req: NextRequest) {
 
         const isPremium = profile?.plan === 'premium';
 
-        // Count guides already generated
         const { count } = await supabase
             .from('ai_guides')
             .select('id', { count: 'exact' })
@@ -36,28 +33,18 @@ export async function POST(req: NextRequest) {
             }, { status: 403 });
         }
 
-        // ── Parse request body ──
         const body = await req.json();
         const {
-            destination,
-            destination_code,
-            country,
-            departure_date,
-            return_date,
-            price,
-            airline,
-            stops,
-            preferences = [],
-            trip_days,
-            rest_days = 1,
-            budget_style = 'moderate', // 'budget', 'moderate', 'luxury'
+            destination, destination_code, country,
+            departure_date, return_date, price, airline, stops,
+            preferences = [], trip_days, rest_days = 1,
+            budget_style = 'moderate',
         } = body;
 
         if (!destination) {
             return NextResponse.json({ error: 'Destination requise.' }, { status: 400 });
         }
 
-        // Calculate nights
         let nights = trip_days || 7;
         if (departure_date && return_date) {
             nights = Math.round(
@@ -65,10 +52,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ── Build prompt ──
-        const prefsText = preferences.length > 0
-            ? preferences.join(', ')
-            : 'culture, gastronomie, nature';
+        const prefsText = preferences.length > 0 ? preferences.join(', ') : 'culture, gastronomie, nature';
 
         const budgetMap: Record<string, string> = {
             budget: 'économique (hostels, street food, transports en commun)',
@@ -76,74 +60,140 @@ export async function POST(req: NextRequest) {
             luxury: 'haut de gamme (hôtels 4-5★, restaurants gastronomiques, taxis/privé)',
         };
 
-        const systemPrompt = `Tu es un expert en voyage qui crée des itinéraires personnalisés exceptionnels. 
-Tu écris en français québécois naturel (pas de "vous" formel, utilise "tu").
-Tes guides sont pratiques, précis, et incluent des tips d'initié que les touristes ne connaissent pas.
-Tu donnes des estimations de prix en CAD.
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks.`;
+        const systemPrompt = `Tu es un expert en voyage ultra-détaillé qui crée des itinéraires jour par jour.
+Tu écris en français québécois naturel (utilise "tu", pas "vous").
+Tu donnes des VRAIS noms de lieux, restaurants, adresses et estimations de prix en CAD.
+Tu connais les tips d'initié que les touristes ne connaissent pas.
+Tu inclus les DIRECTIONS précises entre chaque activité (mode de transport, durée, distance).
 
-        const userPrompt = `Crée un itinéraire de voyage complet pour :
+RÈGLE ABSOLUE : Réponds UNIQUEMENT en JSON valide. Aucun texte avant ou après. Aucun backtick. Juste le JSON brut.`;
+
+        const userPrompt = `Crée un itinéraire ULTRA-DÉTAILLÉ pour :
 
 DESTINATION : ${destination}, ${country || ''}
 VOL : Montréal (YUL) → ${destination_code || destination} | ${airline || 'Non spécifié'} | ${stops === 0 ? 'Direct' : stops + ' escale(s)'}
 DATES : ${departure_date || 'Flexible'} → ${return_date || 'Flexible'} (${nights} nuits)
-PRIX VOL : ${price || 'Non spécifié'}$ CAD aller-retour
+PRIX VOL : ${price || 0}$ CAD aller-retour
 BUDGET : ${budgetMap[budget_style] || budgetMap.moderate}
 PRÉFÉRENCES : ${prefsText}
-JOURS DE REPOS : ${rest_days} jour(s) de détente prévus dans l'itinéraire
+JOURS DE REPOS : ${rest_days}
 
-Réponds en JSON avec cette structure exacte :
+Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, afternoon, dinner, evening + les directions entre chaque.
+
 {
-  "title": "Titre accrocheur du voyage",
-  "summary": "Résumé en 2-3 phrases du voyage",
-  "highlights": ["3 à 5 points forts du voyage"],
-  "budget_estimate": {
-    "flight": ${price || 0},
-    "accommodation_per_night": 0,
-    "food_per_day": 0,
-    "activities_total": 0,
-    "transport_local": 0,
-    "total_estimate": 0
+  "title": "Titre accrocheur",
+  "summary": "Résumé 2-3 phrases",
+  "region_tips": "Conseils généraux transport, sécurité, culture locale",
+  "accommodation": {
+    "name": "Nom de l'hôtel recommandé",
+    "neighborhood": "Quartier",
+    "type": "Type (ex: Boutique 3★)",
+    "price_per_night": 0,
+    "rating": "4.5★",
+    "tip": "Conseil sur l'hôtel",
+    "address": "Adresse complète"
   },
-  "packing_tips": ["3-4 items essentiels à apporter"],
-  "local_tips": ["3-4 astuces locales d'initié"],
+  "budget_summary": {
+    "flight": ${price || 0},
+    "accommodation_total": 0,
+    "food_total": 0,
+    "activities_total": 0,
+    "transport_local_total": 0,
+    "total_per_person": 0
+  },
+  "highlights": ["3-5 moments forts"],
+  "packing_list": ["4-5 items essentiels"],
   "days": [
     {
       "day": 1,
       "title": "Titre du jour",
-      "theme": "emoji + thème court",
+      "theme": "emoji + thème",
+      "total_cost": 0,
       "morning": {
-        "activity": "Nom de l'activité",
-        "description": "Description en 1-2 phrases",
-        "tip": "Astuce pratique",
-        "estimated_cost": "XX$ CAD"
+        "activity": "Nom activité",
+        "location": "Adresse/lieu précis",
+        "description": "1-2 phrases",
+        "duration": "2h",
+        "cost": 0,
+        "tip": "Astuce",
+        "rating": "4.5★"
+      },
+      "getting_to_lunch": {
+        "from": "Lieu de l'activité matin",
+        "to": "Nom du resto lunch",
+        "mode": "🚶 À pied",
+        "duration": "8 min",
+        "distance": "650m",
+        "directions": "Directions textuelles précises"
+      },
+      "lunch": {
+        "name": "Nom du restaurant",
+        "type": "Type de cuisine",
+        "location": "Adresse",
+        "cost": 0,
+        "rating": "4.3★",
+        "must_try": "Plat à commander absolument"
+      },
+      "getting_to_afternoon": {
+        "from": "Resto lunch",
+        "to": "Activité après-midi",
+        "mode": "🚇 Métro",
+        "duration": "12 min",
+        "distance": "2km",
+        "directions": "Ligne X, direction Y"
       },
       "afternoon": {
-        "activity": "...",
-        "description": "...",
-        "tip": "...",
-        "estimated_cost": "XX$ CAD"
+        "activity": "Nom activité",
+        "location": "Adresse/lieu",
+        "description": "1-2 phrases",
+        "duration": "2.5h",
+        "cost": 0,
+        "tip": "Astuce",
+        "rating": "4.6★"
+      },
+      "getting_to_dinner": {
+        "from": "Activité après-midi",
+        "to": "Resto souper",
+        "mode": "🚶 À pied",
+        "duration": "10 min",
+        "distance": "800m",
+        "directions": "Directions"
+      },
+      "dinner": {
+        "name": "Nom du restaurant",
+        "type": "Type de cuisine",
+        "location": "Adresse",
+        "cost": 0,
+        "rating": "4.5★",
+        "must_try": "Plat signature"
       },
       "evening": {
-        "activity": "...",
-        "description": "...",
-        "tip": "...",
-        "estimated_cost": "XX$ CAD"
+        "activity": "Activité soirée",
+        "location": "Lieu",
+        "description": "1-2 phrases",
+        "duration": "1.5h",
+        "cost": 0,
+        "tip": "Astuce"
       },
-      "restaurant": {
-        "name": "Nom du restaurant recommandé",
-        "type": "Type de cuisine",
-        "price_range": "$$",
-        "tip": "Ce qu'il faut commander"
+      "getting_back_hotel": {
+        "from": "Lieu soirée",
+        "to": "Hôtel",
+        "mode": "🚇 Métro ou 🚕 Taxi",
+        "duration": "15 min",
+        "directions": "Comment rentrer"
       }
     }
   ]
 }
 
-Génère exactement ${nights} jours. Pour les jours de repos (${rest_days}), propose des activités relaxantes.
-Assure-toi que le JSON est valide et complet.`;
+IMPORTANT :
+- Génère exactement ${nights} jours
+- ${rest_days} jour(s) de repos with activités zen (spa, plage, flâner)
+- Utilise des VRAIS noms de restaurants et lieux qui existent
+- Les costs sont en CAD
+- Chaque "getting_to_*" doit avoir des directions réalistes
+- Le total_cost de chaque jour = somme des costs du jour`;
 
-        // ── Call Anthropic API (Haiku) ──
         const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
         if (!ANTHROPIC_API_KEY) {
             return NextResponse.json({ error: 'Clé API non configurée.' }, { status: 500 });
@@ -158,10 +208,11 @@ Assure-toi que le JSON est valide et complet.`;
             },
             body: JSON.stringify({
                 model: 'claude-haiku-4-5-20251001',
-                max_tokens: 4096,
+                max_tokens: 8192,
                 system: systemPrompt,
                 messages: [
                     { role: 'user', content: userPrompt },
+                    { role: 'assistant', content: '{' },
                 ],
             }),
         });
@@ -175,18 +226,21 @@ Assure-toi que le JSON est valide et complet.`;
         const anthropicData = await anthropicResponse.json();
         const rawText = anthropicData.content?.[0]?.text || '';
 
-        // ── Parse JSON response ──
         let guide;
         try {
-            // Clean up potential markdown fences
-            const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-            guide = JSON.parse(cleaned);
+            let jsonStr = '{' + rawText;
+            jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+            const firstBrace = jsonStr.indexOf('{');
+            const lastBrace = jsonStr.lastIndexOf('}');
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+            }
+            guide = JSON.parse(jsonStr);
         } catch (parseErr) {
-            console.error('JSON parse error:', parseErr, 'Raw:', rawText.substring(0, 500));
-            return NextResponse.json({ error: 'Erreur de format dans la réponse IA.' }, { status: 500 });
+            console.error('JSON parse error:', parseErr, 'Raw (first 1500):', ('{' + rawText).substring(0, 1500));
+            return NextResponse.json({ error: 'Erreur de format. Réessaie!' }, { status: 500 });
         }
 
-        // ── Save to Supabase ──
         const { data: savedGuide, error: saveError } = await supabase
             .from('ai_guides')
             .insert({
@@ -201,22 +255,19 @@ Assure-toi que le JSON est valide et complet.`;
                 budget_style,
                 guide_data: guide,
                 model_used: 'claude-haiku-4-5-20251001',
-                tokens_used: anthropicData.usage?.input_tokens + anthropicData.usage?.output_tokens || 0,
+                tokens_used: (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0),
             })
             .select('id')
             .single();
 
-        if (saveError) {
-            console.error('Save error:', saveError);
-            // Still return the guide even if save fails
-        }
+        if (saveError) console.error('Save error:', saveError);
 
         return NextResponse.json({
             guide,
             guide_id: savedGuide?.id || null,
             guide_count: guideCount + 1,
             is_premium: isPremium,
-            tokens_used: anthropicData.usage?.input_tokens + anthropicData.usage?.output_tokens || 0,
+            tokens_used: (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0),
         });
 
     } catch (err: any) {
