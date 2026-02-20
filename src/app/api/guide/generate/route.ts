@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 Tu écris en français québécois naturel (utilise "tu", pas "vous").
 Tu donnes des VRAIS noms de lieux, restaurants, adresses et estimations de prix en CAD.
 Tu connais les tips d'initié que les touristes ne connaissent pas.
-Tu inclus les DIRECTIONS précises entre chaque activité (mode de transport, durée, distance).
+Tu inclusions les DIRECTIONS précises entre chaque activité (mode de transport, durée, distance).
 
 RÈGLE ABSOLUE : Réponds UNIQUEMENT en JSON valide. Aucun texte avant ou après. Aucun backtick. Juste le JSON brut.`;
 
@@ -119,7 +119,7 @@ Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, after
         "rating": "4.5★"
       },
       "getting_to_lunch": {
-        "from": "Lieu de l'activité matin",
+        "from": "Lieu de l'activity matin",
         "to": "Nom du resto lunch",
         "mode": "🚶 À pied",
         "duration": "8 min",
