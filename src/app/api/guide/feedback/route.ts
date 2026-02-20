@@ -11,11 +11,19 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { guide_id, destination, day_number, slot, action, rating, swap_reason, original_activity, replacement_activity } = body;
+        const {
+            guide_id, destination, day_number,
+            slot, action, rating,
+            swap_reason, original_activity, replacement_activity,
+        } = body;
+
+        if (!guide_id || !action) {
+            return NextResponse.json({ error: 'Données manquantes.' }, { status: 400 });
+        }
 
         const { error } = await supabase.from('guide_feedback').insert({
             user_id: user.id,
-            guide_id: guide_id || null,
+            guide_id,
             destination: destination || null,
             day_number: day_number || null,
             slot: slot || null,
@@ -32,6 +40,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true });
+
     } catch (err: any) {
         console.error('Feedback error:', err);
         return NextResponse.json({ error: 'Erreur interne.' }, { status: 500 });
