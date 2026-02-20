@@ -15,6 +15,7 @@ export interface Profile {
     interests: string[];
     questionnaire_completed: boolean;
     plan: 'free' | 'premium';
+    role: 'user' | 'admin';
     stripe_customer_id: string | null;
     subscription_status: string;
     email_notifications: boolean;
