@@ -72,11 +72,12 @@ export async function POST(req: NextRequest) {
     // ── Plan check ──
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan')
+      .select('plan, role')
       .eq('id', user.id)
       .single();
 
     const isPremium = profile?.plan === 'premium';
+    const isAdmin = profile?.role === 'admin';
 
     const { count } = await supabase
       .from('ai_guides')
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     const guideCount = count || 0;
 
-    if (!isPremium && guideCount >= 1) {
+    if (!isPremium && !isAdmin && guideCount >= 1) {
       return NextResponse.json({
         error: 'limit_reached',
         message: 'Tu as déjà utilisé ton guide gratuit. Passe à Premium pour des guides illimités!',
