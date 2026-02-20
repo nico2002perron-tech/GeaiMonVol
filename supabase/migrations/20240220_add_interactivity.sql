@@ -1,9 +1,9 @@
 -- ═══════════════════════════════════════════
--- TABLE: ai_guide_feedback
+-- TABLE: guide_feedback
 -- Stores user feedback, ratings, and swap logs
 -- ═══════════════════════════════════════════
 
-CREATE TABLE IF NOT EXISTS ai_guide_feedback (
+CREATE TABLE IF NOT EXISTS guide_feedback (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     guide_id UUID NOT NULL REFERENCES ai_guides(id) ON DELETE CASCADE,
@@ -19,16 +19,16 @@ CREATE TABLE IF NOT EXISTS ai_guide_feedback (
 );
 
 -- Index for analytics and history
-CREATE INDEX IF NOT EXISTS idx_ai_guide_feedback_user_id ON ai_guide_feedback(user_id);
-CREATE INDEX IF NOT EXISTS idx_ai_guide_feedback_guide_id ON ai_guide_feedback(guide_id);
+CREATE INDEX IF NOT EXISTS idx_guide_feedback_user_id ON guide_feedback(user_id);
+CREATE INDEX IF NOT EXISTS idx_guide_feedback_guide_id ON guide_feedback(guide_id);
 
 -- RLS: Users can only see/insert their own feedback
-ALTER TABLE ai_guide_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guide_feedback ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own feedback"
-    ON ai_guide_feedback FOR SELECT
+    ON guide_feedback FOR SELECT
     USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can insert own feedback"
-    ON ai_guide_feedback FOR INSERT
+    ON guide_feedback FOR INSERT
     WITH CHECK (auth.uid() = user_id);

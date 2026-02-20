@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Données manquantes.' }, { status: 400 });
         }
 
-        const { error: insertError } = await supabase.from('ai_guide_feedback').insert({
+        const { error: insertError } = await supabase.from('guide_feedback').insert({
             user_id: user.id,
             guide_id,
             destination,
