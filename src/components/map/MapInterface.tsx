@@ -911,88 +911,95 @@ export default function MapInterface() {
                             }}
                         />
 
-                        {/* ═══ BAS DE LA CARTE : MOIS SEULEMENT ═══ */}
+                        {/* ═══ BAS GAUCHE DE LA CARTE : MOIS ═══ */}
                         <div style={{
-                            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-                            background: 'linear-gradient(to top, rgba(27,45,79,0.95) 0%, rgba(27,45,79,0.6) 60%, transparent 100%)',
-                            padding: isMobile ? '20px 12px 10px' : '24px 16px 12px',
+                            position: 'absolute', bottom: isMobile ? 12 : 20, left: isMobile ? 12 : 20, zIndex: 20,
+                            display: 'flex', gap: 6,
+                            overflowX: 'auto', maxWidth: isMobile ? 'calc(100% - 24px)' : '70%',
+                            paddingBottom: 2,
+                            scrollbarWidth: 'none',
                         }}>
-                            <div style={{
-                                display: 'flex', gap: 5,
-                                overflowX: 'auto', paddingBottom: 2,
-                                scrollbarWidth: 'none',
-                                justifyContent: 'center',
-                            }}>
-                                <button
-                                    className="month-pill"
-                                    onClick={() => setSelectedMonth('all')}
-                                    style={{
-                                        padding: isMobile ? '6px 14px' : '8px 20px',
-                                        borderRadius: 100, border: 'none', cursor: 'pointer',
-                                        fontSize: 12, fontWeight: 700,
-                                        fontFamily: "'Outfit', sans-serif",
-                                        whiteSpace: 'nowrap',
-                                        display: 'flex', alignItems: 'center', gap: 6,
-                                        background: selectedMonth === 'all'
-                                            ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                            : 'rgba(255,255,255,0.06)',
-                                        color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.4)',
-                                        boxShadow: selectedMonth === 'all' ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
-                                    }}
-                                >
-                                    Tous
-                                    <span style={{
-                                        fontSize: 9, fontWeight: 800,
-                                        background: selectedMonth === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                                        padding: '1px 7px', borderRadius: 100,
-                                    }}>
-                                        {filteredPrices.length || (prices || []).filter((d: any) => {
-                                            const code = d.destination_code || '';
-                                            const isCanadian = CANADA_CODES.includes(code);
-                                            return activeTab === 'canada' ? isCanadian : !isCanadian;
-                                        }).length}
-                                    </span>
-                                </button>
-                                {availableMonths.map(m => {
-                                    const monthCount = (prices || []).filter((d: any) => {
-                                        const dep = d.departure_date || '';
+                            <button
+                                className="month-pill"
+                                onClick={() => setSelectedMonth('all')}
+                                style={{
+                                    padding: isMobile ? '9px 18px' : '10px 24px',
+                                    borderRadius: 14, border: 'none', cursor: 'pointer',
+                                    fontSize: isMobile ? 13 : 14, fontWeight: 700,
+                                    fontFamily: "'Outfit', sans-serif",
+                                    whiteSpace: 'nowrap',
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    background: selectedMonth === 'all'
+                                        ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                        : 'rgba(15,26,42,0.7)',
+                                    backdropFilter: 'blur(12px)',
+                                    color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.5)',
+                                    boxShadow: selectedMonth === 'all'
+                                        ? '0 4px 14px rgba(46,125,219,0.35)'
+                                        : '0 2px 8px rgba(0,0,0,0.2)',
+                                    border: selectedMonth === 'all'
+                                        ? '1px solid rgba(96,165,250,0.3)'
+                                        : '1px solid rgba(255,255,255,0.08)',
+                                }}
+                            >
+                                Tous
+                                <span style={{
+                                    fontSize: 10, fontWeight: 800,
+                                    background: selectedMonth === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                                    padding: '2px 8px', borderRadius: 100,
+                                }}>
+                                    {filteredPrices.length || (prices || []).filter((d: any) => {
                                         const code = d.destination_code || '';
                                         const isCanadian = CANADA_CODES.includes(code);
-                                        const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
-                                        return isCorrectTab && dep.startsWith(m.value);
-                                    }).length;
+                                        return activeTab === 'canada' ? isCanadian : !isCanadian;
+                                    }).length}
+                                </span>
+                            </button>
+                            {availableMonths.map(m => {
+                                const monthCount = (prices || []).filter((d: any) => {
+                                    const dep = d.departure_date || '';
+                                    const code = d.destination_code || '';
+                                    const isCanadian = CANADA_CODES.includes(code);
+                                    const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
+                                    return isCorrectTab && dep.startsWith(m.value);
+                                }).length;
 
-                                    return (
-                                        <button
-                                            key={m.value}
-                                            className="month-pill"
-                                            onClick={() => setSelectedMonth(m.value)}
-                                            style={{
-                                                padding: isMobile ? '6px 14px' : '8px 20px',
-                                                borderRadius: 100, border: 'none', cursor: 'pointer',
-                                                fontSize: 12, fontWeight: 700,
-                                                fontFamily: "'Outfit', sans-serif",
-                                                whiteSpace: 'nowrap',
-                                                display: 'flex', alignItems: 'center', gap: 6,
-                                                background: selectedMonth === m.value
-                                                    ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                                    : 'rgba(255,255,255,0.06)',
-                                                color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.4)',
-                                                boxShadow: selectedMonth === m.value ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
-                                            }}
-                                        >
-                                            {m.label}
-                                            <span style={{
-                                                fontSize: 9, fontWeight: 800,
-                                                background: selectedMonth === m.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                                                padding: '1px 7px', borderRadius: 100,
-                                            }}>
-                                                {monthCount}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                return (
+                                    <button
+                                        key={m.value}
+                                        className="month-pill"
+                                        onClick={() => setSelectedMonth(m.value)}
+                                        style={{
+                                            padding: isMobile ? '9px 18px' : '10px 24px',
+                                            borderRadius: 14, border: 'none', cursor: 'pointer',
+                                            fontSize: isMobile ? 13 : 14, fontWeight: 700,
+                                            fontFamily: "'Outfit', sans-serif",
+                                            whiteSpace: 'nowrap',
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                            background: selectedMonth === m.value
+                                                ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                                : 'rgba(15,26,42,0.7)',
+                                            backdropFilter: 'blur(12px)',
+                                            color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.5)',
+                                            boxShadow: selectedMonth === m.value
+                                                ? '0 4px 14px rgba(46,125,219,0.35)'
+                                                : '0 2px 8px rgba(0,0,0,0.2)',
+                                            border: selectedMonth === m.value
+                                                ? '1px solid rgba(96,165,250,0.3)'
+                                                : '1px solid rgba(255,255,255,0.08)',
+                                        }}
+                                    >
+                                        {m.label}
+                                        <span style={{
+                                            fontSize: 10, fontWeight: 800,
+                                            background: selectedMonth === m.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                                            padding: '2px 8px', borderRadius: 100,
+                                        }}>
+                                            {monthCount}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
