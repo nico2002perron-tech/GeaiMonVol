@@ -497,4 +497,3 @@ export default function GuidePanel({ isOpen, onClose, deal }: GuidePanelProps) {
         </>
     );
 }
-
