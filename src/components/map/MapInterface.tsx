@@ -173,6 +173,22 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                         const city = deal.destination || deal.city || '';
                         const code = deal.destination_code || deal.code || '';
                         const img = CITY_IMAGES[city];
+                        const avgPrice = deal.avgPrice || 0;
+                        const savings = avgPrice > deal.price ? avgPrice - deal.price : 0;
+                        const airline = deal.airline || '';
+                        const country = deal.country || '';
+                        const depDate = deal.departure_date || '';
+                        const retDate = deal.return_date || '';
+                        let nights = 0;
+                        if (depDate && retDate) {
+                            nights = Math.round((new Date(retDate).getTime() - new Date(depDate).getTime()) / (1000 * 60 * 60 * 24));
+                        }
+                        const formatShort = (d: string) => {
+                            if (!d) return '';
+                            const dt = new Date(d);
+                            return dt.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+                        };
+                        const datesLabel = depDate ? `${formatShort(depDate)}${retDate ? ' – ' + formatShort(retDate) : ''}` : '';
 
                         return (
                             <div
@@ -180,10 +196,11 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                                 className="carousel-card"
                                 onClick={() => onDealClick(deal)}
                                 style={{
-                                    minWidth: isMobile ? 180 : 210,
-                                    borderRadius: 16, overflow: 'hidden',
+                                    minWidth: isMobile ? 240 : 260,
+                                    maxWidth: isMobile ? 240 : 260,
+                                    borderRadius: 20, overflow: 'hidden',
                                     background: 'white',
-                                    border: '1px solid rgba(26,43,66,0.08)',
+                                    border: '1px solid rgba(26,43,66,0.07)',
                                     boxShadow: '0 4px 15px rgba(26,43,66,0.05)',
                                     cursor: 'pointer', flexShrink: 0,
                                     position: 'relative',
@@ -191,69 +208,120 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                                 }}
                             >
                                 {/* Badge */}
-                                {col.label && (
-                                    <div style={{
-                                        position: 'absolute', top: 10, left: 10, zIndex: 5,
-                                        background: col.bg, color: 'white',
-                                        padding: '3px 10px', borderRadius: 100,
-                                        fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
-                                        display: 'flex', alignItems: 'center', gap: 4,
-                                        boxShadow: `0 2px 8px ${col.bg}30`,
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        {col.icon} {col.label}
-                                    </div>
-                                )}
+                                <div style={{
+                                    position: 'absolute', top: 12, left: 12, zIndex: 5,
+                                    background: col.bg, color: 'white',
+                                    padding: '4px 12px', borderRadius: 100,
+                                    fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    boxShadow: `0 2px 10px ${col.bg}40`,
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    {col.icon} {col.label}
+                                </div>
 
                                 {/* Image */}
-                                <div style={{ height: isMobile ? 110 : 130, position: 'relative' }}>
+                                <div style={{ height: 150, position: 'relative', overflow: 'hidden' }}>
                                     <img
-                                        src={img || 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop'}
+                                        src={img || 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop'}
                                         alt={city}
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src =
-                                                'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
+                                                'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop';
                                         }}
                                     />
                                     <div style={{
                                         position: 'absolute', inset: 0,
-                                        background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4))',
+                                        background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.5))',
                                     }} />
+                                    {/* Dates overlay */}
+                                    {datesLabel && (
+                                        <div style={{
+                                            position: 'absolute', bottom: 10, left: 12,
+                                            display: 'flex', alignItems: 'center', gap: 6,
+                                        }}>
+                                            <span style={{
+                                                fontSize: 11, color: 'white', fontWeight: 600,
+                                                background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
+                                                padding: '3px 10px', borderRadius: 100,
+                                                fontFamily: "'Outfit', sans-serif",
+                                            }}>
+                                                📅 {datesLabel}{nights > 0 ? ` · ${nights} nuits` : ''}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Content */}
-                                <div style={{ padding: 14 }}>
+                                <div style={{ padding: '16px 18px 18px' }}>
+                                    {/* City + Country */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                                        <span style={{
+                                            fontSize: 18, fontWeight: 700, color: '#1A2B42',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                        }}>
+                                            {city}
+                                        </span>
+                                        {country && (
+                                            <span style={{ fontSize: 12, color: '#8FA3B8', fontWeight: 500 }}>
+                                                {country}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* Route + airline */}
                                     <div style={{
-                                        fontWeight: 700, fontSize: 16, color: '#1A2B42', marginBottom: 2,
+                                        fontSize: 12, color: '#8FA3B8', marginBottom: 14,
                                         fontFamily: "'Outfit', sans-serif",
                                     }}>
-                                        {city}
+                                        YUL → {code}{airline ? ` · ${airline}` : ''} · {deal.stops === 0 ? 'Direct ✅' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
                                     </div>
-                                    <div style={{
-                                        fontSize: 11, color: '#8FA3B8', marginBottom: 10,
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        YUL → {code} · {deal.stops === 0 ? 'Direct' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
-                                    </div>
+
+                                    {/* Price row */}
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <span style={{
-                                                fontSize: 18, fontWeight: 800, color: '#2E7DDB',
+                                                fontSize: 26, fontWeight: 800, color: '#2E7DDB',
                                                 fontFamily: "'Fredoka', sans-serif",
                                             }}>
                                                 {deal.price}$
                                             </span>
-                                            {discount > 0 && (
+                                            {avgPrice > deal.price && (
                                                 <span style={{
-                                                    fontSize: 10, fontWeight: 800, color: col.bg,
-                                                    background: `${col.bg}15`, padding: '2px 6px', borderRadius: 6,
+                                                    fontSize: 13, color: '#B0B8C4', textDecoration: 'line-through',
                                                 }}>
-                                                    -{Math.round(discount)}%
+                                                    {avgPrice}$
                                                 </span>
                                             )}
                                         </div>
+                                        {discount > 0 && (
+                                            <span style={{
+                                                fontSize: 12, fontWeight: 800, color: col.bg,
+                                                background: `${col.bg}12`, padding: '4px 10px', borderRadius: 8,
+                                            }}>
+                                                -{Math.round(discount)}%
+                                            </span>
+                                        )}
                                     </div>
+
+                                    {/* Savings bar */}
+                                    {savings > 0 && (
+                                        <div style={{
+                                            marginTop: 12, padding: '8px 12px', borderRadius: 10,
+                                            background: 'linear-gradient(135deg, #F0F7FF, #E8F5E9)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        }}>
+                                            <span style={{ fontSize: 11, color: '#5A7089', fontWeight: 600 }}>
+                                                💰 Tu économises
+                                            </span>
+                                            <span style={{
+                                                fontSize: 14, fontWeight: 800, color: '#16A34A',
+                                                fontFamily: "'Fredoka', sans-serif",
+                                            }}>
+                                                {savings}$
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
