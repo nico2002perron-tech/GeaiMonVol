@@ -1,7 +1,6 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import MapCanvas from './MapCanvas';
-import DealStrip from '@/components/deals/DealStrip';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
 import HowItWorksModal from '@/components/ui/HowItWorksModal';
@@ -23,12 +22,55 @@ import { createClient } from '@/lib/supabase/client';
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
 
-const LEVEL_COLORS: Record<string, { bg: string; icon: string }> = {
-    lowest_ever: { bg: '#7C3AED', icon: '⚡' },
-    incredible: { bg: '#DC2626', icon: '🔥' },
-    great: { bg: '#EA580C', icon: '✨' },
-    good: { bg: '#2E7DDB', icon: '👍' },
+const LEVEL_COLORS: Record<string, { bg: string; icon: string; label: string }> = {
+    lowest_ever: { bg: '#7C3AED', icon: '⚡', label: 'PRIX RECORD' },
+    incredible: { bg: '#DC2626', icon: '🔥', label: 'INCROYABLE' },
+    great: { bg: '#EA580C', icon: '✨', label: 'SUPER DEAL' },
+    good: { bg: '#2E7DDB', icon: '👍', label: 'BON PRIX' },
 };
+
+const CITY_IMAGES: Record<string, string> = {
+    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
+    'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400',
+    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
+    'Barcelone': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
+    'Lisbonne': 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400',
+    'Athènes': 'https://images.unsplash.com/photo-1503152394-c571994fd383?w=400',
+    'Dublin': 'https://images.unsplash.com/photo-1549918837-33fb394ea33d?w=400',
+    'Amsterdam': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=400',
+    'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400',
+    'Marrakech': 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=400',
+    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
+    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
+    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
+    'Cancún': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
+    'Miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=400',
+    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
+    'Reykjavik': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
+    'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400',
+    'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=400',
+    'Punta Cana': 'https://images.unsplash.com/photo-1535916707207-35f97e715e1c?w=400',
+    'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400',
+    'Bogota': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400',
+    'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400',
+    'Fort Lauderdale': 'https://images.unsplash.com/photo-1589083130544-0d6a2926e519?w=400',
+    'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570345070170-51d6e8f38953?w=400',
+    'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400',
+    'Montego Bay': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400',
+};
+
+// Generate next 12 months for filter pills
+function getMonths() {
+    const ms: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('fr-CA', { month: 'short' }).replace('.', '');
+        ms.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    return ms;
+}
 
 export default function MapInterface() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,11 +83,15 @@ export default function MapInterface() {
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
     const [isMobile, setIsMobile] = useState(false);
     const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
+    const [selectedMonth, setSelectedMonth] = useState<string>('all');
     const { user, loading: authLoading } = useAuth();
     const [showQuebecPlanner, setShowQuebecPlanner] = useState(false);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
     const [quizCount, setQuizCount] = useState(0);
     const [quizLimitReached, setQuizLimitReached] = useState(false);
+    const carouselRef = useRef<HTMLDivElement>(null);
+
+    const months = useMemo(() => getMonths(), []);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -108,20 +154,54 @@ export default function MapInterface() {
             setActiveTab('tout-inclus');
             setMapView('world');
         }
+        setSelectedMonth('all'); // Reset month on tab switch
     };
 
-    // Top deals for mini carousel (sorted by discount, top 8)
-    const topDeals = useMemo(() => {
-        const allDeals = (prices || []).length > 0 ? prices : [];
-        return [...allDeals]
-            .filter((d: any) => {
+    // ─── FILTER DEALS BY TAB + MONTH ───
+    const filteredPrices = useMemo(() => {
+        return (prices || []).filter((d: any) => {
+            const code = d.destination_code || d.code || '';
+            const isCanadian = CANADA_CODES.includes(code);
+            if (activeTab === 'canada' && !isCanadian) return false;
+            if (activeTab !== 'canada' && isCanadian) return false;
+            if (selectedMonth !== 'all') {
+                const dep = d.departure_date || '';
+                if (!dep.startsWith(selectedMonth)) return false;
+            }
+            return true;
+        });
+    }, [prices, activeTab, selectedMonth]);
+
+    // ─── TOP 5 GROS DEALS ───
+    const top5Deals = useMemo(() => {
+        return [...filteredPrices]
+            .sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0))
+            .slice(0, 5);
+    }, [filteredPrices]);
+
+    // ─── CAROUSEL DEALS (sorted by discount) ───
+    const carouselDeals = useMemo(() => {
+        return [...filteredPrices]
+            .sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0));
+    }, [filteredPrices]);
+
+    // ─── AVAILABLE MONTHS (only months with deals) ───
+    const availableMonths = useMemo(() => {
+        return months.filter(m => {
+            return (prices || []).some((d: any) => {
+                const dep = d.departure_date || '';
                 const code = d.destination_code || d.code || '';
                 const isCanadian = CANADA_CODES.includes(code);
-                return activeTab === 'canada' ? isCanadian : !isCanadian;
-            })
-            .sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0))
-            .slice(0, 8);
-    }, [prices, activeTab]);
+                const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
+                return isCorrectTab && dep.startsWith(m.value);
+            });
+        });
+    }, [prices, activeTab, months]);
+
+    // Scroll carousel to start on filter change
+    useEffect(() => {
+        if (carouselRef.current) carouselRef.current.scrollLeft = 0;
+    }, [selectedMonth, activeTab]);
 
     const tabs = [
         { key: 'international', label: 'Monde', icon: '✈️', desc: 'Tous les deals' },
@@ -129,17 +209,50 @@ export default function MapInterface() {
         { key: 'tout-inclus', label: 'Tout inclus', icon: '🏖️', desc: 'Vol + hôtel' },
     ];
 
+    const handleDealClick = (deal: any) => {
+        const code = deal.destination_code || deal.code || '';
+        const city = deal.destination || deal.city || '';
+        const discount = deal.discount || deal.disc || 0;
+        const level = deal.dealLevel || 'good';
+        setSelectedDeal({
+            city, code, price: deal.price, airline: deal.airline,
+            stops: deal.stops, route: `YUL – ${code}`,
+            disc: discount, dealLevel: level,
+            destination_code: code,
+            departure_date: deal.departure_date,
+            return_date: deal.return_date,
+            googleFlightsLink: deal.googleFlightsLink,
+            raw_data: deal.raw_data,
+            avgPrice: deal.avgPrice, discount,
+            img: CITY_IMAGES[city] || '',
+            country: deal.country,
+        });
+    };
+
     return (
         <>
+            <style>{`
+                @keyframes liveBlink{0%,100%{opacity:1}50%{opacity:.3}}
+                @keyframes scrollHint{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+                .month-pill{transition:all 0.25s ease;}
+                .month-pill:hover{background:rgba(255,255,255,0.08)!important;}
+                .carousel-scroll::-webkit-scrollbar{display:none;}
+                .carousel-scroll{scrollbar-width:none;}
+                .top5-card{transition:all 0.25s cubic-bezier(.25,.46,.45,.94);}
+                .top5-card:hover{background:rgba(255,255,255,0.08)!important;transform:translateX(2px);}
+                .carousel-card{transition:all 0.3s cubic-bezier(.25,.46,.45,.94);}
+                .carousel-card:hover{transform:translateY(-4px);box-shadow:0 8px 25px rgba(0,0,0,0.12)!important;}
+            `}</style>
+
             <div id="app" className={appReady ? 'show' : ''} style={{
                 minHeight: '100vh',
                 background: '#F4F8FB',
             }}>
-                {/* ========== Section 1 : 100vh ========== */}
+                {/* ═══════════ SECTION 1 : CARTE INTERACTIVE FULL ═══════════ */}
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <MapTopbar prices={prices} />
 
-                    {/* ONGLETS DARK — intégrés au thème */}
+                    {/* ONGLETS Monde / Canada / Tout-inclus */}
                     <div style={{
                         background: 'linear-gradient(180deg, #0F1A2A 0%, #1B2D4F 100%)',
                         padding: '0 28px',
@@ -240,58 +353,170 @@ export default function MapInterface() {
                         </button>
                     </div>
 
-                    {/* Map Area — prend l'espace restant */}
+                    {/* ═══ MAP AREA ═══ */}
                     <div style={{
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
                         background: '#1B2D4F', overflow: 'hidden',
                     }}>
-                        {/* Légende des couleurs — haut droite */}
+                        {/* ── LÉGENDE + TOP 5 GROS DEALS (haut droit) ── */}
                         <div style={{
                             position: 'absolute',
                             top: isMobile ? 8 : 12,
                             right: isMobile ? 8 : 16,
                             zIndex: 30,
-                            background: 'rgba(15,26,42,0.75)',
-                            backdropFilter: 'blur(12px)',
-                            borderRadius: 10,
-                            padding: isMobile ? '6px 10px' : '8px 14px',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                            boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: 4,
+                            gap: 8,
+                            maxWidth: isMobile ? 160 : 200,
                         }}>
-                            <span style={{
-                                fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
-                                letterSpacing: 0.5, textTransform: 'uppercase' as const,
-                                fontFamily: "'Outfit', sans-serif", marginBottom: 1,
+                            {/* Légende des couleurs */}
+                            <div style={{
+                                background: 'rgba(15,26,42,0.75)',
+                                backdropFilter: 'blur(12px)',
+                                borderRadius: 10,
+                                padding: isMobile ? '6px 10px' : '8px 14px',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 4,
                             }}>
-                                Niveaux de deal
-                            </span>
-                            {[
-                                { color: '#7C3AED', label: 'Prix record', icon: '⚡' },
-                                { color: '#DC2626', label: 'Incroyable', icon: '🔥' },
-                                { color: '#EA580C', label: 'Super deal', icon: '✨' },
-                                { color: '#2E7DDB', label: 'Bon prix', icon: '👍' },
-                            ].map(item => (
-                                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <div style={{
-                                        width: 8, height: 8, borderRadius: '50%',
-                                        background: item.color, flexShrink: 0,
-                                        boxShadow: `0 0 6px ${item.color}60`,
-                                    }} />
+                                <span style={{
+                                    fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
+                                    letterSpacing: 0.5, textTransform: 'uppercase' as const,
+                                    fontFamily: "'Outfit', sans-serif", marginBottom: 1,
+                                }}>
+                                    Niveaux de deal
+                                </span>
+                                {[
+                                    { color: '#7C3AED', label: 'Prix record', icon: '⚡' },
+                                    { color: '#DC2626', label: 'Incroyable', icon: '🔥' },
+                                    { color: '#EA580C', label: 'Super deal', icon: '✨' },
+                                    { color: '#2E7DDB', label: 'Bon prix', icon: '👍' },
+                                ].map(item => (
+                                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <div style={{
+                                            width: 8, height: 8, borderRadius: '50%',
+                                            background: item.color, flexShrink: 0,
+                                            boxShadow: `0 0 6px ${item.color}60`,
+                                        }} />
+                                        <span style={{
+                                            fontSize: isMobile ? 9 : 10, fontWeight: 600,
+                                            color: 'rgba(255,255,255,0.85)', fontFamily: "'Outfit', sans-serif",
+                                        }}>
+                                            {item.icon} {item.label}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ── TOP 5 GROS DEALS ── */}
+                            <div style={{
+                                background: 'rgba(15,26,42,0.75)',
+                                backdropFilter: 'blur(12px)',
+                                borderRadius: 10,
+                                padding: isMobile ? '6px 8px' : '8px 10px',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 4,
+                            }}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    marginBottom: 2,
+                                }}>
+                                    <span style={{ fontSize: 10 }}>🏆</span>
                                     <span style={{
-                                        fontSize: isMobile ? 9 : 10, fontWeight: 600,
-                                        color: 'rgba(255,255,255,0.85)', fontFamily: "'Outfit', sans-serif",
+                                        fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.55)',
+                                        letterSpacing: 0.8, textTransform: 'uppercase' as const,
+                                        fontFamily: "'Outfit', sans-serif",
                                     }}>
-                                        {item.icon} {item.label}
+                                        TOP 5 GROS DEALS
                                     </span>
+                                    <span style={{
+                                        width: 5, height: 5, borderRadius: '50%',
+                                        background: '#16A34A', animation: 'liveBlink 2s ease-in-out infinite',
+                                    }} />
                                 </div>
-                            ))}
+                                {top5Deals.map((deal: any, i: number) => {
+                                    const level = deal.dealLevel || 'good';
+                                    const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
+                                    const discount = deal.discount || deal.disc || 0;
+                                    const city = deal.destination || deal.city || '';
+                                    const code = deal.destination_code || deal.code || '';
+
+                                    return (
+                                        <div
+                                            key={`top5-${code}-${i}`}
+                                            className="top5-card"
+                                            onClick={() => handleDealClick(deal)}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: 8,
+                                                padding: '5px 8px', borderRadius: 8,
+                                                background: 'rgba(255,255,255,0.04)',
+                                                border: '1px solid rgba(255,255,255,0.04)',
+                                                cursor: 'pointer',
+                                            }}
+                                        >
+                                            {/* Rank */}
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800, color: col.bg,
+                                                fontFamily: "'Fredoka', sans-serif",
+                                                minWidth: 14, textAlign: 'center',
+                                            }}>
+                                                {i + 1}
+                                            </span>
+                                            {/* City + route */}
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{
+                                                    fontSize: isMobile ? 10 : 11, fontWeight: 700, color: 'white',
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                }}>
+                                                    {city}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 8, color: 'rgba(255,255,255,0.3)',
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                }}>
+                                                    YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
+                                                </div>
+                                            </div>
+                                            {/* Price + discount */}
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <div style={{
+                                                    fontSize: isMobile ? 11 : 12, fontWeight: 800,
+                                                    color: '#4ADE80',
+                                                    fontFamily: "'Fredoka', sans-serif",
+                                                }}>
+                                                    {deal.price}$
+                                                </div>
+                                                {discount > 0 && (
+                                                    <span style={{
+                                                        fontSize: 8, fontWeight: 800, color: col.bg,
+                                                    }}>
+                                                        -{Math.round(discount)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                {top5Deals.length === 0 && (
+                                    <div style={{
+                                        fontSize: 9, color: 'rgba(255,255,255,0.3)',
+                                        textAlign: 'center', padding: '8px 0',
+                                    }}>
+                                        Aucun deal pour cette période
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
+                        {/* ── MAP CANVAS ── */}
                         <MapCanvas
-                            deals={prices}
+                            deals={filteredPrices}
                             mapView={mapView}
                             isMobile={isMobile}
                             onRegionSelect={(region) => {
@@ -305,140 +530,182 @@ export default function MapInterface() {
                             }}
                             onLeaveDeal={() => setHoverVisible(false)}
                             onSelectDeal={(deal: any, e: any) => {
-                                setSelectedFlight(deal);
-                                setBookingOpen(true);
+                                handleDealClick(deal);
                                 setConfettiPos({ x: e.clientX, y: e.clientY });
                                 setConfettiTrigger(prev => prev + 1);
                             }}
                         />
 
-                        {/* Mini carousel + scroll hint — en bas de la carte */}
+                        {/* ═══ BAS DE LA CARTE : MOIS + CARROUSEL ═══ */}
                         <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 20,
-                            background: 'linear-gradient(to top, rgba(27,45,79,0.97) 0%, rgba(27,45,79,0.8) 60%, transparent 100%)',
-                            padding: isMobile ? '20px 12px 6px' : '24px 16px 6px',
+                            background: 'linear-gradient(to top, rgba(27,45,79,0.97) 0%, rgba(27,45,79,0.85) 70%, transparent 100%)',
+                            padding: isMobile ? '16px 10px 6px' : '20px 16px 6px',
                         }}>
-                            {/* Title */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                                <span style={{
-                                    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)',
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
-                                    🔥 Top deals {activeTab === 'canada' ? 'Canada' : 'du moment'}
-                                </span>
-                                <span style={{
-                                    width: 5, height: 5, borderRadius: '50%',
-                                    background: '#16A34A', animation: 'liveBlink 2s ease-in-out infinite',
-                                }} />
+                            {/* ── Month pills ── */}
+                            <div style={{
+                                display: 'flex', gap: 5, marginBottom: 8,
+                                overflowX: 'auto', paddingBottom: 2,
+                                scrollbarWidth: 'none',
+                            }}>
+                                <button
+                                    className="month-pill"
+                                    onClick={() => setSelectedMonth('all')}
+                                    style={{
+                                        padding: isMobile ? '5px 12px' : '6px 16px',
+                                        borderRadius: 100, border: 'none', cursor: 'pointer',
+                                        fontSize: 11, fontWeight: 700,
+                                        fontFamily: "'Outfit', sans-serif",
+                                        whiteSpace: 'nowrap',
+                                        background: selectedMonth === 'all'
+                                            ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                            : 'rgba(255,255,255,0.06)',
+                                        color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.4)',
+                                        boxShadow: selectedMonth === 'all' ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
+                                    }}
+                                >
+                                    Tous
+                                </button>
+                                {availableMonths.map(m => (
+                                    <button
+                                        key={m.value}
+                                        className="month-pill"
+                                        onClick={() => setSelectedMonth(m.value)}
+                                        style={{
+                                            padding: isMobile ? '5px 12px' : '6px 16px',
+                                            borderRadius: 100, border: 'none', cursor: 'pointer',
+                                            fontSize: 11, fontWeight: 700,
+                                            fontFamily: "'Outfit', sans-serif",
+                                            whiteSpace: 'nowrap',
+                                            background: selectedMonth === m.value
+                                                ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                                : 'rgba(255,255,255,0.06)',
+                                            color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.4)',
+                                            boxShadow: selectedMonth === m.value ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
+                                        }}
+                                    >
+                                        {m.label}
+                                    </button>
+                                ))}
                             </div>
 
-                            {/* Mini cards — 1er et 3e meilleurs deals ont badge premium */}
-                            <div style={{
-                                display: 'flex', gap: isMobile ? 8 : 10,
-                                overflowX: 'auto', paddingBottom: 6,
-                                scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
-                            }}>
-                                {topDeals.map((deal: any, i: number) => {
+                            {/* ── Carousel of deals ── */}
+                            <div
+                                ref={carouselRef}
+                                className="carousel-scroll"
+                                style={{
+                                    display: 'flex', gap: isMobile ? 8 : 10,
+                                    overflowX: 'auto', paddingBottom: 6,
+                                    WebkitOverflowScrolling: 'touch',
+                                }}
+                            >
+                                {carouselDeals.length === 0 && (
+                                    <div style={{
+                                        padding: '12px 20px', fontSize: 12,
+                                        color: 'rgba(255,255,255,0.35)',
+                                        fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        Aucun deal pour cette période
+                                    </div>
+                                )}
+                                {carouselDeals.map((deal: any, i: number) => {
                                     const level = deal.dealLevel || 'good';
                                     const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
                                     const discount = deal.discount || deal.disc || 0;
                                     const city = deal.destination || deal.city || '';
                                     const code = deal.destination_code || deal.code || '';
-                                    const isPremiumHighlight = i === 0 || i === 2;
+                                    const img = CITY_IMAGES[city];
 
                                     return (
                                         <div
-                                            key={`mini-${code}-${i}`}
-                                            className="mini-deal-card"
-                                            onClick={() => setSelectedDeal({
-                                                city, code, price: deal.price, airline: deal.airline,
-                                                stops: deal.stops, route: `YUL – ${code}`,
-                                                disc: discount, dealLevel: level,
-                                                destination_code: code,
-                                                departure_date: deal.departure_date,
-                                                return_date: deal.return_date,
-                                                googleFlightsLink: deal.googleFlightsLink,
-                                                raw_data: deal.raw_data,
-                                                avgPrice: deal.avgPrice, discount,
-                                            })}
+                                            key={`carousel-${code}-${i}`}
+                                            className="carousel-card"
+                                            onClick={() => handleDealClick(deal)}
                                             style={{
-                                                minWidth: isMobile ? 125 : 140,
-                                                padding: isMobile ? '7px 10px' : '8px 12px',
-                                                borderRadius: 10,
-                                                background: 'rgba(255,255,255,0.88)',
-                                                border: '1px solid rgba(26,43,66,0.08)',
+                                                minWidth: isMobile ? 155 : 185,
+                                                borderRadius: 12,
+                                                overflow: 'hidden',
+                                                background: 'rgba(255,255,255,0.92)',
+                                                border: '1px solid rgba(26,43,66,0.06)',
                                                 backdropFilter: 'blur(8px)',
                                                 cursor: 'pointer', flexShrink: 0,
-                                                transition: 'all 0.2s ease',
-                                                boxShadow: '0 2px 8px rgba(26,43,66,0.06)',
-                                                position: 'relative', overflow: 'hidden',
+                                                boxShadow: '0 2px 10px rgba(26,43,66,0.06)',
+                                                position: 'relative',
                                             }}
                                         >
-                                            {isPremiumHighlight && (
-                                                <div style={{
-                                                    position: 'absolute', top: -6, right: -4,
-                                                    background: col.bg, color: 'white',
-                                                    borderRadius: 100, padding: '2px 7px',
-                                                    display: 'flex', alignItems: 'center', gap: 3,
-                                                    zIndex: 3, boxShadow: `0 2px 8px ${col.bg}40`,
-                                                    fontSize: 7.5, fontWeight: 800,
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                }}>
-                                                    ⚡ Alerte perso
+                                            {/* Image */}
+                                            {img && (
+                                                <div style={{ height: isMobile ? 65 : 75, position: 'relative', overflow: 'hidden' }}>
+                                                    <img
+                                                        src={img}
+                                                        alt={city}
+                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    />
+                                                    <div style={{
+                                                        position: 'absolute', inset: 0,
+                                                        background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.3))',
+                                                    }} />
+                                                    {/* Badge */}
+                                                    <div style={{
+                                                        position: 'absolute', top: 5, left: 5,
+                                                        background: col.bg, color: 'white',
+                                                        borderRadius: 100, padding: '2px 7px',
+                                                        fontSize: 7, fontWeight: 800,
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                        display: 'flex', alignItems: 'center', gap: 3,
+                                                        boxShadow: `0 2px 6px ${col.bg}40`,
+                                                    }}>
+                                                        {col.icon} {col.label}
+                                                    </div>
                                                 </div>
                                             )}
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center',
-                                                justifyContent: 'space-between', marginBottom: 3,
-                                                position: 'relative', zIndex: 1,
-                                            }}>
-                                                <span style={{
-                                                    fontSize: isMobile ? 11 : 12, fontWeight: 700,
-                                                    color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
-                                                }}>{city}</span>
-                                                <span style={{
-                                                    fontSize: 7, fontWeight: 800,
-                                                    background: col.bg, color: 'white',
-                                                    padding: '1px 5px', borderRadius: 100,
-                                                }}>{col.icon}</span>
-                                            </div>
-                                            <div style={{
-                                                fontSize: 9, color: '#8FA3B8', marginBottom: 5,
-                                                fontFamily: "'Outfit', sans-serif",
-                                                position: 'relative', zIndex: 1,
-                                            }}>
-                                                YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
-                                            </div>
-                                            <div style={{
-                                                display: 'flex', alignItems: 'center', gap: 5,
-                                                position: 'relative', zIndex: 1,
-                                            }}>
-                                                <span style={{
-                                                    fontSize: isMobile ? 13 : 15, fontWeight: 800,
-                                                    color: '#2E7DDB',
-                                                    fontFamily: "'Fredoka', sans-serif",
+                                            {/* Info */}
+                                            <div style={{ padding: isMobile ? '8px 10px' : '10px 12px' }}>
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center',
+                                                    justifyContent: 'space-between', marginBottom: 2,
                                                 }}>
-                                                    {deal.price}$
-                                                </span>
-                                                {discount > 0 && (
-                                                    <span style={{ fontSize: 9, fontWeight: 700, color: col.bg }}>
-                                                        -{Math.round(discount)}%
+                                                    <span style={{
+                                                        fontSize: isMobile ? 12 : 13, fontWeight: 700,
+                                                        color: '#1A2B42', fontFamily: "'Outfit', sans-serif",
+                                                    }}>{city}</span>
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 9, color: '#8FA3B8', marginBottom: 6,
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                }}>
+                                                    YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
+                                                </div>
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: 6,
+                                                }}>
+                                                    <span style={{
+                                                        fontSize: isMobile ? 15 : 17, fontWeight: 800,
+                                                        color: '#2E7DDB',
+                                                        fontFamily: "'Fredoka', sans-serif",
+                                                    }}>
+                                                        {deal.price}$
                                                     </span>
-                                                )}
+                                                    {discount > 0 && (
+                                                        <span style={{ fontSize: 10, fontWeight: 700, color: col.bg }}>
+                                                            -{Math.round(discount)}%
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {/* Scroll hint — sous les mini cards */}
+                            {/* Scroll hint */}
                             <a href="#deals" style={{
                                 textDecoration: 'none', display: 'flex',
                                 alignItems: 'center', justifyContent: 'center',
-                                gap: 4, padding: '6px 0 2px',
+                                gap: 4, padding: '4px 0 2px',
                             }}>
                                 <span style={{
-                                    fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 600,
+                                    fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600,
                                     fontFamily: "'Outfit', sans-serif",
                                 }}>
                                     Voir tous les deals
@@ -464,32 +731,19 @@ export default function MapInterface() {
                     visible={hoverVisible}
                 />
 
-                {/* ========== Section 2 : Deals (scrollable) ========== */}
+                {/* ═══════════ SECTION 2+ : Below the fold ═══════════ */}
                 <div id="deals">
-                    <DealStrip
-                        deals={prices}
-                        loading={pricesLoading}
-                        activeTab={activeTab === 'tout-inclus' ? 'international' : activeTab}
-                        onViewChange={setMapView}
-                        onDealClick={setSelectedDeal}
-                    />
+                    <HowItWorks />
                 </div>
 
-                {/* Section 3 */}
-                <HowItWorks />
-
-                {/* Section 4 */}
                 <PremiumSection />
 
-                {/* Section 5 — Récits de voyageurs */}
                 <div id="recits-section">
                     <RecitsSection />
                 </div>
 
-                {/* Section 6 — Transparence IA & données */}
                 <TransparenceSection />
 
-                {/* Footer */}
                 <Footer />
 
                 <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
