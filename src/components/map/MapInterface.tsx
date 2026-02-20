@@ -924,7 +924,7 @@ export default function MapInterface() {
                                 onClick={() => setSelectedMonth('all')}
                                 style={{
                                     padding: isMobile ? '9px 18px' : '10px 24px',
-                                    borderRadius: 14, border: 'none', cursor: 'pointer',
+                                    borderRadius: 14, cursor: 'pointer',
                                     fontSize: isMobile ? 13 : 14, fontWeight: 700,
                                     fontFamily: "'Outfit', sans-serif",
                                     whiteSpace: 'nowrap',
@@ -971,7 +971,7 @@ export default function MapInterface() {
                                         onClick={() => setSelectedMonth(m.value)}
                                         style={{
                                             padding: isMobile ? '9px 18px' : '10px 24px',
-                                            borderRadius: 14, border: 'none', cursor: 'pointer',
+                                            borderRadius: 14, cursor: 'pointer',
                                             fontSize: isMobile ? 13 : 14, fontWeight: 700,
                                             fontFamily: "'Outfit', sans-serif",
                                             whiteSpace: 'nowrap',
