@@ -1,15 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+// ── Helper: build cache key from params ──
+function buildCacheKey(region: string, budget: string, days: number, prefs: string[]): string {
+  const sortedPrefs = [...prefs].sort().join(',');
+  return `${region}|${budget}|${days}|${sortedPrefs}`.toLowerCase();
+}
+
+// ── Helper: fix truncated JSON ──
+function repairJSON(raw: string): any {
+  let jsonStr = '{' + raw;
+  jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
+  // Try direct parse first
+  try {
+    const firstBrace = jsonStr.indexOf('{');
+    const lastBrace = jsonStr.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      return JSON.parse(jsonStr.substring(firstBrace, lastBrace + 1));
+    }
+    return JSON.parse(jsonStr);
+  } catch {
+    // Attempt to fix truncated JSON
+    try {
+      // Remove trailing comma
+      jsonStr = jsonStr.replace(/,\s*$/, '');
+      // Count open vs close braces/brackets
+      let braces = 0, brackets = 0;
+      for (const c of jsonStr) {
+        if (c === '{') braces++;
+        if (c === '}') braces--;
+        if (c === '[') brackets++;
+        if (c === ']') brackets--;
+      }
+      while (brackets > 0) { jsonStr += ']'; brackets--; }
+      while (braces > 0) { jsonStr += '}'; braces--; }
+      console.warn('Repaired truncated JSON');
+      return JSON.parse(jsonStr);
+    } catch (fixErr) {
+      throw new Error('Unfixable JSON: ' + jsonStr.substring(0, 500));
+    }
+  }
+}
+
+// ── Quebec regions list (for cache check) ──
+const QC_REGIONS = [
+  'charlevoix', 'gaspésie', 'gaspesie', 'saguenay', 'lac-saint-jean',
+  'ville de québec', 'ville de quebec', 'québec city', 'quebec city',
+  'montréal', 'montreal', 'laurentides', 'cantons-de-l\'est', 'cantons de l\'est',
+  'îles-de-la-madeleine', 'iles-de-la-madeleine', 'bas-saint-laurent',
+  'côte-nord', 'cote-nord', 'mauricie', 'outaouais', 'lanaudière',
+  'lanaudiere', 'abitibi', 'témiscamingue', 'temiscamingue',
+];
+
+function isQuebecDestination(destination: string): boolean {
+  const lower = destination.toLowerCase();
+  return QC_REGIONS.some(r => lower.includes(r)) ||
+    lower.includes('québec') || lower.includes('quebec');
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServerSupabase();
 
+    // ── Auth ──
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Connecte-toi pour générer un guide.' }, { status: 401 });
     }
 
+    // ── Plan check ──
     const { data: profile } = await supabase
       .from('profiles')
       .select('plan')
@@ -33,12 +93,13 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
+    // ── Parse body ──
     const body = await req.json();
     const {
       destination, destination_code, country,
       departure_date, return_date, price, airline, stops,
       preferences = [], trip_days, rest_days = 1,
-      budget_style = 'moderate',
+      budget_style = 'moderate', quiz_context,
     } = body;
 
     if (!destination) {
@@ -52,6 +113,122 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isQC = isQuebecDestination(destination);
+
+    // ══════════════════════════════════════
+    // QUÉBEC: Check cache first
+    // ══════════════════════════════════════
+    if (isQC) {
+      const cacheKey = buildCacheKey(destination, budget_style, nights, preferences);
+
+      const { data: cached } = await supabase
+        .from('qc_guide_cache')
+        .select('*')
+        .eq('cache_key', cacheKey)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (cached) {
+        // Increment hit count
+        await supabase
+          .from('qc_guide_cache')
+          .update({ hit_count: (cached.hit_count || 0) + 1 })
+          .eq('id', cached.id);
+
+        // Save to user's guides
+        const { data: savedGuide } = await supabase
+          .from('ai_guides')
+          .insert({
+            user_id: user.id,
+            destination,
+            destination_code: destination_code || null,
+            country: country || 'Canada (Québec)',
+            departure_date: departure_date || null,
+            return_date: return_date || null,
+            flight_price: price || null,
+            preferences,
+            budget_style,
+            guide_data: cached.guide_data,
+            model_used: 'cache',
+            tokens_used: 0,
+          })
+          .select('id')
+          .single();
+
+        console.log(`Cache HIT for ${destination} (key: ${cacheKey})`);
+
+        return NextResponse.json({
+          guide: cached.guide_data,
+          guide_id: savedGuide?.id || null,
+          guide_count: guideCount + 1,
+          is_premium: isPremium,
+          tokens_used: 0,
+          cached: true,
+        });
+      }
+    }
+
+    // ══════════════════════════════════════
+    // QUÉBEC: Fetch local data for prompt
+    // ══════════════════════════════════════
+    let localDataPrompt = '';
+
+    if (isQC) {
+      const regionName = destination;
+
+      // Fetch restaurants
+      const { data: restos } = await supabase
+        .from('qc_restaurants')
+        .select('name, cuisine_type, price_range, avg_cost_per_person, rating, address, specialty, must_try, tags')
+        .ilike('region', `%${regionName}%`)
+        .limit(15);
+
+      // Fetch activities
+      const { data: activities } = await supabase
+        .from('qc_activities')
+        .select('name, activity_type, cost_per_person, duration, difficulty, description, tip, tags, indoor, rainy_day_alternative')
+        .ilike('region', `%${regionName}%`)
+        .limit(20);
+
+      // Fetch accommodations
+      const { data: accs } = await supabase
+        .from('qc_accommodations')
+        .select('name, accommodation_type, price_per_night, budget_level, rating, tip, tags')
+        .ilike('region', `%${regionName}%`)
+        .eq('budget_level', budget_style === 'budget' ? 'econome' : budget_style === 'luxury' ? 'luxe' : budget_style === 'moderate' ? 'confortable' : budget_style)
+        .limit(5);
+
+      // Fetch top user reviews
+      const { data: reviews } = await supabase
+        .from('qc_user_reviews')
+        .select('place_name, rating, comment, would_recommend')
+        .ilike('region', `%${regionName}%`)
+        .gte('rating', 4)
+        .order('rating', { ascending: false })
+        .limit(10);
+
+      if (restos?.length || activities?.length || accs?.length) {
+        localDataPrompt = `\n\n══ DONNÉES VÉRIFIÉES POUR ${regionName.toUpperCase()} ══
+UTILISE PRIORITAIREMENT ces lieux réels dans ton itinéraire. Tu peux en ajouter d'autres si nécessaire.
+
+RESTAURANTS VÉRIFIÉS:
+${restos?.map(r => `- ${r.name} (${r.cuisine_type}, ${r.price_range}, ${r.avg_cost_per_person}$/pers, ${r.rating}★) ${r.address ? '@ ' + r.address : ''} — Must try: ${r.must_try || 'N/A'}`).join('\n') || 'Aucun en base'}
+
+ACTIVITÉS VÉRIFIÉES:
+${activities?.map(a => `- ${a.name} (${a.activity_type}, ${a.cost_per_person}$, ${a.duration}, ${a.difficulty}) ${a.indoor ? '[INDOOR]' : '[OUTDOOR]'} ${a.rainy_day_alternative ? '[PLUIE OK]' : ''} — ${a.description}`).join('\n') || 'Aucune en base'}
+
+HÉBERGEMENTS RECOMMANDÉS:
+${accs?.map(a => `- ${a.name} (${a.accommodation_type}, ${a.price_per_night}$/nuit, ${a.rating}★) — ${a.tip || ''}`).join('\n') || 'Aucun en base'}
+
+${reviews?.length ? `AVIS VOYAGEURS (places les mieux notées):
+${reviews.map(r => `- ${r.place_name}: ${r.rating}★ ${r.would_recommend ? '✓ Recommandé' : ''} ${r.comment ? '"' + r.comment.substring(0, 80) + '"' : ''}`).join('\n')}` : ''}`;
+      }
+    }
+
+    // ══════════════════════════════════════
+    // Build prompt & call Claude
+    // ══════════════════════════════════════
+
     const prefsText = preferences.length > 0 ? preferences.join(', ') : 'culture, gastronomie, nature';
 
     const budgetMap: Record<string, string> = {
@@ -60,11 +237,26 @@ export async function POST(req: NextRequest) {
       luxury: 'haut de gamme (hôtels 4-5★, restaurants gastronomiques, taxis/privé)',
     };
 
+    // Quiz context string
+    let quizContextStr = '';
+    if (quiz_context) {
+      quizContextStr = `\n\nPROFIL DU VOYAGEUR (quiz):
+- Groupe: ${quiz_context.group || 'non spécifié'}
+- Vibe: ${quiz_context.vibe || 'non spécifié'}
+- Énergie: ${quiz_context.energy || 'non spécifié'}
+- Saison: ${quiz_context.season || 'non spécifié'}
+- Hébergement préféré: ${quiz_context.accommodation || 'non spécifié'}
+- Transport: ${quiz_context.transport || 'non spécifié'}
+- Food: ${Array.isArray(quiz_context.food) ? quiz_context.food.join(', ') : quiz_context.food || 'non spécifié'}
+- Connaissance: ${quiz_context.knowledge || 'non spécifié'}
+- Souhait spécial: ${quiz_context.special || 'non spécifié'}`;
+    }
+
     const systemPrompt = `Tu es un expert en voyage ultra-détaillé qui crée des itinéraires jour par jour.
 Tu écris en français québécois naturel (utilise "tu", pas "vous").
 Tu donnes des VRAIS noms de lieux, restaurants, adresses et estimations de prix en CAD.
 Tu connais les tips d'initié que les touristes ne connaissent pas.
-Tu inclusions les DIRECTIONS précises entre chaque activité (mode de transport, durée, distance).
+Tu inclus les DIRECTIONS précises entre chaque activité (mode de transport, durée, distance).
 
 RÈGLE ABSOLUE : Réponds UNIQUEMENT en JSON valide. Aucun texte avant ou après. Aucun backtick. Juste le JSON brut.`;
 
@@ -76,7 +268,7 @@ DATES : ${departure_date || 'Flexible'} → ${return_date || 'Flexible'} (${nigh
 PRIX VOL : ${price || 0}$ CAD aller-retour
 BUDGET : ${budgetMap[budget_style] || budgetMap.moderate}
 PRÉFÉRENCES : ${prefsText}
-JOURS DE REPOS : ${rest_days}
+JOURS DE REPOS : ${rest_days}${quizContextStr}${localDataPrompt}
 
 Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, afternoon, dinner, evening + les directions entre chaque.
 
@@ -119,12 +311,12 @@ Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, after
         "rating": "4.5★"
       },
       "getting_to_lunch": {
-        "from": "Lieu de l'activity matin",
-        "to": "Nom du resto lunch",
+        "from": "Lieu matin",
+        "to": "Resto lunch",
         "mode": "🚶 À pied",
         "duration": "8 min",
         "distance": "650m",
-        "directions": "Directions textuelles précises"
+        "directions": "Directions précises"
       },
       "lunch": {
         "name": "Nom du restaurant",
@@ -132,15 +324,15 @@ Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, after
         "location": "Adresse",
         "cost": 0,
         "rating": "4.3★",
-        "must_try": "Plat à commander absolument"
+        "must_try": "Plat à commander"
       },
       "getting_to_afternoon": {
-        "from": "Resto lunch",
-        "to": "Activité après-midi",
-        "mode": "🚇 Métro",
+        "from": "Resto",
+        "to": "Activité PM",
+        "mode": "🚗 Auto",
         "duration": "12 min",
         "distance": "2km",
-        "directions": "Ligne X, direction Y"
+        "directions": "Directions"
       },
       "afternoon": {
         "activity": "Nom activité",
@@ -152,7 +344,7 @@ Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, after
         "rating": "4.6★"
       },
       "getting_to_dinner": {
-        "from": "Activité après-midi",
+        "from": "Activité PM",
         "to": "Resto souper",
         "mode": "🚶 À pied",
         "duration": "10 min",
@@ -178,7 +370,7 @@ Réponds avec cette structure JSON EXACTE. Chaque jour a : morning, lunch, after
       "getting_back_hotel": {
         "from": "Lieu soirée",
         "to": "Hôtel",
-        "mode": "🚇 Métro ou 🚕 Taxi",
+        "mode": "🚗 Auto",
         "duration": "15 min",
         "directions": "Comment rentrer"
       }
@@ -208,7 +400,7 @@ IMPORTANT :
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 8192,
+        max_tokens: 16384,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt },
@@ -228,18 +420,13 @@ IMPORTANT :
 
     let guide;
     try {
-      let jsonStr = '{' + rawText;
-      jsonStr = jsonStr.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-      const firstBrace = jsonStr.indexOf('{');
-      const lastBrace = jsonStr.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
-      }
-      guide = JSON.parse(jsonStr);
-    } catch (parseErr) {
-      console.error('JSON parse error:', parseErr, 'Raw (first 1500):', ('{' + rawText).substring(0, 1500));
+      guide = repairJSON(rawText);
+    } catch (parseErr: any) {
+      console.error('JSON parse error:', parseErr.message);
       return NextResponse.json({ error: 'Erreur de format. Réessaie!' }, { status: 500 });
     }
+
+    // ─── Save guide + cache for Québec ───
 
     const { data: savedGuide, error: saveError } = await supabase
       .from('ai_guides')
@@ -262,12 +449,32 @@ IMPORTANT :
 
     if (saveError) console.error('Save error:', saveError);
 
+    // Cache Québec guides for future users
+    if (isQC) {
+      const cacheKey = buildCacheKey(destination, budget_style, nights, preferences);
+      await supabase
+        .from('qc_guide_cache')
+        .upsert({
+          cache_key: cacheKey,
+          region: destination,
+          budget_style,
+          trip_days: nights,
+          preferences,
+          guide_data: guide,
+          hit_count: 0,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        }, { onConflict: 'cache_key' });
+
+      console.log(`Cache STORED for ${destination} (key: ${cacheKey})`);
+    }
+
     return NextResponse.json({
       guide,
       guide_id: savedGuide?.id || null,
       guide_count: guideCount + 1,
       is_premium: isPremium,
       tokens_used: (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0),
+      cached: false,
     });
 
   } catch (err: any) {
