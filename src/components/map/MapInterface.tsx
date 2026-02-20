@@ -73,7 +73,7 @@ function getMonths() {
 }
 
 // ═══════════════════════════════════════════════════════
-// INFINITE AUTO-SCROLL CAROUSEL
+// INFINITE AUTO-SCROLL CAROUSEL — ENHANCED
 // ═══════════════════════════════════════════════════════
 function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     deals: any[];
@@ -81,6 +81,7 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     onDealClick: (deal: any) => void;
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
     // Duplicate deals for seamless infinite loop
     const loopedDeals = useMemo(() => {
@@ -130,10 +131,20 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
         };
     }, [deals.length]);
 
+    // Stats
+    const stats = useMemo(() => {
+        if (deals.length === 0) return null;
+        const sorted = [...deals].sort((a: any, b: any) => a.price - b.price);
+        const cheapest = sorted[0];
+        const biggestDiscount = [...deals].sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0))[0];
+        const directCount = deals.filter((d: any) => d.stops === 0).length;
+        return { cheapest, biggestDiscount, directCount };
+    }, [deals]);
+
     if (deals.length === 0) {
         return (
             <div style={{
-                padding: '32px 24px', textAlign: 'center',
+                padding: '40px 24px', textAlign: 'center',
                 background: 'white', color: '#8FA3B8', fontSize: 14,
                 fontFamily: "'Outfit', sans-serif",
             }}>
@@ -143,16 +154,16 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     }
 
     return (
-        <div style={{ background: 'white', paddingBottom: 16 }}>
+        <div style={{ background: 'white', paddingBottom: 0 }}>
             {/* Fade edges */}
             <div style={{ position: 'relative' }}>
                 <div style={{
-                    position: 'absolute', top: 0, left: 0, width: 50, height: '100%',
+                    position: 'absolute', top: 0, left: 0, width: 60, height: '100%',
                     background: 'linear-gradient(to right, white, transparent)',
                     zIndex: 3, pointerEvents: 'none',
                 }} />
                 <div style={{
-                    position: 'absolute', top: 0, right: 0, width: 50, height: '100%',
+                    position: 'absolute', top: 0, right: 0, width: 60, height: '100%',
                     background: 'linear-gradient(to left, white, transparent)',
                     zIndex: 3, pointerEvents: 'none',
                 }} />
@@ -161,8 +172,8 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                     ref={scrollRef}
                     className="carousel-scroll"
                     style={{
-                        display: 'flex', gap: 16,
-                        overflowX: 'auto', padding: '16px 24px 12px',
+                        display: 'flex', gap: 18,
+                        overflowX: 'auto', padding: '20px 24px 16px',
                         WebkitOverflowScrolling: 'touch',
                     }}
                 >
@@ -189,22 +200,28 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                             return dt.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
                         };
                         const datesLabel = depDate ? `${formatShort(depDate)}${retDate ? ' – ' + formatShort(retDate) : ''}` : '';
+                        const isHovered = hoveredIdx === i;
 
                         return (
                             <div
                                 key={`inf-${code}-${i}`}
                                 className="carousel-card"
                                 onClick={() => onDealClick(deal)}
+                                onMouseEnter={() => setHoveredIdx(i)}
+                                onMouseLeave={() => setHoveredIdx(null)}
                                 style={{
-                                    minWidth: isMobile ? 240 : 260,
-                                    maxWidth: isMobile ? 240 : 260,
+                                    minWidth: isMobile ? 240 : 270,
+                                    maxWidth: isMobile ? 240 : 270,
                                     borderRadius: 20, overflow: 'hidden',
                                     background: 'white',
-                                    border: '1px solid rgba(26,43,66,0.07)',
-                                    boxShadow: '0 4px 15px rgba(26,43,66,0.05)',
+                                    border: isHovered ? `2px solid ${col.bg}` : '1px solid rgba(26,43,66,0.07)',
+                                    boxShadow: isHovered
+                                        ? `0 12px 35px ${col.bg}20, 0 4px 15px rgba(0,0,0,0.06)`
+                                        : '0 4px 15px rgba(26,43,66,0.05)',
                                     cursor: 'pointer', flexShrink: 0,
                                     position: 'relative',
-                                    transform: 'translateZ(0)',
+                                    transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
+                                    transition: 'all 0.35s cubic-bezier(.25,.46,.45,.94)',
                                 }}
                             >
                                 {/* Badge */}
@@ -220,12 +237,34 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                                     {col.icon} {col.label}
                                 </div>
 
-                                {/* Image */}
+                                {/* Watchlist heart */}
+                                <div
+                                    onClick={(e) => { e.stopPropagation(); }}
+                                    style={{
+                                        position: 'absolute', top: 12, right: 12, zIndex: 5,
+                                        background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)',
+                                        borderRadius: '50%', width: 32, height: 32,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                >
+                                    <svg width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="white" strokeWidth="2.5">
+                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                    </svg>
+                                </div>
+
+                                {/* Image with hover zoom */}
                                 <div style={{ height: 150, position: 'relative', overflow: 'hidden' }}>
                                     <img
                                         src={img || 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop'}
                                         alt={city}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        style={{
+                                            width: '100%', height: '100%', objectFit: 'cover',
+                                            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+                                            transition: 'transform 0.6s cubic-bezier(.25,.46,.45,.94)',
+                                        }}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src =
                                                 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop';
@@ -233,21 +272,35 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                                     />
                                     <div style={{
                                         position: 'absolute', inset: 0,
-                                        background: 'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.5))',
+                                        background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))',
                                     }} />
                                     {/* Dates overlay */}
                                     {datesLabel && (
                                         <div style={{
                                             position: 'absolute', bottom: 10, left: 12,
-                                            display: 'flex', alignItems: 'center', gap: 6,
                                         }}>
                                             <span style={{
                                                 fontSize: 11, color: 'white', fontWeight: 600,
                                                 background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
-                                                padding: '3px 10px', borderRadius: 100,
+                                                padding: '4px 12px', borderRadius: 100,
                                                 fontFamily: "'Outfit', sans-serif",
                                             }}>
                                                 📅 {datesLabel}{nights > 0 ? ` · ${nights} nuits` : ''}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {/* Direct badge on image */}
+                                    {deal.stops === 0 && (
+                                        <div style={{
+                                            position: 'absolute', bottom: 10, right: 12,
+                                        }}>
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800, color: 'white',
+                                                background: 'rgba(22,163,74,0.85)', backdropFilter: 'blur(6px)',
+                                                padding: '3px 10px', borderRadius: 100,
+                                                fontFamily: "'Outfit', sans-serif",
+                                            }}>
+                                                ✈️ Direct
                                             </span>
                                         </div>
                                     )}
@@ -274,7 +327,7 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                                         fontSize: 12, color: '#8FA3B8', marginBottom: 14,
                                         fontFamily: "'Outfit', sans-serif",
                                     }}>
-                                        YUL → {code}{airline ? ` · ${airline}` : ''} · {deal.stops === 0 ? 'Direct ✅' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
+                                        YUL → {code}{airline ? ` · ${airline}` : ''}
                                     </div>
 
                                     {/* Price row */}
@@ -328,6 +381,68 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                     })}
                 </div>
             </div>
+
+            {/* ═══ STATS BAR ═══ */}
+            {stats && (
+                <div style={{
+                    display: 'flex', gap: 12, padding: '4px 24px 20px',
+                    overflowX: 'auto', scrollbarWidth: 'none',
+                }}>
+                    {[
+                        {
+                            icon: '⚡',
+                            label: 'Meilleur deal',
+                            value: `${stats.cheapest?.destination || stats.cheapest?.city || '—'} à ${stats.cheapest?.price || 0}$`,
+                            color: '#7C3AED',
+                        },
+                        {
+                            icon: '📉',
+                            label: 'Plus gros rabais',
+                            value: `-${Math.round(stats.biggestDiscount?.discount || 0)}% (${stats.biggestDiscount?.destination || stats.biggestDiscount?.city || '—'})`,
+                            color: '#DC2626',
+                        },
+                        {
+                            icon: '✈️',
+                            label: 'Vols directs',
+                            value: `${stats.directCount} destination${stats.directCount > 1 ? 's' : ''}`,
+                            color: '#2E7DDB',
+                        },
+                        {
+                            icon: '🔄',
+                            label: 'Dernière mise à jour',
+                            value: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
+                            color: '#16A34A',
+                        },
+                    ].map((stat, idx) => (
+                        <div key={idx} style={{
+                            flex: '1 1 200px', minWidth: 180,
+                            padding: '14px 18px',
+                            background: '#FAFBFD',
+                            borderRadius: 14,
+                            border: '1px solid rgba(26,43,66,0.05)',
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            flexShrink: 0,
+                        }}>
+                            <span style={{ fontSize: 18 }}>{stat.icon}</span>
+                            <div>
+                                <div style={{
+                                    fontSize: 10, color: '#8FA3B8', fontWeight: 600,
+                                    textTransform: 'uppercase' as const, letterSpacing: 0.5,
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    {stat.label}
+                                </div>
+                                <div style={{
+                                    fontSize: 14, fontWeight: 700, color: '#1A2B42',
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    {stat.value}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -817,6 +932,7 @@ export default function MapInterface() {
                                         fontSize: 12, fontWeight: 700,
                                         fontFamily: "'Outfit', sans-serif",
                                         whiteSpace: 'nowrap',
+                                        display: 'flex', alignItems: 'center', gap: 6,
                                         background: selectedMonth === 'all'
                                             ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
                                             : 'rgba(255,255,255,0.06)',
@@ -825,28 +941,57 @@ export default function MapInterface() {
                                     }}
                                 >
                                     Tous
+                                    <span style={{
+                                        fontSize: 9, fontWeight: 800,
+                                        background: selectedMonth === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                        padding: '1px 7px', borderRadius: 100,
+                                    }}>
+                                        {filteredPrices.length || (prices || []).filter((d: any) => {
+                                            const code = d.destination_code || '';
+                                            const isCanadian = CANADA_CODES.includes(code);
+                                            return activeTab === 'canada' ? isCanadian : !isCanadian;
+                                        }).length}
+                                    </span>
                                 </button>
-                                {availableMonths.map(m => (
-                                    <button
-                                        key={m.value}
-                                        className="month-pill"
-                                        onClick={() => setSelectedMonth(m.value)}
-                                        style={{
-                                            padding: isMobile ? '6px 14px' : '8px 20px',
-                                            borderRadius: 100, border: 'none', cursor: 'pointer',
-                                            fontSize: 12, fontWeight: 700,
-                                            fontFamily: "'Outfit', sans-serif",
-                                            whiteSpace: 'nowrap',
-                                            background: selectedMonth === m.value
-                                                ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                                : 'rgba(255,255,255,0.06)',
-                                            color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.4)',
-                                            boxShadow: selectedMonth === m.value ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
-                                        }}
-                                    >
-                                        {m.label}
-                                    </button>
-                                ))}
+                                {availableMonths.map(m => {
+                                    const monthCount = (prices || []).filter((d: any) => {
+                                        const dep = d.departure_date || '';
+                                        const code = d.destination_code || '';
+                                        const isCanadian = CANADA_CODES.includes(code);
+                                        const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
+                                        return isCorrectTab && dep.startsWith(m.value);
+                                    }).length;
+
+                                    return (
+                                        <button
+                                            key={m.value}
+                                            className="month-pill"
+                                            onClick={() => setSelectedMonth(m.value)}
+                                            style={{
+                                                padding: isMobile ? '6px 14px' : '8px 20px',
+                                                borderRadius: 100, border: 'none', cursor: 'pointer',
+                                                fontSize: 12, fontWeight: 700,
+                                                fontFamily: "'Outfit', sans-serif",
+                                                whiteSpace: 'nowrap',
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                                background: selectedMonth === m.value
+                                                    ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                                    : 'rgba(255,255,255,0.06)',
+                                                color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.4)',
+                                                boxShadow: selectedMonth === m.value ? '0 2px 8px rgba(46,125,219,0.3)' : 'none',
+                                            }}
+                                        >
+                                            {m.label}
+                                            <span style={{
+                                                fontSize: 9, fontWeight: 800,
+                                                background: selectedMonth === m.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+                                                padding: '1px 7px', borderRadius: 100,
+                                            }}>
+                                                {monthCount}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
