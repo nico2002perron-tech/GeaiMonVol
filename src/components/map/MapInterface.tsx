@@ -1035,7 +1035,7 @@ export default function MapInterface() {
 
                 <Footer />
 
-                <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
+                <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} activeTab={activeTab} />
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}
