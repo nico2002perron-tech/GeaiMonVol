@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import GuidePanel from './GuidePanel';
 
 interface DealDetail {
     city: string;
@@ -54,6 +55,7 @@ const AIRLINE_BAGGAGE: Record<string, { cabin: boolean; checked: boolean; label:
 
 export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
     const [isMobile, setIsMobile] = useState(false);
+    const [guideOpen, setGuideOpen] = useState(false);
 
     useEffect(() => {
         setIsMobile(window.innerWidth <= 768);
@@ -61,6 +63,11 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Reset guide panel when deal changes
+    useEffect(() => {
+        setGuideOpen(false);
+    }, [deal]);
 
     if (!deal) return null;
 
@@ -356,6 +363,43 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                     {/* Séparateur */}
                     <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid #F0F0F0' }} />
 
+                    {/* ═══ GUIDE IA BUTTON ═══ */}
+                    <button
+                        onClick={() => {
+                            onClose();
+                            setTimeout(() => setGuideOpen(true), 100);
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 10,
+                            width: '100%',
+                            padding: '14px 0',
+                            background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+                            color: 'white',
+                            textAlign: 'center',
+                            borderRadius: 12,
+                            fontSize: 14,
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontFamily: "'Outfit', sans-serif",
+                            boxShadow: '0 4px 16px rgba(124,58,237,0.25)',
+                            marginBottom: 10,
+                        }}
+                    >
+                        <span style={{ fontSize: 18 }}>🤖</span>
+                        Générer mon Guide IA
+                        <span style={{
+                            fontSize: 8, fontWeight: 800,
+                            background: 'rgba(255,255,255,0.2)',
+                            padding: '2px 8px', borderRadius: 100,
+                        }}>
+                            1 GRATUIT
+                        </span>
+                    </button>
+
                     {/* Bouton réserver */}
                     <a
                         href={googleLink}
@@ -383,6 +427,13 @@ export default function DealSidebar({ deal, onClose }: DealSidebarProps) {
                     </p>
                 </div>
             </div>
+
+            {/* Guide Panel */}
+            <GuidePanel
+                isOpen={guideOpen}
+                onClose={() => setGuideOpen(false)}
+                deal={deal}
+            />
         </>
     );
 }
