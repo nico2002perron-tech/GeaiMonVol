@@ -72,12 +72,12 @@ export async function POST(req: NextRequest) {
     // ── Plan check ──
     const { data: profile } = await supabase
       .from('profiles')
-      .select('plan, role')
+      .select('plan')
       .eq('id', user.id)
       .single();
 
     const isPremium = profile?.plan === 'premium';
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = (profile as any)?.role === 'admin';
 
     const { count } = await supabase
       .from('ai_guides')
@@ -427,7 +427,9 @@ IMPORTANT :
       return NextResponse.json({ error: 'Erreur de format. Réessaie!' }, { status: 500 });
     }
 
-    // ─── Save guide + cache for Québec ───
+    // ──══════════════════════════════════════
+    // Save guide + cache for Québec
+    // ──══════════════════════════════════════
 
     const { data: savedGuide, error: saveError } = await supabase
       .from('ai_guides')

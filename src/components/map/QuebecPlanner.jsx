@@ -1,5 +1,6 @@
 ﻿import { useState, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import TravelBook from './TravelBook';
 
 /* ═══ QUESTIONS ═══ */
 const QUESTIONS = [
@@ -326,120 +327,19 @@ export default function QuebecPlanner({ onClose }) {
                 </div>}
 
                 {/* ═══ RESULT ═══ */}
-                {step === "result" && guide && <div style={{ animation: "qF .4s ease" }}>
-                    {/* Header */}
-                    <div style={{ padding: "24px 24px 18px", textAlign: "center", background: "linear-gradient(170deg,rgba(46,125,219,.04),transparent)", borderBottom: "1px solid rgba(46,125,219,.05)" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#2E7DDB", marginBottom: 4 }}>⚜️ {region} · Généré par IA</div>
-                        <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0F1D2F", margin: "0 0 4px" }}>{guide.title}</h2>
-                        <p style={{ fontSize: 13, color: "#5A6B80", margin: "0 0 8px" }}>{guide.summary}</p>
-                        {guide.budget_summary && <div style={{ display: "inline-flex", gap: 14, padding: "10px 20px", borderRadius: 16, background: "white", border: "1px solid rgba(46,125,219,.08)", marginTop: 6, flexWrap: "wrap", justifyContent: "center" }}>
-                            <div><div style={{ fontSize: 10, color: "#8A9AB5", fontWeight: 700 }}>TOTAL</div><div style={{ fontSize: 20, fontWeight: 800, color: "#2E7DDB" }}>{guide.budget_summary.total_per_person}$</div></div>
-                            <div style={{ borderLeft: "1px solid rgba(46,125,219,.08)", paddingLeft: 14 }}><div style={{ fontSize: 10, color: "#8A9AB5", fontWeight: 700 }}>HÉBERG.</div><div style={{ fontSize: 15, fontWeight: 700, color: "#0F1D2F" }}>{guide.budget_summary.accommodation_total}$</div></div>
-                            <div style={{ borderLeft: "1px solid rgba(46,125,219,.08)", paddingLeft: 14 }}><div style={{ fontSize: 10, color: "#8A9AB5", fontWeight: 700 }}>ACTIVITÉS</div><div style={{ fontSize: 15, fontWeight: 700, color: "#0F1D2F" }}>{guide.budget_summary.activities_total}$</div></div>
-                            <div style={{ borderLeft: "1px solid rgba(46,125,219,.08)", paddingLeft: 14 }}><div style={{ fontSize: 10, color: "#8A9AB5", fontWeight: 700 }}>BOUFFE</div><div style={{ fontSize: 15, fontWeight: 700, color: "#0F1D2F" }}>{guide.budget_summary.food_total}$</div></div>
-                        </div>}
-                        {guide.accommodation && <div style={{ marginTop: 8, fontSize: 12, color: "#5A6B80" }}>🏨 {guide.accommodation.name} · {guide.accommodation.price_per_night}$/nuit</div>}
-                    </div>
-
-                    {/* Highlights */}
-                    {guide.highlights && <div style={{ padding: "10px 18px", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                        {guide.highlights.map((h, j) => <span key={j} style={{ padding: "4px 12px", borderRadius: 100, background: "rgba(46,125,219,.04)", fontSize: 12, fontWeight: 600, color: "#2E7DDB" }}>✨ {h}</span>)}</div>}
-
-                    {/* Day tabs */}
-                    <div style={{ display: "flex", gap: 0, padding: "0 8px", overflowX: "auto", borderBottom: "1px solid rgba(46,125,219,.04)" }}>
-                        {guide.days?.map((d, i) => <button key={i} onClick={() => setExDay(i)} style={{
-                            flex: "0 0 auto", padding: "10px 10px", border: "none",
-                            borderBottom: exDay === i ? `3px solid ${DC[i % DC.length]}` : "3px solid transparent", background: "transparent",
-                            color: exDay === i ? DC[i % DC.length] : "#8A9AB5", fontSize: 12, fontWeight: exDay === i ? 700 : 600, cursor: "pointer", fontFamily: "'Fredoka',sans-serif"
-                        }}>
-                            <div>J{d.day}</div><div style={{ fontSize: 9 }}>{d.total_cost}$</div></button>)}</div>
-
-                    {/* ═══ DAY DETAIL — CALENDAR ═══ */}
-                    {guide.days?.map((d, i) => exDay === i ? <div key={i} style={{ padding: "16px 18px 20px", animation: "qF .25s ease" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                            <h3 style={{ fontSize: 17, fontWeight: 700, color: DC[i % DC.length], margin: 0 }}>{d.theme} {d.title}</h3>
-                            <span style={{ fontSize: 11, fontWeight: 700, color: DC[i % DC.length], padding: "3px 10px", borderRadius: 100, background: `${DC[i % DC.length]}10` }}>{d.total_cost}$/pers</span>
-                        </div>
-
-                        {SLOTS.map(({ slot, label, icon, color, colorIdx }) => {
-                            const data = d[slot]; if (!data) return null;
-                            const c = colorIdx ? DC[i % DC.length] : color;
-                            const time = d.schedule?.[slot] || "—";
-                            const nm = data.activity || data.name || "—";
-                            const dir = d[`getting_to_${slot}`];
-                            const ek = `${i}-${slot}`;
-                            return (<div key={slot} style={{ marginBottom: 6 }}>
-                                {/* Direction */}
-                                {dir && <div style={{ padding: "3px 14px 3px 62px", marginBottom: 2 }}>
-                                    <div style={{ fontSize: 10, color: "#B0BFCF", display: "flex", gap: 6, alignItems: "center" }}>
-                                        <span>↓</span><span>{dir.mode}</span><span>·</span><span>{dir.duration}</span>
-                                        {dir.distance && <><span>·</span><span>{dir.distance}</span></>}
-                                    </div></div>}
-
-                                {/* Calendar block */}
-                                <div style={{ display: "flex", gap: 0, borderRadius: 14, overflow: "hidden", background: "white", border: `1px solid ${c}15` }}>
-                                    {/* Time col */}
-                                    <div onClick={() => setEditTime(editTime === ek ? null : ek)} style={{ width: 58, flexShrink: 0, background: `${c}06`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "10px 4px", borderRight: `2px solid ${c}18`, cursor: "pointer" }}>
-                                        <span style={{ fontSize: 15, fontWeight: 800, color: c, lineHeight: 1 }}>{time.split(":")[0]}</span>
-                                        <span style={{ fontSize: 10, fontWeight: 600, color: `${c}99` }}>:{time.split(":")[1] || "00"}</span>
-                                        <span style={{ fontSize: 8, color: "#B0BFCF", marginTop: 2 }}>✏️</span>
-                                    </div>
-                                    {/* Content */}
-                                    <div style={{ flex: 1, padding: "10px 14px" }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <span style={{ fontSize: 10, fontWeight: 700, color: c, textTransform: "uppercase", letterSpacing: .5 }}>
-                                                {icon} {label} {data.duration ? `· ${data.duration}` : ""} {data.rating ? `· ${data.rating}` : ""}</span>
-                                            <span style={{ fontSize: 12, fontWeight: 700, color: "#0F1D2F" }}>{data.cost}$</span></div>
-                                        <div style={{ fontSize: 14.5, fontWeight: 700, color: "#0F1D2F", marginTop: 2 }}>{nm}</div>
-                                        <div style={{ fontSize: 12, color: "#5A6B80" }}>📍 {data.location}</div>
-                                        {data.description && <div style={{ fontSize: 11, color: "#5A6B80", marginTop: 2 }}>{data.description}</div>}
-                                        {data.tip && <div style={{ fontSize: 10.5, color: "#8A9AB5", fontStyle: "italic", marginTop: 2 }}>💡 {data.tip}</div>}
-                                        {data.must_try && <div style={{ fontSize: 10.5, color: c, marginTop: 2 }}>⭐ {data.must_try}</div>}
-
-                                        {/* Rating + Swap */}
-                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6, paddingTop: 6, borderTop: "1px solid rgba(0,0,0,.03)" }}>
-                                            <div style={{ display: "flex", gap: 2 }}>{[1, 2, 3, 4, 5].map(s => <button key={s} onClick={() => setRatings(p => ({ ...p, [ek]: s }))} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, opacity: (ratings[ek] || 0) >= s ? 1 : .2 }}>⭐</button>)}</div>
-                                            <button onClick={() => { setSwp({ dayIdx: i, slot, step: "reason" }); setSwpAlts(null) }}
-                                                style={{ padding: "3px 10px", borderRadius: 100, border: `1px solid ${c}15`, background: "transparent", color: c, fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: "'Fredoka',sans-serif" }}>🔄 Changer</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Time editor */}
-                                {editTime === ek && <div style={{ padding: "6px 14px 6px 62px", animation: "qF .2s ease" }}>
-                                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                                        <input type="time" defaultValue={time} onChange={e => updTime(i, slot, e.target.value)}
-                                            style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid rgba(46,125,219,.15)", fontSize: 12, fontFamily: "'Fredoka',sans-serif", color: "#0F1D2F" }} />
-                                        <span style={{ fontSize: 10, color: "#8A9AB5" }}>← modifier l'heure</span>
-                                    </div></div>}
-                            </div>)
-                        })}
-
-                        {/* Notes */}
-                        <div style={{ marginTop: 10 }}>
-                            <textarea placeholder="📝 Notes personnelles..." value={notes[`d-${i}`] || ""} onChange={e => setNotes(p => ({ ...p, [`d-${i}`]: e.target.value }))}
-                                style={{ width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(46,125,219,.08)", background: "rgba(46,125,219,.02)", fontSize: 12, fontFamily: "'Fredoka',sans-serif", color: "#0F1D2F", resize: "vertical", minHeight: 44, outline: "none" }} />
-                        </div>
-                    </div> : null)}
-
-                    {/* Packing */}
-                    {guide.packing_list && <div style={{ padding: "0 18px 10px" }}><div style={{ padding: "12px 14px", borderRadius: 14, background: "rgba(5,150,105,.02)", border: "1px solid rgba(5,150,105,.06)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#059669", marginBottom: 6 }}>🎒 À ne pas oublier</div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{guide.packing_list.map((it, j) => <span key={j} style={{ padding: "3px 10px", borderRadius: 100, background: "rgba(5,150,105,.05)", fontSize: 11, fontWeight: 600, color: "#059669" }}>{it}</span>)}</div>
-                    </div></div>}
-
-                    {/* Tips */}
-                    {guide.region_tips && <div style={{ padding: "0 18px 14px" }}><div style={{ padding: "12px 14px", borderRadius: 14, background: "rgba(46,125,219,.02)", border: "1px solid rgba(46,125,219,.06)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#2E7DDB", marginBottom: 4 }}>💡 Conseils</div>
-                        <p style={{ fontSize: 12, color: "#5A6B80", margin: 0 }}>{guide.region_tips}</p>
-                    </div></div>}
-
-                    {/* Actions */}
-                    <div style={{ padding: "14px 20px 24px", display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", borderTop: "1px solid rgba(46,125,219,.04)" }}>
-                        <button onClick={() => setStep("ranking")} style={{ padding: "10px 18px", borderRadius: 100, border: "1px solid rgba(46,125,219,.1)", background: "white", color: "#2E7DDB", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>🗺️ Autre région</button>
-                        <button onClick={reset} style={{ padding: "10px 18px", borderRadius: 100, border: "none", background: "linear-gradient(135deg,#2E7DDB,#1A3A6B)", color: "white", fontSize: 12, fontWeight: 600, cursor: "pointer", boxShadow: "0 3px 8px rgba(46,125,219,.2)" }}>⚜️ Recommencer</button>
-                    </div>
-                </div>}
+                {step === "result" && guide && (
+                    <TravelBook
+                        guide={guide}
+                        region={region}
+                        onClose={onClose}
+                        onBucketList={async () => {
+                            try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "add" }) }); alert("🪣 Ajouté à ta Bucket List!") } catch { alert("Erreur") }
+                        }}
+                        onComplete={async () => {
+                            try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "complete" }) }); alert("✅ Voyage complété! Ajouté à ta bibliothèque.") } catch { alert("Erreur") }
+                        }}
+                    />
+                )}
 
                 {/* ═══ SWAP MODAL ═══ */}
                 {swp && <div style={{ position: "fixed", inset: 0, zIndex: 1100, background: "rgba(0,0,0,.5)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={e => { if (e.target === e.currentTarget) { setSwp(null); setSwpAlts(null) } }}>
