@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
         const {
             guide_id, destination, country, day_number, slot,
             reason, original_activity, budget_style = 'moderate',
+            food_preference,
         } = body;
 
         if (!destination || !slot || !reason) {
@@ -59,6 +60,7 @@ Il veut changer son ${slotLabel} du jour ${day_number}.
 ACTIVITÉ ACTUELLE : ${JSON.stringify(original_activity)}
 
 RAISON DU CHANGEMENT : ${reasonLabels[reason] || 'Propose 3 alternatives différentes.'}
+${food_preference ? `PRÉFÉRENCE GASTRONOMIQUE : L'utilisateur a une envie de : ${food_preference}.` : ''}
 
 Propose exactement 3 alternatives en JSON. Structure :
 ${jsonTemplate}`;
