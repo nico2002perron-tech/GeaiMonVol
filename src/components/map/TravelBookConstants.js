@@ -1,3 +1,5 @@
+/* TravelBook shared constants, helpers and CSS */
+
 export const BOOK_COLORS = [
     { bg: "#8B2500", spine: "#5C1A00", accent: "#D4A574" },
     { bg: "#1A3A5C", spine: "#0F2440", accent: "#7EB8D8" },
