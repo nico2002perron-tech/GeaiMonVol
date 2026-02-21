@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import TravelBook from './TravelBook';
+import TravelAgent from './TravelAgent';
 
 /* ═══ QUESTIONS ═══ */
 const QUESTIONS = [
@@ -328,17 +329,20 @@ export default function QuebecPlanner({ onClose }) {
 
                 {/* ═══ RESULT ═══ */}
                 {step === "result" && guide && (
-                    <TravelBook
-                        guide={guide}
-                        region={region}
-                        onClose={onClose}
-                        onBucketList={async () => {
-                            try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "add" }) }); alert("🪣 Ajouté à ta Bucket List!") } catch { alert("Erreur") }
-                        }}
-                        onComplete={async () => {
-                            try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "complete" }) }); alert("✅ Voyage complété! Ajouté à ta bibliothèque.") } catch { alert("Erreur") }
-                        }}
-                    />
+                    <>
+                        <TravelBook
+                            guide={guide}
+                            region={region}
+                            onClose={onClose}
+                            onBucketList={async () => {
+                                try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "add" }) }); alert("🪣 Ajouté à ta Bucket List!") } catch { alert("Erreur") }
+                            }}
+                            onComplete={async () => {
+                                try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "complete" }) }); alert("✅ Voyage complété! Ajouté à ta bibliothèque.") } catch { alert("Erreur") }
+                            }}
+                        />
+                        <TravelAgent guide={guide} region={region} guideId={guideId} />
+                    </>
                 )}
 
                 {/* ═══ SWAP MODAL ═══ */}
