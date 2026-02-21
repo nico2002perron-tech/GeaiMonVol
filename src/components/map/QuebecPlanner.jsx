@@ -2,6 +2,7 @@
 import { useAuth } from "@/lib/auth/AuthProvider";
 import TravelBook from './TravelBook';
 import TravelAgent from './TravelAgent';
+import TripDatePicker from './TripDatePicker';
 
 /* ═══ QUESTIONS ═══ */
 const QUESTIONS = [
@@ -181,6 +182,7 @@ export default function QuebecPlanner({ onClose }) {
     const [swpLoad, setSwpLoad] = useState(false);
     const [editTime, setEditTime] = useState(null);
     const [notes, setNotes] = useState({});
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const aQ = useMemo(() => QUESTIONS.filter(q => !q.showIf || q.showIf(ans)), [ans]);
     const CQ = aQ[qIdx];
@@ -235,7 +237,7 @@ export default function QuebecPlanner({ onClose }) {
     };
     const confSwap = (di, sl, alt) => { setGuide(p => { const u = JSON.parse(JSON.stringify(p)); u.days[di][sl] = alt; return u }); setSwp(null); setSwpAlts(null) };
     const updTime = (di, key, t) => { setGuide(p => { const u = JSON.parse(JSON.stringify(p)); if (!u.days[di].schedule) u.days[di].schedule = {}; u.days[di].schedule[key] = t; return u }); setEditTime(null) };
-    const reset = () => { setStep("quiz"); setQIdx(0); setAns({}); setMSel([]); setRegion(null); setGuide(null); setGuideId(null); setExDay(0); setError(""); setRatings({}); setSwp(null); setSwpAlts(null); setNotes({}) };
+    const reset = () => { setStep("quiz"); setQIdx(0); setAns({}); setMSel([]); setRegion(null); setGuide(null); setGuideId(null); setExDay(0); setError(""); setRatings({}); setSwp(null); setSwpAlts(null); setNotes({}); setShowDatePicker(false); };
 
     /* ═══ RENDER ═══ */
     const bx = { position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,.45)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 8, fontFamily: "'Fredoka',sans-serif" };
@@ -329,20 +331,32 @@ export default function QuebecPlanner({ onClose }) {
 
                 {/* ═══ RESULT ═══ */}
                 {step === "result" && guide && (
-                    <>
-                        <TravelBook
+                    !showDatePicker ? (
+                        <TripDatePicker
                             guide={guide}
                             region={region}
+                            guideId={guideId}
+                            tripDays={guide.days?.length || 0}
+                            onSave={() => setShowDatePicker(true)}
+                            onSkip={() => setShowDatePicker(true)}
                             onClose={onClose}
-                            onBucketList={async () => {
-                                try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "add" }) }); alert("🪣 Ajouté à ta Bucket List!") } catch { alert("Erreur") }
-                            }}
-                            onComplete={async () => {
-                                try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "complete" }) }); alert("✅ Voyage complété! Ajouté à ta bibliothèque.") } catch { alert("Erreur") }
-                            }}
                         />
-                        <TravelAgent guide={guide} region={region} guideId={guideId} />
-                    </>
+                    ) : (
+                        <>
+                            <TravelBook
+                                guide={guide}
+                                region={region}
+                                onClose={onClose}
+                                onBucketList={async () => {
+                                    try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "add" }) }); alert("🪣 Ajouté à ta Bucket List!") } catch { alert("Erreur") }
+                                }}
+                                onComplete={async () => {
+                                    try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: guideId, action: "complete" }) }); alert("✅ Voyage complété! Ajouté à ta bibliothèque.") } catch { alert("Erreur") }
+                                }}
+                            />
+                            <TravelAgent guide={guide} region={region} guideId={guideId} />
+                        </>
+                    )
                 )}
 
                 {/* ═══ SWAP MODAL ═══ */}
