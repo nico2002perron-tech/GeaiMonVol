@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Non connecté.' }, { status: 401 });
         }
 
-        const { guide_id, action } = await req.json();
+        const { guide_id, action, trip_date, trip_end_date } = await req.json();
 
         if (!guide_id || !action) {
             return NextResponse.json({ error: 'Paramètres manquants.' }, { status: 400 });
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
             add: 'bucketlist',
             complete: 'completed',
             remove: 'draft',
+            activate: 'active',
         };
 
         const newStatus = statusMap[action];
@@ -27,9 +28,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Action invalide.' }, { status: 400 });
         }
 
+        const updateData: Record<string, any> = { status: newStatus };
+        if (trip_date) updateData.trip_date = trip_date;
+        if (trip_end_date) updateData.trip_end_date = trip_end_date;
+
         const { error } = await supabase
             .from('ai_guides')
-            .update({ status: newStatus })
+            .update(updateData)
             .eq('id', guide_id)
             .eq('user_id', user.id);
 
