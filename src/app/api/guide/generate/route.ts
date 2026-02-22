@@ -238,19 +238,76 @@ ${reviews.map(r => `- ${r.place_name}: ${r.rating}★ ${r.would_recommend ? '✓
       luxury: 'haut de gamme (hôtels 4-5★, restaurants gastronomiques, taxis/privé)',
     };
 
-    // Quiz context string
+    // Quiz context string — enhanced with deep personalization
     let quizContextStr = '';
     if (quiz_context) {
-      quizContextStr = `\n\nPROFIL DU VOYAGEUR (quiz):
-- Groupe: ${quiz_context.group || 'non spécifié'}
-- Vibe: ${quiz_context.vibe || 'non spécifié'}
-- Énergie: ${quiz_context.energy || 'non spécifié'}
-- Saison: ${quiz_context.season || 'non spécifié'}
-- Hébergement préféré: ${quiz_context.accommodation || 'non spécifié'}
-- Transport: ${quiz_context.transport || 'non spécifié'}
-- Food: ${Array.isArray(quiz_context.food) ? quiz_context.food.join(', ') : quiz_context.food || 'non spécifié'}
-- Connaissance: ${quiz_context.knowledge || 'non spécifié'}
-- Souhait spécial: ${quiz_context.special || 'non spécifié'}`;
+      const groupMap: Record<string, string> = {
+        solo: 'Voyageur solo — proposer des rencontres, cafés conviviaux, hostel social',
+        couple: 'En couple — romantique, terrasses intimes, couchers de soleil, spa, expériences à deux',
+        family: 'En famille — activités pour tous les âges, pauses fréquentes, restos kids-friendly, pas trop de marche',
+        friends: 'Entre amis — fun, bars, activités de groupe, compétitions amicales, nightlife',
+      };
+      const vibeMap: Record<string, string> = {
+        romantic: 'Vibe romantique — couchers de soleil, spa, restaurants intimes, belvédères',
+        explorer: 'Vibe explorateur — maximum de découvertes, curiosités locales, marcher partout',
+        party: 'Vibe party — bars, clubs, festivals, microbrasseries, ambiance festive',
+        chill: 'Vibe chill — pas de rush, grasses matinées, terrasses, relaxation',
+        cultural: 'Vibe culturel — musées, patrimoine, histoire, galeries, artisans',
+      };
+      const energyMap: Record<string, string> = {
+        intense: 'Énergie INTENSE — lever tôt, remplir chaque créneau, coucher tard. AUCUN temps mort.',
+        mixed: 'Énergie équilibrée — activités le jour, soirées relax. 1-2 grosses activités par jour max.',
+        relax: 'Énergie tranquille — journées courtes, pas de rush, siestes possibles, max 1 activité structurée/jour.',
+      };
+      const accoMap: Record<string, string> = {
+        camping: 'Hébergement: camping/prêt-à-camper — proposer des campings SEPAQ ou privés',
+        chalet: 'Hébergement: chalet/Airbnb — location avec cuisine, indépendance',
+        hotel: 'Hébergement: hôtel/auberge — classique, confortable',
+        luxury: 'Hébergement: boutique/luxe — hôtels 4-5★, expérience premium',
+        unique: 'Hébergement: INSOLITE — yourte, cabane dans les arbres, igloo, phare, hébergement original',
+      };
+      const transportMap: Record<string, string> = {
+        car: 'Transport: voiture personnelle — planifier les routes, parkings, distances',
+        rental: 'Transport: location/VR — road trip, liberté totale, itinéraires panoramiques',
+        transit: 'Transport: bus/train — limiter aux endroits accessibles en transport en commun',
+        bike: 'Transport: vélo/cyclotourisme — sentiers cyclables, Véloroute, distances raisonnables',
+      };
+      const foodPrefs = Array.isArray(quiz_context.food) ? quiz_context.food : [];
+      const foodMap: Record<string, string> = {
+        terroir: 'fromageries, produits locaux, fermes',
+        wine: 'vignobles, route des vins, dégustations',
+        micro: 'microbrasseries artisanales',
+        'fine-dining': 'restaurants gastronomiques, chefs réputés',
+        'sugar-shack': 'cabane à sucre, érable, tradition',
+        seafood: 'fruits de mer, poissonneries, homard',
+        cafe: 'cafés de spécialité, brunchs instagrammables',
+        'street-food': 'street food, cantines, poutine, guédilles',
+        market: 'marchés publics, cueillette, producteurs',
+        all: 'ouvert à tout type de cuisine',
+      };
+
+      quizContextStr = `\n\n══ PROFIL DÉTAILLÉ DU VOYAGEUR (quiz personnalisé) ══
+ADAPTE ABSOLUMENT l'itinéraire à ce profil. C'est la donnée LA PLUS IMPORTANTE.
+
+👥 GROUPE: ${groupMap[quiz_context.group] || quiz_context.group || 'non spécifié'}
+✨ VIBE: ${vibeMap[quiz_context.vibe] || quiz_context.vibe || 'non spécifié'}
+🎯 INTÉRÊTS: ${Array.isArray(quiz_context.interests) ? quiz_context.interests.join(', ') : 'non spécifié'}
+⚡ ÉNERGIE: ${energyMap[quiz_context.energy] || quiz_context.energy || 'non spécifié'}
+🗓️ SAISON: ${quiz_context.season || 'non spécifié'}
+🍴 BOUFFE: ${foodPrefs.length > 0 ? foodPrefs.map((f: string) => foodMap[f] || f).join(' + ') : 'non spécifié'}
+🏨 HÉBERGEMENT: ${accoMap[quiz_context.accommodation] || quiz_context.accommodation || 'non spécifié'}
+🚗 TRANSPORT: ${transportMap[quiz_context.transport] || quiz_context.transport || 'non spécifié'}
+${quiz_context.special ? `💬 SOUHAIT SPÉCIAL: "${quiz_context.special}" — INTÈGRE ABSOLUMENT ce souhait dans l'itinéraire!` : ''}
+
+RÈGLES D'ADAPTATION AU PROFIL:
+- Si énergie = tranquille: max 1 activité structurée le matin + 1 l'après-midi. Laisser du temps libre.
+- Si énergie = intense: remplir chaque créneau, proposer des alternatives si un lieu ferme tôt.
+- Si couple: au moins 1 activité romantique par jour (spa, belvédère au coucher du soleil, restaurant intime).
+- Si famille: alterner activités éducatives et fun. Prévoir pauses. Restos avec menu enfant.
+- Si intérêt "food": proposer les MEILLEURS restaurants de la base de données, avec must_try détaillé.
+- Si intérêt "nature": prioriser les parcs nationaux SEPAQ et les randonnées.
+- Si intérêt "art": inclure galeries, ateliers créatifs, street art.
+- Adapter les horaires: si chill = début journée à 9h30+. Si intense = début à 7h30-8h.`
     }
 
     const systemPrompt = `Tu es un expert en voyage ultra-détaillé qui crée des itinéraires jour par jour.
