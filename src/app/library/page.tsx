@@ -1,4 +1,5 @@
 'use client';
+/** Vercel Trigger: Immersive Library V2.0.1 **/
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
