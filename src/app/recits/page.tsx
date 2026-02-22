@@ -81,10 +81,11 @@ function CommentBlock({ comment }: { comment: any }) {
 }
 
 function StoryModal({ story, onClose }: { story: any; onClose: () => void }) {
-    if (!story) return null;
-    const col = LEVEL_COLORS[story.dealLevel] || LEVEL_COLORS.good;
     const [commentText, setCommentText] = useState("");
     const [liked, setLiked] = useState(false);
+
+    if (!story) return null;
+    const col = LEVEL_COLORS[story.dealLevel] || LEVEL_COLORS.good;
     const wordCount = commentText.trim().split(/\s+/).filter(Boolean).length;
     return (
         <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", padding: 20, overflowY: "auto" }}>
