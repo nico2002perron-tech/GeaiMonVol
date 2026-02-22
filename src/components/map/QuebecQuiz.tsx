@@ -231,6 +231,8 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
         if (scrollRef.current) scrollRef.current.scrollTop = 0;
     }, [step]);
 
+    const rankedRegions = useMemo(() => scoreRegions(answers), [answers]);
+
     if (!isOpen) return null;
 
     const STEPS: StepId[] = ['welcome', 'group', 'vibe', 'interests', 'energy', 'season', 'food', 'accommodation', 'transport', 'duration', 'budget', 'special', 'results'];
@@ -258,7 +260,6 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
         }));
     };
 
-    const rankedRegions = useMemo(() => scoreRegions(answers), [answers]);
     const top3 = rankedRegions.slice(0, 3);
 
     const handleGenerate = (regionId: string) => {
