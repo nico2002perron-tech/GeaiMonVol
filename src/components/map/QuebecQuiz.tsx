@@ -371,8 +371,28 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                                 fontSize: 14, fontWeight: 700, fontFamily: F,
                             }}>Continuer</button>
                     </>)}
-                    {step === 'accommodation' && (<Opt icon="⛺" label="Camping" value="camping" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />)}
-                    {step === 'transport' && (<Opt icon="🚗" label="Auto" value="car" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />)}
+                    {/* ═══ ACCOMMODATION ═══ */}
+                    {step === 'accommodation' && (<>
+                        <Title icon="🏨" text="Tu dors où idéalement?" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Opt icon="⛺" label="Camping / prêt-à-camper" desc="Proche de la nature" value="camping" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />
+                            <Opt icon="🏡" label="Chalet / Airbnb" desc="Comme à la maison" value="chalet" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />
+                            <Opt icon="🏨" label="Hôtel / auberge" desc="Confort classique" value="hotel" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />
+                            <Opt icon="✨" label="Boutique / luxe" desc="Se gâter" value="luxury" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />
+                            <Opt icon="🛖" label="Hébergement insolite" desc="Yourte, cabane, igloo..." value="unique" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />
+                        </div>
+                    </>)}
+
+                    {/* ═══ TRANSPORT ═══ */}
+                    {step === 'transport' && (<>
+                        <Title icon="🚗" text="Comment tu te déplaces?" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Opt icon="🚗" label="En auto" desc="Liberté totale" value="car" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />
+                            <Opt icon="🚐" label="Location / VR" desc="Road trip style" value="rental" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />
+                            <Opt icon="🚌" label="Transport en commun" desc="Bus, train" value="transit" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />
+                            <Opt icon="🚲" label="Vélo / actif" desc="Cyclotourisme" value="bike" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />
+                        </div>
+                    </>)}
                     {step === 'duration' && (<>
                         <Title icon="📅" text="Combien de jours?" />
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, margin: '20px 0' }}>
