@@ -1,0 +1,31 @@
+{
+    "name": "GeaiMonVol — Organisateur de Voyage Québec",
+    "short_name": "GeaiMonVol",
+    "description": "Ton assistant voyage IA pour explorer le Québec. Itinéraires personnalisés, GPS live, conseils en temps réel.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0F1D2F",
+    "theme_color": "#2E7DDB",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/logo_geai.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/logo_geai.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "travel",
+        "navigation",
+        "lifestyle"
+    ],
+    "lang": "fr-CA",
+    "dir": "ltr"
+}
