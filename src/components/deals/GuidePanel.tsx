@@ -1,4 +1,5 @@
 'use client';
+// GeaiMonVol V2 - Sync - GuidePanel
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { useRouter } from 'next/navigation';

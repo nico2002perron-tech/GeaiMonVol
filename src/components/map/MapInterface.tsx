@@ -1,4 +1,5 @@
 'use client';
+// GeaiMonVol V2 - Sync
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MapCanvas from './MapCanvas';
 import Sidebar from './Sidebar';
