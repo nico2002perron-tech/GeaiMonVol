@@ -1,32 +1,292 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import TravelBook from '@/components/map/TravelBook';
 
-const DC = ['#2E7DDB', '#0E9AA7', '#F5A623', '#E84855', '#7C3AED', '#059669', '#DB2777'];
-const SLOTS = [
-    { slot: 'breakfast', label: 'Déjeuner', icon: '🥐' },
-    { slot: 'morning', label: 'Matin', icon: '🌅' },
-    { slot: 'lunch', label: 'Dîner', icon: '🥗' },
-    { slot: 'afternoon', label: 'Après-midi', icon: '☀️' },
-    { slot: 'dinner', label: 'Souper', icon: '🍽️' },
-    { slot: 'evening', label: 'Soirée', icon: '🌙' },
+/* ═══ BOOK COLORS ═══ */
+const BOOK_COLORS = [
+    { bg: "#8B2500", spine: "#5C1A00", accent: "#D4A574", pattern: "lines" },
+    { bg: "#1A3A5C", spine: "#0F2440", accent: "#7EB8D8", pattern: "dots" },
+    { bg: "#2D5016", spine: "#1A3008", accent: "#8FBF6A", pattern: "zigzag" },
+    { bg: "#4A1942", spine: "#2E0F2A", accent: "#C490BF", pattern: "lines" },
+    { bg: "#5C3A1E", spine: "#3A2410", accent: "#C9A87C", pattern: "cross" },
+    { bg: "#1A4A4A", spine: "#0E2E2E", accent: "#6BC4C4", pattern: "dots" },
+    { bg: "#4A2C2A", spine: "#2E1A18", accent: "#C49A98", pattern: "zigzag" },
+    { bg: "#2A3A5C", spine: "#1A2640", accent: "#8A9FBF", pattern: "cross" },
+    { bg: "#6B1D1D", spine: "#451212", accent: "#D4847A", pattern: "lines" },
+    { bg: "#2D4A1E", spine: "#1A3010", accent: "#9FC48A", pattern: "dots" },
 ];
 
+const SHELF_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Fredoka:wght@400;600;700;800&display=swap');
+
+@keyframes shelfFadeIn { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes bookIdle { 0%, 100% { transform: rotateY(0deg) } }
+@keyframes bookPull {
+    0% { transform: translateZ(0) rotateY(0deg); }
+    30% { transform: translateZ(40px) rotateY(-5deg); }
+    60% { transform: translateZ(80px) rotateY(-8deg) scale(1.05); }
+    100% { transform: translateZ(200px) rotateY(-15deg) scale(1.1); opacity: 0; }
+}
+@keyframes bookAppear {
+    0% { opacity: 0; transform: scale(0.3) rotateY(-30deg); }
+    50% { opacity: 1; transform: scale(1.05) rotateY(5deg); }
+    100% { opacity: 1; transform: scale(1) rotateY(0deg); }
+}
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+@keyframes floatSoft { 0%, 100% { transform: translateY(0px) } 50% { transform: translateY(-2px) } }
+@keyframes gentleGlow { 0%, 100% { opacity: 0.3 } 50% { opacity: 0.6 } }
+
+.shelf-book { cursor: pointer; transition: all 0.3s cubic-bezier(.34,1.56,.64,1); transform-style: preserve-3d; perspective: 800px; }
+.shelf-book:hover { transform: translateY(-8px) translateZ(15px) rotateY(-5deg) !important; }
+.shelf-book.pulling { animation: bookPull 0.6s cubic-bezier(.4,0,.2,1) forwards; pointer-events: none; }
+.shelf-scroll::-webkit-scrollbar { width: 6px; }
+.shelf-scroll::-webkit-scrollbar-thumb { background: rgba(139,107,72,0.3); border-radius: 3px; }
+.shelf-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+`;
+
+function getBookColor(index: number) {
+    return BOOK_COLORS[index % BOOK_COLORS.length];
+}
+
+function getBookHeight(guide: any) {
+    const days = guide?.guide_data?.days?.length || 3;
+    return Math.min(220, Math.max(150, 130 + days * 12));
+}
+
+function getBookWidth(guide: any) {
+    const days = guide?.guide_data?.days?.length || 3;
+    return Math.min(52, Math.max(32, 28 + days * 3));
+}
+
+/* ═══ SINGLE BOOK ON SHELF ═══ */
+function ShelfBook({ guide, index, onClick, isPulling }: { guide: any; index: number; onClick: () => void; isPulling: boolean }) {
+    const bc = getBookColor(index);
+    const h = getBookHeight(guide);
+    const w = getBookWidth(guide);
+    const g = guide.guide_data;
+    const title = g?.title || guide.destination || "Voyage";
+    const days = g?.days?.length || "?";
+    const destination = guide.destination || "";
+
+    // Truncate title for spine
+    const spineTitle = title.length > 25 ? title.substring(0, 22) + "..." : title;
+
+    return (
+        <div className={`shelf-book ${isPulling ? 'pulling' : ''}`}
+            onClick={onClick}
+            style={{
+                width: w, height: h, position: 'relative', display: 'inline-flex', flexShrink: 0,
+                marginBottom: 0, alignSelf: 'flex-end',
+                animation: `shelfFadeIn 0.4s ease ${index * 0.06}s both`,
+            }}>
+            {/* Book body */}
+            <div style={{
+                width: '100%', height: '100%', borderRadius: '3px 6px 6px 3px',
+                background: `linear-gradient(135deg, ${bc.bg}, ${bc.spine})`,
+                boxShadow: `2px 4px 12px rgba(0,0,0,0.4), inset -2px 0 4px rgba(0,0,0,0.2)`,
+                position: 'relative', overflow: 'hidden',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            }}>
+                {/* Spine edge */}
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, background: `linear-gradient(180deg, ${bc.accent}40, ${bc.spine}, ${bc.accent}40)` }} />
+
+                {/* Top decoration */}
+                <div style={{ position: 'absolute', top: 8, left: 8, right: 8, height: 1, background: `${bc.accent}50` }} />
+                <div style={{ position: 'absolute', top: 11, left: 10, right: 10, height: 1, background: `${bc.accent}30` }} />
+
+                {/* Bottom decoration */}
+                <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, height: 1, background: `${bc.accent}50` }} />
+                <div style={{ position: 'absolute', bottom: 11, left: 10, right: 10, height: 1, background: `${bc.accent}30` }} />
+
+                {/* Title (vertical) */}
+                <div style={{
+                    writingMode: 'vertical-rl', textOrientation: 'mixed',
+                    fontFamily: "'Playfair Display', serif", fontSize: w > 40 ? 10 : 8,
+                    fontWeight: 700, color: bc.accent, letterSpacing: 0.5,
+                    textAlign: 'center', padding: '16px 0',
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                    maxHeight: h - 40,
+                }}>
+                    {spineTitle}
+                </div>
+
+                {/* Small emblem */}
+                <div style={{
+                    position: 'absolute', bottom: 16, fontSize: 10, color: `${bc.accent}80`,
+                }}>⚜️</div>
+
+                {/* Days badge */}
+                <div style={{
+                    position: 'absolute', top: 16, fontSize: 7, fontWeight: 800,
+                    color: bc.accent, fontFamily: "'Crimson Text', serif",
+                }}>{days}J</div>
+            </div>
+
+            {/* Page edges (right side) */}
+            <div style={{
+                position: 'absolute', right: -1, top: 3, bottom: 3, width: 3,
+                background: 'repeating-linear-gradient(180deg, #F5F0E8 0px, #F5F0E8 1px, #E8E0D5 1px, #E8E0D5 2px)',
+                borderRadius: '0 2px 2px 0',
+            }} />
+        </div>
+    );
+}
+
+/* ═══ WOODEN SHELF ═══ */
+function WoodenShelf({ children, label }: { children: React.ReactNode; label?: string }) {
+    return (
+        <div style={{ marginBottom: 0 }}>
+            {label && (
+                <div style={{
+                    fontFamily: "'Crimson Text', serif", fontSize: 11, color: '#8B6B48',
+                    letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700,
+                    padding: '0 20px 6px', opacity: 0.6,
+                }}>{label}</div>
+            )}
+            <div style={{ position: 'relative' }}>
+                {/* Books container */}
+                <div style={{
+                    display: 'flex', alignItems: 'flex-end', gap: 6, padding: '0 20px',
+                    minHeight: 160, paddingBottom: 8,
+                }}>
+                    {children}
+                </div>
+
+                {/* Shelf plank */}
+                <div style={{
+                    height: 18, borderRadius: '0 0 4px 4px',
+                    background: 'linear-gradient(180deg, #8B6B48, #6B4F32, #5A4028)',
+                    boxShadow: '0 6px 16px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.1), inset 0 -2px 0 rgba(0,0,0,0.2)',
+                    position: 'relative',
+                }}>
+                    {/* Wood grain */}
+                    <div style={{
+                        position: 'absolute', inset: 0, opacity: 0.15,
+                        background: 'repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.1) 40px, rgba(0,0,0,0.1) 42px)',
+                    }} />
+                    {/* Front edge highlight */}
+                    <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 4,
+                        background: 'linear-gradient(180deg, transparent, rgba(0,0,0,0.15))',
+                        borderRadius: '0 0 4px 4px',
+                    }} />
+                </div>
+
+                {/* Shelf shadow on wall */}
+                <div style={{
+                    height: 12, background: 'linear-gradient(180deg, rgba(0,0,0,0.15), transparent)',
+                    marginTop: -1,
+                }} />
+            </div>
+        </div>
+    );
+}
+
+/* ═══ DECORATIVE ITEMS ═══ */
+function ShelfDecor({ type }: { type: string }) {
+    const items: Record<string, React.ReactNode> = {
+        plant: <div style={{ fontSize: 28, animation: 'floatSoft 4s ease-in-out infinite', alignSelf: 'flex-end' }}>🪴</div>,
+        globe: <div style={{ fontSize: 24, animation: 'floatSoft 5s ease-in-out 1s infinite', alignSelf: 'flex-end' }}>🌍</div>,
+        compass: <div style={{ fontSize: 22, animation: 'floatSoft 3.5s ease-in-out 0.5s infinite', alignSelf: 'flex-end' }}>🧭</div>,
+        camera: <div style={{ fontSize: 22, alignSelf: 'flex-end' }}>📷</div>,
+        coffee: <div style={{ fontSize: 20, alignSelf: 'flex-end' }}>☕</div>,
+        map: <div style={{ fontSize: 24, alignSelf: 'flex-end' }}>🗺️</div>,
+    };
+    return <>{items[type] || null}</>;
+}
+
+/* ═══ YEAR DIVIDER ═══ */
+function YearDivider({ year, count, isCurrentYear }: { year: string; count: number; isCurrentYear: boolean }) {
+    const romanNumerals: Record<string, string> = {
+        '2024': 'MMXXIV', '2025': 'MMXXV', '2026': 'MMXXVI', '2027': 'MMXXVII',
+        '2028': 'MMXXVIII', '2029': 'MMXXIX', '2030': 'MMXXX',
+    };
+    const roman = romanNumerals[year] || year;
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: 16, padding: '28px 20px 8px',
+            animation: 'shelfFadeIn 0.5s ease',
+        }}>
+            {/* Left ornament */}
+            <div style={{
+                flex: 1, height: 1,
+                background: 'linear-gradient(90deg, transparent, rgba(212,165,116,0.4), rgba(212,165,116,0.15))',
+            }} />
+
+            {/* Year plaque */}
+            <div style={{
+                position: 'relative', padding: '10px 28px', borderRadius: 8,
+                background: 'linear-gradient(135deg, rgba(139,107,72,0.2), rgba(90,64,40,0.15))',
+                border: '1px solid rgba(212,165,116,0.2)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2), inset 0 1px 0 rgba(212,165,116,0.1)',
+                textAlign: 'center',
+            }}>
+                {/* Corner ornaments */}
+                <div style={{ position: 'absolute', top: 4, left: 8, fontSize: 6, color: 'rgba(212,165,116,0.3)' }}>◆</div>
+                <div style={{ position: 'absolute', top: 4, right: 8, fontSize: 6, color: 'rgba(212,165,116,0.3)' }}>◆</div>
+                <div style={{ position: 'absolute', bottom: 4, left: 8, fontSize: 6, color: 'rgba(212,165,116,0.3)' }}>◆</div>
+                <div style={{ position: 'absolute', bottom: 4, right: 8, fontSize: 6, color: 'rgba(212,165,116,0.3)' }}>◆</div>
+
+                {/* Year number */}
+                <div style={{
+                    fontFamily: "'Playfair Display', serif", fontSize: 28, fontWeight: 900,
+                    color: '#D4A574', letterSpacing: 3,
+                    textShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                    lineHeight: 1,
+                }}>
+                    {year === 'Sans date' ? '—' : year}
+                </div>
+
+                {/* Roman numeral */}
+                {year !== 'Sans date' && (
+                    <div style={{
+                        fontFamily: "'Crimson Text', serif", fontSize: 9, fontWeight: 600,
+                        color: 'rgba(212,165,116,0.5)', letterSpacing: 3, marginTop: 2,
+                    }}>
+                        {roman}
+                    </div>
+                )}
+
+                {/* Book count */}
+                <div style={{
+                    fontFamily: "'Crimson Text', serif", fontSize: 10,
+                    color: 'rgba(139,107,72,0.7)', marginTop: 4,
+                }}>
+                    {count} voyage{count > 1 ? 's' : ''} {isCurrentYear ? '— en cours' : ''}
+                </div>
+            </div>
+
+            {/* Right ornament */}
+            <div style={{
+                flex: 1, height: 1,
+                background: 'linear-gradient(90deg, rgba(212,165,116,0.15), rgba(212,165,116,0.4), transparent)',
+            }} />
+        </div>
+    );
+}
+
+/* ═══ MAIN PAGE ═══ */
 export default function LibraryPage() {
     const { user, loading } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [guides, setGuides] = useState<any[]>([]);
     const [loadingGuides, setLoadingGuides] = useState(true);
-    const [selectedGuide, setSelectedGuide] = useState<any>(null);
-    const [expandedDay, setExpandedDay] = useState(0);
+    const [activeTab, setActiveTab] = useState<'bucketlist' | 'completed'>(
+        (searchParams.get('tab') as any) || 'bucketlist'
+    );
+    const [pullingId, setPullingId] = useState<string | null>(null);
+    const [openGuide, setOpenGuide] = useState<any>(null);
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/auth');
-            return;
-        }
+        if (!loading && !user) { router.push('/auth'); return; }
         if (user) fetchGuides();
     }, [user, loading]);
 
@@ -37,218 +297,241 @@ export default function LibraryPage() {
             .select('*')
             .eq('user_id', user!.id)
             .order('created_at', { ascending: false });
-
         if (!error && data) setGuides(data);
         setLoadingGuides(false);
     };
 
-    const deleteGuide = async (id: string) => {
-        const supabase = createClient();
-        await supabase.from('ai_guides').delete().eq('id', id);
-        setGuides(g => g.filter(x => x.id !== id));
-        if (selectedGuide?.id === id) setSelectedGuide(null);
-    };
+    const handleBookClick = useCallback((guide: any) => {
+        setPullingId(guide.id);
+        // Wait for pull animation then open
+        setTimeout(() => {
+            setOpenGuide(guide);
+            setPullingId(null);
+        }, 550);
+    }, []);
 
-    const formatDate = (d: string) => {
-        if (!d) return '';
-        return new Date(d).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
-    };
+    const bucketList = guides.filter(g => g.status === 'bucketlist' || (!g.status && g.status !== 'completed'));
+    const completed = guides.filter(g => g.status === 'completed');
+    const activeGuides = activeTab === 'bucketlist' ? bucketList : completed;
 
+    // Group by year, then split into shelves (max 8 books per shelf)
+    const groupedByYear: Record<string, any[]> = {};
+    activeGuides.forEach(g => {
+        const dateStr = g.trip_date || g.trip_end_date || g.created_at;
+        const year = dateStr ? new Date(dateStr).getFullYear().toString() : 'Sans date';
+        if (!groupedByYear[year]) groupedByYear[year] = [];
+        groupedByYear[year].push(g);
+    });
+
+    // Sort years: for bucket list newest first, for completed newest first too
+    const sortedYears = Object.keys(groupedByYear).sort((a, b) => {
+        if (a === 'Sans date') return 1;
+        if (b === 'Sans date') return -1;
+        return parseInt(b) - parseInt(a);
+    });
+
+    // For each year, split into shelves of max 8
+    const yearShelves: { year: string; shelves: any[][] }[] = sortedYears.map(year => {
+        const books = groupedByYear[year];
+        const shelves: any[][] = [];
+        for (let i = 0; i < books.length; i += 8) {
+            shelves.push(books.slice(i, i + 8));
+        }
+        return { year, shelves };
+    });
+
+    // Loading state
     if (loading || loadingGuides) return (
-        <div style={{ minHeight: '100vh', background: '#0B1120', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ minHeight: '100vh', background: '#2A1F14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <style>{SHELF_CSS}</style>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ width: 50, height: 50, margin: '0 auto 16px', borderRadius: '50%', border: '4px solid rgba(46,125,219,.1)', borderTopColor: '#2E7DDB', animation: 'spin 1s linear infinite' }} />
-                <p style={{ color: '#5A6B80', fontSize: 14 }}>Chargement...</p>
+                <div style={{ fontSize: 48, marginBottom: 16, animation: 'floatSoft 2s ease-in-out infinite' }}>📚</div>
+                <p style={{ color: '#8B6B48', fontSize: 14, fontFamily: "'Crimson Text', serif" }}>Chargement de ta bibliothèque...</p>
             </div>
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </div>
     );
 
+    // If a book is open, show the TravelBook
+    if (openGuide) {
+        return (
+            <TravelBook
+                guide={openGuide.guide_data}
+                region={openGuide.destination}
+                guideId={openGuide.id}
+                onClose={() => setOpenGuide(null)}
+                onBucketList={async () => {
+                    try { await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: openGuide.id, action: "add" }) }); } catch { }
+                }}
+                onComplete={async () => {
+                    try {
+                        await fetch("/api/guide/bucketlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ guide_id: openGuide.id, action: "complete" }) });
+                        setGuides(prev => prev.map(g => g.id === openGuide.id ? { ...g, status: 'completed' } : g));
+                        setOpenGuide(null);
+                    } catch { }
+                }}
+            />
+        );
+    }
+
     return (
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0B1120 0%, #0F1D2F 100%)', fontFamily: "'Fredoka', sans-serif" }}>
-            <style>{`@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;800&display=swap');
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-.lib-card:hover{transform:translateY(-3px)!important;box-shadow:0 12px 32px rgba(46,125,219,0.15)!important}
-.lib-scroll::-webkit-scrollbar{width:4px}.lib-scroll::-webkit-scrollbar-thumb{background:rgba(46,125,219,.15);border-radius:4px}`}</style>
+        <div style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(180deg, #2A1F14 0%, #1E1610 50%, #15100A 100%)',
+            fontFamily: "'Fredoka', sans-serif",
+        }}>
+            <style>{SHELF_CSS}</style>
 
             {/* Header */}
-            <div style={{ padding: '28px 32px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+            <div style={{
+                padding: '24px 32px 16px',
+                borderBottom: '1px solid rgba(139,107,72,0.15)',
+                background: 'linear-gradient(180deg, rgba(139,107,72,0.08), transparent)',
+            }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
-                        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: '#60A5FA', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'Fredoka',sans-serif", marginBottom: 8 }}>
-                            ← Retour à la carte
-                        </button>
-                        <h1 style={{ fontSize: 28, fontWeight: 800, color: 'white', margin: 0 }}>📚 Ma bibliothèque</h1>
-                        <p style={{ fontSize: 14, color: '#5A6B80', marginTop: 4 }}>{guides.length} guide{guides.length !== 1 ? 's' : ''} sauvegardé{guides.length !== 1 ? 's' : ''}</p>
+                        <button onClick={() => router.push('/')} style={{
+                            background: 'none', border: 'none', color: '#8B6B48', fontSize: 12,
+                            fontWeight: 600, cursor: 'pointer', fontFamily: "'Crimson Text', serif",
+                            marginBottom: 6, letterSpacing: 1,
+                        }}>← Retour à la carte</button>
+                        <h1 style={{
+                            fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 900,
+                            color: '#D4A574', margin: 0,
+                            textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        }}>📚 Ma Bibliothèque</h1>
                     </div>
                     <button onClick={() => router.push('/')} style={{
-                        padding: '10px 20px', borderRadius: 100, border: 'none',
-                        background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)',
-                        color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                        fontFamily: "'Fredoka', sans-serif",
+                        padding: '10px 22px', borderRadius: 100, border: '2px solid #8B6B48',
+                        background: 'transparent', color: '#D4A574',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        fontFamily: "'Playfair Display', serif",
+                        transition: 'all 0.2s',
+                    }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#8B6B48'; e.currentTarget.style.color = '#F5F0E8'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#D4A574'; }}>
+                        ⚜️ Nouveau voyage
+                    </button>
+                </div>
+
+                {/* Tabs */}
+                <div style={{ display: 'flex', gap: 4, marginTop: 16 }}>
+                    <button onClick={() => setActiveTab('bucketlist')} style={{
+                        padding: '8px 20px', borderRadius: '12px 12px 0 0', border: 'none',
+                        background: activeTab === 'bucketlist' ? 'rgba(139,107,72,0.2)' : 'transparent',
+                        color: activeTab === 'bucketlist' ? '#D4A574' : '#6B5540',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        fontFamily: "'Crimson Text', serif",
+                        borderBottom: activeTab === 'bucketlist' ? '2px solid #D4A574' : '2px solid transparent',
+                        transition: 'all 0.2s',
                     }}>
-                        ✨ Nouveau guide
+                        🪣 Bucket List ({bucketList.length})
+                    </button>
+                    <button onClick={() => setActiveTab('completed')} style={{
+                        padding: '8px 20px', borderRadius: '12px 12px 0 0', border: 'none',
+                        background: activeTab === 'completed' ? 'rgba(139,107,72,0.2)' : 'transparent',
+                        color: activeTab === 'completed' ? '#D4A574' : '#6B5540',
+                        fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        fontFamily: "'Crimson Text', serif",
+                        borderBottom: activeTab === 'completed' ? '2px solid #D4A574' : '2px solid transparent',
+                        transition: 'all 0.2s',
+                    }}>
+                        ✅ Voyages complétés ({completed.length})
                     </button>
                 </div>
             </div>
 
-            <div style={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
-                {/* Left: Guide list */}
-                <div className="lib-scroll" style={{ width: selectedGuide ? 340 : '100%', maxWidth: selectedGuide ? 340 : 900, margin: selectedGuide ? 0 : '0 auto', padding: '20px', overflowY: 'auto', transition: 'all 0.3s', flexShrink: 0 }}>
-                    {guides.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                            <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
-                            <h3 style={{ color: 'white', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Aucun guide sauvegardé</h3>
-                            <p style={{ color: '#5A6B80', fontSize: 13, marginBottom: 20 }}>Génère ton premier itinéraire IA!</p>
-                            <button onClick={() => router.push('/')} style={{
-                                padding: '12px 24px', borderRadius: 100, border: 'none',
-                                background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)',
-                                color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                            }}>
-                                ⚜️ Créer un guide
-                            </button>
+            {/* Bookshelf area */}
+            <div className="shelf-scroll" style={{
+                height: 'calc(100vh - 150px)', overflowY: 'auto', padding: '24px 0',
+                background: `
+                    radial-gradient(ellipse at 30% 20%, rgba(139,107,72,0.06) 0%, transparent 60%),
+                    radial-gradient(ellipse at 70% 60%, rgba(139,107,72,0.04) 0%, transparent 50%)
+                `,
+            }}>
+                {activeGuides.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+                        <div style={{ fontSize: 56, marginBottom: 20, animation: 'floatSoft 3s ease-in-out infinite' }}>
+                            {activeTab === 'bucketlist' ? '🪣' : '📚'}
                         </div>
-                    ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: selectedGuide ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                            {guides.map((g, idx) => {
-                                const guide = g.guide_data;
-                                const isSelected = selectedGuide?.id === g.id;
-                                return (
-                                    <div key={g.id} className="lib-card"
-                                        onClick={() => { setSelectedGuide(g); setExpandedDay(0); }}
-                                        style={{
-                                            padding: '16px 18px', borderRadius: 18, cursor: 'pointer',
-                                            background: isSelected ? 'rgba(46,125,219,0.08)' : 'rgba(255,255,255,0.03)',
-                                            border: isSelected ? '2px solid rgba(46,125,219,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                                            transition: 'all 0.25s',
-                                            animation: `fadeIn 0.3s ease ${idx * 0.05}s both`,
-                                        }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                            <div>
-                                                <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{guide?.title || g.destination}</div>
-                                                <div style={{ fontSize: 11, color: '#5A6B80', marginTop: 3 }}>
-                                                    📍 {g.destination} {g.country ? `· ${g.country}` : ''}
-                                                </div>
-                                            </div>
-                                            <button onClick={(e) => { e.stopPropagation(); deleteGuide(g.id); }}
-                                                style={{ background: 'none', border: 'none', color: 'rgba(248,113,113,0.5)', fontSize: 14, cursor: 'pointer', padding: '2px 6px', borderRadius: 8 }}
-                                                onMouseEnter={e => (e.currentTarget.style.color = '#F87171')}
-                                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(248,113,113,0.5)')}>
-                                                🗑️
-                                            </button>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                                            {g.departure_date && <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 100, background: 'rgba(46,125,219,0.08)', color: '#60A5FA', fontWeight: 600 }}>📅 {formatDate(g.departure_date)}</span>}
-                                            <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 100, background: 'rgba(46,125,219,0.08)', color: '#60A5FA', fontWeight: 600 }}>💰 {g.budget_style}</span>
-                                            <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 100, background: 'rgba(255,255,255,0.04)', color: '#5A6B80', fontWeight: 600 }}>{guide?.days?.length || '?'} jours</span>
-                                            {g.model_used === 'cache' && <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 100, background: 'rgba(5,150,105,0.1)', color: '#34D399', fontWeight: 600 }}>⚡ Cache</span>}
-                                        </div>
-                                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', marginTop: 8 }}>
-                                            Créé le {formatDate(g.created_at)}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* Right: Guide detail */}
-                {selectedGuide && (
-                    <div className="lib-scroll" style={{ flex: 1, padding: '20px 24px', overflowY: 'auto', borderLeft: '1px solid rgba(255,255,255,0.04)', animation: 'fadeIn 0.3s ease' }}>
-                        {(() => {
-                            const g = selectedGuide.guide_data;
-                            if (!g) return <p style={{ color: '#5A6B80' }}>Données non disponibles</p>;
-                            return (
-                                <>
-                                    {/* Header */}
-                                    <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <h2 style={{ fontSize: 22, fontWeight: 800, color: 'white', margin: 0 }}>{g.title}</h2>
-                                            <button onClick={() => setSelectedGuide(null)} style={{ background: 'rgba(255,255,255,0.04)', border: 'none', color: '#5A6B80', fontSize: 16, cursor: 'pointer', borderRadius: 8, padding: '4px 10px' }}>✕</button>
-                                        </div>
-                                        <p style={{ fontSize: 13, color: '#5A6B80', marginTop: 4 }}>{g.summary}</p>
-
-                                        {g.budget_summary && (
-                                            <div style={{ display: 'flex', gap: 16, marginTop: 12, padding: '12px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                                                <div><div style={{ fontSize: 9, color: '#5A6B80', fontWeight: 700 }}>TOTAL</div><div style={{ fontSize: 18, fontWeight: 800, color: '#60A5FA' }}>{g.budget_summary.total_per_person}$</div></div>
-                                                <div><div style={{ fontSize: 9, color: '#5A6B80', fontWeight: 700 }}>HÉBERG.</div><div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{g.budget_summary.accommodation_total}$</div></div>
-                                                <div><div style={{ fontSize: 9, color: '#5A6B80', fontWeight: 700 }}>BOUFFE</div><div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{g.budget_summary.food_total}$</div></div>
-                                                <div><div style={{ fontSize: 9, color: '#5A6B80', fontWeight: 700 }}>ACTIVITÉS</div><div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>{g.budget_summary.activities_total}$</div></div>
-                                            </div>
-                                        )}
-                                        {g.accommodation && <div style={{ marginTop: 8, fontSize: 12, color: '#5A6B80' }}>🏨 {g.accommodation.name} · {g.accommodation.price_per_night}$/nuit</div>}
-                                    </div>
-
-                                    {/* Day tabs */}
-                                    <div style={{ display: 'flex', gap: 0, overflowX: 'auto', marginBottom: 16 }}>
-                                        {g.days?.map((d: any, i: number) => (
-                                            <button key={i} onClick={() => setExpandedDay(i)} style={{
-                                                flex: '0 0 auto', padding: '8px 12px', border: 'none',
-                                                borderBottom: expandedDay === i ? `3px solid ${DC[i % DC.length]}` : '3px solid transparent',
-                                                background: 'transparent', color: expandedDay === i ? DC[i % DC.length] : '#5A6B80',
-                                                fontSize: 12, fontWeight: expandedDay === i ? 700 : 600,
-                                                cursor: 'pointer', fontFamily: "'Fredoka',sans-serif",
-                                            }}>
-                                                <div>J{d.day}</div>
-                                                <div style={{ fontSize: 9 }}>{d.total_cost}$</div>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Day detail */}
-                                    {g.days?.map((d: any, i: number) => expandedDay === i ? (
-                                        <div key={i} style={{ animation: 'fadeIn 0.25s ease' }}>
-                                            <h3 style={{ fontSize: 16, fontWeight: 700, color: DC[i % DC.length], margin: '0 0 14px' }}>{d.theme} {d.title}</h3>
-                                            {SLOTS.map(({ slot, label, icon }) => {
-                                                const data = d[slot];
-                                                if (!data) return null;
-                                                const nm = data.activity || data.name || '—';
-                                                const time = d.schedule?.[slot] || '';
-                                                return (
-                                                    <div key={slot} style={{
-                                                        display: 'flex', gap: 0, borderRadius: 12, overflow: 'hidden',
-                                                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)',
-                                                        marginBottom: 6,
-                                                    }}>
-                                                        {time && <div style={{
-                                                            width: 52, flexShrink: 0, background: 'rgba(255,255,255,0.02)',
-                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                                            padding: '8px 4px', borderRight: '1px solid rgba(255,255,255,0.04)',
-                                                        }}>
-                                                            <span style={{ fontSize: 13, fontWeight: 800, color: DC[i % DC.length] }}>{time.split(':')[0]}</span>
-                                                            <span style={{ fontSize: 9, color: '#5A6B80' }}>:{time.split(':')[1] || '00'}</span>
-                                                        </div>}
-                                                        <div style={{ flex: 1, padding: '10px 14px' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                                <span style={{ fontSize: 10, fontWeight: 700, color: DC[i % DC.length], textTransform: 'uppercase' }}>{icon} {label}</span>
-                                                                <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>{data.cost}$</span>
-                                                            </div>
-                                                            <div style={{ fontSize: 13, fontWeight: 700, color: 'white', marginTop: 2 }}>{nm}</div>
-                                                            <div style={{ fontSize: 11, color: '#5A6B80' }}>📍 {data.location}</div>
-                                                            {data.tip && <div style={{ fontSize: 10, color: '#8A9AB5', fontStyle: 'italic', marginTop: 2 }}>💡 {data.tip}</div>}
-                                                            {data.must_try && <div style={{ fontSize: 10, color: '#60A5FA', marginTop: 2 }}>⭐ {data.must_try}</div>}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : null)}
-
-                                    {/* Tips & Packing */}
-                                    {g.packing_list && (
-                                        <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 12, background: 'rgba(5,150,105,0.03)', border: '1px solid rgba(5,150,105,0.08)' }}>
-                                            <div style={{ fontSize: 11, fontWeight: 700, color: '#34D399', marginBottom: 4 }}>🎒 À ne pas oublier</div>
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                                {g.packing_list.map((it: string, j: number) => <span key={j} style={{ padding: '2px 8px', borderRadius: 100, background: 'rgba(5,150,105,0.06)', fontSize: 10, fontWeight: 600, color: '#34D399' }}>{it}</span>)}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
+                        <h3 style={{
+                            fontFamily: "'Playfair Display', serif", color: '#8B6B48',
+                            fontSize: 22, fontWeight: 700, marginBottom: 8,
+                        }}>
+                            {activeTab === 'bucketlist' ? 'Ta Bucket List est vide' : 'Aucun voyage complété'}
+                        </h3>
+                        <p style={{
+                            fontFamily: "'Crimson Text', serif", color: '#6B5540',
+                            fontSize: 14, marginBottom: 24,
+                        }}>
+                            {activeTab === 'bucketlist'
+                                ? "Crée ton premier itinéraire et planifie ton prochain voyage!"
+                                : "Tes voyages complétés apparaîtront ici comme des souvenirs."
+                            }
+                        </p>
+                        <WoodenShelf>
+                            <ShelfDecor type="plant" />
+                            <ShelfDecor type="globe" />
+                            <ShelfDecor type="compass" />
+                            <ShelfDecor type="map" />
+                            <ShelfDecor type="coffee" />
+                        </WoodenShelf>
+                        <button onClick={() => router.push('/')} style={{
+                            marginTop: 16, padding: '12px 28px', borderRadius: 100,
+                            border: '2px solid #8B6B48', background: 'transparent',
+                            color: '#D4A574', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                            fontFamily: "'Playfair Display', serif",
+                        }}>⚜️ Planifier un voyage</button>
                     </div>
+                ) : (
+                    <>
+                        {yearShelves.map(({ year, shelves }, yearIdx) => {
+                            const currentYear = new Date().getFullYear().toString();
+                            let globalBookIdx = 0;
+                            // Count books before this year group for color indexing
+                            for (let y = 0; y < yearIdx; y++) {
+                                yearShelves[y].shelves.forEach(s => { globalBookIdx += s.length; });
+                            }
+
+                            return (
+                                <div key={year}>
+                                    {/* Year divider */}
+                                    <YearDivider
+                                        year={year}
+                                        count={shelves.reduce((acc, s) => acc + s.length, 0)}
+                                        isCurrentYear={year === currentYear}
+                                    />
+
+                                    {/* Shelves for this year */}
+                                    {shelves.map((shelfBooks, shelfIdx) => {
+                                        const startIdx = globalBookIdx;
+                                        globalBookIdx += shelfBooks.length;
+                                        return (
+                                            <WoodenShelf key={`${year}-${shelfIdx}`}>
+                                                {shelfIdx === 0 && yearIdx === 0 && <ShelfDecor type="plant" />}
+                                                {shelfBooks.map((g, bookIdx) => (
+                                                    <ShelfBook
+                                                        key={g.id}
+                                                        guide={g}
+                                                        index={startIdx + bookIdx}
+                                                        isPulling={pullingId === g.id}
+                                                        onClick={() => handleBookClick(g)}
+                                                    />
+                                                ))}
+                                                {shelfIdx === 0 && shelfBooks.length < 6 && <ShelfDecor type={yearIdx % 2 === 0 ? "globe" : "compass"} />}
+                                            </WoodenShelf>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+
+                        {/* Extra empty shelf for ambiance */}
+                        <WoodenShelf>
+                            <ShelfDecor type="camera" />
+                            <ShelfDecor type="coffee" />
+                            <ShelfDecor type="map" />
+                        </WoodenShelf>
+                    </>
                 )}
             </div>
         </div>
