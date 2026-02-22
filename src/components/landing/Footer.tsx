@@ -28,7 +28,7 @@ export default function Footer() {
                 </span>
             </div>
             <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
-                © 2025 GeaiMonVol · Fait avec ❤️ à Rimouski
+                © {new Date().getFullYear()} GeaiMonVol · Fait avec ❤️ à Rimouski
             </p>
         </div>
     );

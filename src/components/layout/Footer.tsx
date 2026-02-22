@@ -35,7 +35,7 @@ export default function Footer() {
                         <Link href="#">Confidentialité</Link>
                     </li>
                 </ul>
-                <div className="footer-copy">© 2026 GeaiMonVol</div>
+                <div className="footer-copy">© {new Date().getFullYear()} GeaiMonVol</div>
             </div>
         </footer>
     );

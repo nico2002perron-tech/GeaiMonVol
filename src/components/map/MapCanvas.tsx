@@ -5,8 +5,7 @@ import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
 import { getRegionForCountry } from '@/lib/data/regions';
 import { PRIORITY_DESTINATIONS } from '@/lib/services/flights';
-
-const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
+import { CANADA_CODES } from '@/lib/constants/deals';
 const QUEBEC_CODES = ['YQB', 'YUL'];
 
 const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
