@@ -53,7 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
-    const supabase = createClient();
+    const supabaseRef = useRef(createClient());
+    const supabase = supabaseRef.current;
     const retryCount = useRef(0);
     const fetchingRef = useRef(false);
 
@@ -69,6 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .single();
 
             if (error) {
+                // Ignore AbortError — happens on unmount/re-render
+                if (error.message?.includes('AbortError') || error.message?.includes('aborted')) {
+                    fetchingRef.current = false;
+                    return;
+                }
                 console.warn('Profile fetch error:', error.message);
                 // Retry up to 3 times with increasing delay
                 if (retry < 3) {
@@ -89,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCachedProfile(profileData);
             retryCount.current = 0;
         } catch (err) {
+            // Ignore AbortError — happens when component unmounts or re-renders
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             console.warn('Profile fetch exception:', err);
             // Use cache as fallback
             const cached = getCachedProfile();
