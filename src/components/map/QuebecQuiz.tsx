@@ -505,14 +505,16 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                                     </div>
 
                                     {/* Highlights */}
-                                    {region.highlights.map((h: string, i: number) => (
-                                        <span key={i} style={{ padding: '2px 8px', borderRadius: 100, background: 'rgba(26,43,66,.04)', fontSize: 9, color: '#8FA3B8' }}>
-                                            {h}
-                                        </span>
-                                    ))}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {region.highlights.map((h: string, i: number) => (
+                                            <span key={i} style={{ padding: '2px 8px', borderRadius: 100, background: 'rgba(26,43,66,.04)', fontSize: 9, color: '#8FA3B8' }}>
+                                                {h}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
 
-                                    {/* Generate CTA */ }
+                                {/* Generate CTA */ }
                             {
                                 isSelected && (
                                     <button onClick={(e) => { e.stopPropagation(); handleGenerate(region.id); }}
@@ -527,9 +529,9 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                                     </button>
                                 )
                             }
-                                </div>
+                            </div>
                     );
-                        })}
+                    })}
 
                     {/* Other regions */}
                     <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(26,43,66,.04)' }}>
