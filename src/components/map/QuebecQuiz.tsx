@@ -321,9 +321,56 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                         </div>
                         <button onClick={next} disabled={answers.interests.length < 2} style={{ display: 'block', width: '100%', marginTop: 20, padding: '12px', borderRadius: 14, border: 'none', background: answers.interests.length >= 2 ? 'linear-gradient(135deg, #2E7DDB, #1A3A6B)' : '#E5E7EB', color: 'white', fontWeight: 700, fontFamily: F }}>Continuer</button>
                     </>)}
-                    {step === 'energy' && (<Opt icon="🔥" label="Intense" value="intense" current={answers.energy} onClick={(v: string) => { set('energy', v); setTimeout(next, 300); }} />)}
-                    {step === 'season' && (<Opt icon="☀️" label="Été" value="summer" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />)}
-                    {step === 'food' && (<Chip icon="🧀" label="Terroir" value="terroir" toggleKey="food" />)}
+                    {/* ═══ ENERGY ═══ */}
+                    {step === 'energy' && (<>
+                        <Title icon="⚡" text="Ton niveau d'énergie en voyage?" sub="Journées bien remplies ou on prend ça relax?" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Opt icon="🔥" label="Intense" desc="Lever tôt, coucher tard, voir un max" value="intense" current={answers.energy} onClick={(v: string) => { set('energy', v); setTimeout(next, 300); }} />
+                            <Opt icon="⚖️" label="Équilibré" desc="Activités le jour, soirées relax" value="mixed" current={answers.energy} onClick={(v: string) => { set('energy', v); setTimeout(next, 300); }} />
+                            <Opt icon="🌊" label="Tranquille" desc="Pas de rush, on profite du moment" value="relax" current={answers.energy} onClick={(v: string) => { set('energy', v); setTimeout(next, 300); }} />
+                        </div>
+                    </>)}
+
+                    {/* ═══ SEASON ═══ */}
+                    {step === 'season' && (<>
+                        <Title icon="🗓️" text="Tu penses voyager quand?" sub="La saison change tout au Québec!" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Opt icon="☀️" label="Été (juin-août)" desc="Festivals, plages, vélo, nature" value="summer" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />
+                            <Opt icon="🍂" label="Automne (sept-oct)" desc="Couleurs, vendanges, randonnée" value="fall" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />
+                            <Opt icon="❄️" label="Hiver (déc-mars)" desc="Ski, traîneau, patinage, Carnaval" value="winter" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />
+                            <Opt icon="🌸" label="Printemps (avril-mai)" desc="Cabanes à sucre, renouveau" value="spring" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />
+                            <Opt icon="🤷" label="Pas encore décidé" desc="On verra!" value="flexible" current={answers.season} onClick={(v: string) => { set('season', v); setTimeout(next, 300); }} />
+                        </div>
+                    </>)}
+
+                    {/* ═══ FOOD ═══ */}
+                    {step === 'food' && (<>
+                        <Title icon="🍴" text="Côté bouffe, t'es comment?" sub="Choisis tout ce qui te parle" />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {[
+                                { icon: '🧀', label: 'Terroir & fromages', value: 'terroir' },
+                                { icon: '🍷', label: 'Vin & vignobles', value: 'wine' },
+                                { icon: '🍺', label: 'Microbrasseries', value: 'micro' },
+                                { icon: '⭐', label: 'Fine dining', value: 'fine-dining' },
+                                { icon: '🍁', label: 'Cabane à sucre', value: 'sugar-shack' },
+                                { icon: '🦞', label: 'Fruits de mer', value: 'seafood' },
+                                { icon: '🥐', label: 'Cafés & brunchs', value: 'cafe' },
+                                { icon: '🌮', label: 'Street food', value: 'street-food' },
+                                { icon: '🫐', label: 'Cueillette & marchés', value: 'market' },
+                                { icon: '🍽', label: 'Je mange de tout!', value: 'all' },
+                            ].map(c => (
+                                <Chip key={c.value} {...c} toggleKey="food" />
+                            ))}
+                        </div>
+                        <button onClick={next} disabled={answers.food.length === 0}
+                            style={{
+                                display: 'block', width: '100%', marginTop: 20, padding: '12px', borderRadius: 14,
+                                border: 'none', cursor: answers.food.length > 0 ? 'pointer' : 'not-allowed',
+                                background: answers.food.length > 0 ? 'linear-gradient(135deg, #2E7DDB, #1A3A6B)' : 'rgba(26,43,66,.06)',
+                                color: answers.food.length > 0 ? 'white' : '#5A6B80',
+                                fontSize: 14, fontWeight: 700, fontFamily: F,
+                            }}>Continuer</button>
+                    </>)}
                     {step === 'accommodation' && (<Opt icon="⛺" label="Camping" value="camping" current={answers.accommodation} onClick={(v: string) => { set('accommodation', v); setTimeout(next, 300); }} />)}
                     {step === 'transport' && (<Opt icon="🚗" label="Auto" value="car" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />)}
                     {step === 'duration' && (<>
