@@ -454,26 +454,270 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                             Voir mes résultats! ⚜️
                         </button>
                     </>)}
+                    {/* ═══ RESULTS ═══ */}
                     {step === 'results' && (<>
-                        {rankedRegions.slice(0, 3).map((r, i) => (
-                            <div key={r.id} onClick={() => setSelectedRegion(r.id)} style={{ padding: 16, borderRadius: 18, marginBottom: 10, background: selectedRegion === r.id ? '#EBF5FF' : '#F3F4F6' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{r.emoji} {r.name}</span><span style={{ color: '#2E7DDB', fontWeight: 800 }}>{Math.round(70 + (r.score / 10))}%</span></div>
-                                {selectedRegion === r.id && <button onClick={() => handleGenerate(r.id)} style={{ width: '100%', marginTop: 10, padding: 10, background: '#2E7DDB', color: 'white', borderRadius: 12 }}>Générer itinéraire</button>}
-                            </div>
-                        ))}
-                    </>)}
-                    {step === 'generating' && (<div style={{ textAlign: 'center', padding: 40 }}>{guideLimitReached ? <><p>Limite atteinte!</p><a href="/pricing">Premium</a></> : <><p>GeaiAI crée ton itinéraire...</p></>}</div>)}
-                    {step === 'guide' && guide && (
-                        <div>
-                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>{guide.title}</h3>
-                            <p style={{ fontSize: 13, color: '#4B5563', margin: '10px 0' }}>{guide.summary}</p>
-                            {guide.days.map((d: any, i: number) => (
-                                <div key={i} style={{ marginBottom: 10, padding: 12, background: '#F9FAFB', borderRadius: 12 }}>
-                                    <div style={{ fontWeight: 700 }}>Jour {i + 1}: {d.title}</div>
-                                    <div style={{ fontSize: 12, color: '#6B7280' }}>{d.theme}</div>
+                        <div style={{ textAlign: 'center', marginBottom: 20, animation: 'fadeUp .4s ease' }}>
+                            <div style={{ fontSize: 40, marginBottom: 8 }}>⚜️</div>
+                            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A2B42', margin: '0 0 6px', fontFamily: F }}>Ton top 3 Québec!</h2>
+                            <p style={{ fontSize: 12, color: '#5A7089' }}>Basé sur tes réponses, voici les régions parfaites pour toi</p>
+                        </div>
+
+                        {top3.map((region, idx) => {
+                            const reasons = getMatchReasons(region, answers);
+                            const medal = ['🥇', '🥈', '🥉'][idx];
+                            const isSelected = selectedRegion === region.id;
+                            const matchPct = Math.min(99, Math.round(60 + (region.score / (top3[0].score || 1)) * 38));
+
+                            return (
+                                <div key={region.id} className="region-card"
+                                    onClick={() => setSelectedRegion(isSelected ? null : region.id)}
+                                    style={{
+                                        padding: '16px 18px', borderRadius: 18, marginBottom: 10,
+                                        background: isSelected ? 'rgba(46,125,219,.1)' : 'rgba(26,43,66,.03)',
+                                        border: isSelected ? '2px solid rgba(46,125,219,.4)' : '1px solid rgba(26,43,66,.06)',
+                                        animation: `fadeUp .4s ease ${idx * 0.12}s both`,
+                                    }}>
+                                    {/* Header */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                        <span style={{ fontSize: 24 }}>{medal}</span>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{ fontSize: 22 }}>{region.emoji}</span>
+                                                <span style={{ fontSize: 16, fontWeight: 800, color: '#1A2B42' }}>{region.name}</span>
+                                            </div>
+                                            <div style={{ fontSize: 11, color: '#5A7089', marginTop: 2 }}>{region.tagline}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: '#2E7DDB' }}>{matchPct}%</div>
+                                            <div style={{ fontSize: 9, color: '#8FA3B8' }}>match</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Match reasons */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                                        {reasons.map((r, i) => (
+                                            <span key={i} style={{ padding: '3px 10px', borderRadius: 100, background: 'rgba(46,125,219,.08)', fontSize: 10, fontWeight: 600, color: '#2E7DDB' }}>
+                                                ✓ {r}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    {/* Highlights */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {region.highlights.map((h, i) => (
+                                            <span key={i} style={{ padding: '2px 8px', borderRadius: 100, background: 'rgba(26,43,66,.04)', fontSize: 9, color: '#8FA3B8' }}>
+                                                {h}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    {/* Generate CTA */}
+                                    {isSelected && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleGenerate(region.id); }}
+                                            style={{
+                                                display: 'block', width: '100%', marginTop: 12, padding: '12px', borderRadius: 14, border: 'none',
+                                                background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)', color: 'white',
+                                                fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: F,
+                                                boxShadow: '0 4px 16px rgba(46,125,219,.3)',
+                                                animation: 'fadeUp .3s ease',
+                                            }}>
+                                            ✨ Générer mon itinéraire {region.name}
+                                        </button>
+                                    )}
                                 </div>
-                            ))}
-                            <button onClick={onClose} style={{ width: '100%', marginTop: 20, padding: 12, background: '#2E7DDB', color: 'white', borderRadius: 12 }}>Terminer</button>
+                            );
+                        })}
+
+                        {/* Other regions */}
+                        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(26,43,66,.04)' }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#8FA3B8', marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' }}>Autres régions</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {rankedRegions.slice(3).map(region => (
+                                    <button key={region.id}
+                                        onClick={() => { setSelectedRegion(region.id); }}
+                                        style={{
+                                            padding: '6px 12px', borderRadius: 100,
+                                            border: selectedRegion === region.id ? '1.5px solid #2E7DDB' : '1px solid rgba(26,43,66,.06)',
+                                            background: selectedRegion === region.id ? 'rgba(46,125,219,.1)' : 'rgba(26,43,66,.03)',
+                                            color: selectedRegion === region.id ? '#2E7DDB' : '#5A7089',
+                                            fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: F,
+                                        }}>
+                                        {region.emoji} {region.name}
+                                    </button>
+                                ))}
+                            </div>
+                            {selectedRegion && !top3.find(r => r.id === selectedRegion) && (
+                                <button onClick={() => handleGenerate(selectedRegion)}
+                                    style={{
+                                        display: 'block', width: '100%', marginTop: 12, padding: '12px', borderRadius: 14, border: 'none',
+                                        background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)', color: 'white',
+                                        fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: F,
+                                        animation: 'fadeUp .3s ease',
+                                    }}>
+                                    ✨ Générer mon itinéraire {QC_REGIONS.find(r => r.id === selectedRegion)?.name}
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Re-do quiz */}
+                        <button onClick={() => { setStep('welcome'); setAnswers({ ...INITIAL_ANSWERS }); setSelectedRegion(null); }}
+                            style={{ display: 'block', margin: '20px auto 0', padding: '6px 16px', borderRadius: 100, border: 'none', background: 'rgba(26,43,66,.04)', color: '#8FA3B8', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
+                            🔄 Recommencer le quiz
+                        </button>
+                    </>)}
+
+                    {/* ═══ GENERATING (loading) ═══ */}
+                    {step === 'generating' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 0', textAlign: 'center', animation: 'fadeUp .4s ease' }}>
+                            {guideLimitReached ? (
+                                <>
+                                    <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+                                    <h3 style={{ fontSize: 20, fontWeight: 700, color: '#1A2B42', fontFamily: F }}>Guide gratuit utilisé!</h3>
+                                    <p style={{ fontSize: 14, color: '#5A7089', margin: '10px 0 24px' }}>Passe à Premium pour des guides illimités.</p>
+                                    <a href="/pricing" style={{ padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', color: 'white', fontSize: 15, fontWeight: 700, textDecoration: 'none', fontFamily: F }}>⚡ Plans Premium</a>
+                                    <button onClick={() => setStep('results')} style={{ marginTop: 14, background: 'none', border: 'none', color: '#8FA3B8', fontSize: 13, cursor: 'pointer', fontFamily: F }}>← Retour aux résultats</button>
+                                </>
+                            ) : (
+                                <>
+                                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg,#EEF2FF,#F0F7FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, animation: 'pulse 2s ease-in-out infinite' }}>
+                                        <span style={{ fontSize: 30 }}>🤖</span>
+                                    </div>
+                                    <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1A2B42', margin: '0 0 8px', fontFamily: F }}>GeaiAI crée ton itinéraire...</h3>
+                                    <p style={{ fontSize: 13, color: '#5A7089' }}>Recherche des meilleurs spots au Québec</p>
+                                    <div style={{ display: 'flex', gap: 6, marginTop: 24 }}>
+                                        {[0, 1, 2].map(i => (
+                                            <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#2E7DDB', animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+                                        ))}
+                                    </div>
+                                    {guideError && <p style={{ marginTop: 16, fontSize: 12, color: '#DC2626' }}>{guideError}</p>}
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ═══ GUIDE RESULT ═══ */}
+                    {step === 'guide' && guide && (
+                        <div style={{ animation: 'fadeUp .4s ease' }}>
+                            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#1A2B42', margin: '0 0 6px', fontFamily: F }}>{guide.title || 'Ton itinéraire Québec'}</h3>
+                            <p style={{ fontSize: 12, color: '#5A7089', margin: '0 0 16px', lineHeight: 1.5 }}>{guide.summary}</p>
+
+                            {/* Accommodation */}
+                            {guide.accommodation && (
+                                <div style={{ padding: '12px 14px', borderRadius: 14, marginBottom: 12, background: 'rgba(46,125,219,0.04)', border: '1px solid rgba(46,125,219,0.1)' }}>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <span style={{ fontSize: 20 }}>🏨</span>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#2E7DDB', textTransform: 'uppercase' as const }}>HÉBERGEMENT</div>
+                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#1A2B42' }}>{guide.accommodation.name}</div>
+                                            <div style={{ fontSize: 11, color: '#5A7089' }}>{guide.accommodation.type} · {guide.accommodation.neighborhood}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: 16, fontWeight: 800, color: '#2E7DDB' }}>{guide.accommodation.price_per_night}$</div>
+                                            <div style={{ fontSize: 9, color: '#8FA3B8' }}>/nuit</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Budget summary */}
+                            {guide.budget_summary && (
+                                <div style={{ padding: '12px 14px', borderRadius: 14, marginBottom: 12, background: 'rgba(26,43,66,.02)', border: '1px solid rgba(26,43,66,0.06)' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1A2B42', marginBottom: 8 }}>💰 Budget total estimé</div>
+                                    {[
+                                        ['🏨 Hébergement', guide.budget_summary.accommodation_total],
+                                        ['🍽 Repas', guide.budget_summary.food_total],
+                                        ['🎯 Activités', guide.budget_summary.activities_total],
+                                        ['🚕 Transport', guide.budget_summary.transport_local_total],
+                                    ].map(([l, v]) => (
+                                        <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '3px 0', borderBottom: '1px solid rgba(26,43,66,0.04)' }}>
+                                            <span style={{ color: '#5A7089' }}>{l}</span><span style={{ fontWeight: 600, color: '#1A2B42' }}>{v}$</span>
+                                        </div>
+                                    ))}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, marginTop: 6, paddingTop: 6, borderTop: '2px solid rgba(46,125,219,0.15)' }}>
+                                        <span style={{ color: '#1A2B42' }}>Total</span><span style={{ color: '#2E7DDB' }}>~{guide.budget_summary.total_per_person}$ CAD</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Highlights */}
+                            {guide.highlights?.length > 0 && (
+                                <div style={{ padding: '12px 14px', borderRadius: 14, marginBottom: 16, background: 'rgba(46,125,219,.04)', border: '1px solid rgba(46,125,219,0.1)' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#2E7DDB', marginBottom: 6 }}>✨ Points forts</div>
+                                    {guide.highlights.map((h: string, i: number) => (<div key={i} style={{ fontSize: 12, color: '#1A2B42', marginBottom: 3 }}>→ {h}</div>))}
+                                </div>
+                            )}
+
+                            {/* DAY BY DAY */}
+                            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1A2B42', margin: '0 0 10px' }}>📅 Itinéraire jour par jour</h3>
+                            {(guide.days || []).map((day: any, i: number) => {
+                                const isExp = expandedDay === i;
+                                const DCOL = ['#2E7DDB', '#0E9AA7', '#F5A623', '#E84855', '#7C3AED', '#059669', '#DB2777'];
+                                const col = DCOL[i % DCOL.length];
+                                return (
+                                    <div key={i} style={{ marginBottom: 6, borderRadius: 14, overflow: 'hidden', border: `1px solid ${isExp ? col + '20' : 'rgba(26,43,66,0.06)'}`, background: isExp ? 'rgba(46,125,219,.02)' : 'white' }}>
+                                        <button onClick={() => setExpandedDay(isExp ? -1 : i)} style={{ width: '100%', padding: '12px 14px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: F }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <span style={{ width: 28, height: 28, borderRadius: 10, background: isExp ? col : '#F0F4F8', color: isExp ? 'white' : '#5A7089', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{day.day || i + 1}</span>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1A2B42' }}>{day.title}</div>
+                                                    <div style={{ fontSize: 10, color: '#8FA3B8' }}>{day.theme} {day.total_cost ? `· ${day.total_cost}$` : ''}</div>
+                                                </div>
+                                            </div>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8FA3B8" strokeWidth="2.5" style={{ transform: isExp ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>
+                                        </button>
+                                        {isExp && (
+                                            <div style={{ padding: '0 12px 12px' }}>
+                                                {['morning', 'lunch', 'afternoon', 'dinner', 'evening'].map(slot => {
+                                                    const d = day[slot];
+                                                    if (!d) return null;
+                                                    const slotLabels: Record<string, { icon: string; label: string }> = {
+                                                        morning: { icon: '🌅', label: 'Matin' },
+                                                        lunch: { icon: '🥗', label: 'Dîner' },
+                                                        afternoon: { icon: '☀️', label: 'Après-midi' },
+                                                        dinner: { icon: '🍽️', label: 'Souper' },
+                                                        evening: { icon: '🌙', label: 'Soirée' },
+                                                    };
+                                                    const s = slotLabels[slot];
+                                                    return (
+                                                        <div key={slot} style={{ padding: '8px 10px', borderRadius: 10, background: 'white', border: '1px solid rgba(26,43,66,0.04)', marginBottom: 4 }}>
+                                                            <div style={{ fontSize: 9, fontWeight: 700, color: col, textTransform: 'uppercase' as const }}>{s.icon} {s.label} · {d.duration || ''}</div>
+                                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#1A2B42' }}>{d.activity || d.name}</div>
+                                                            {d.location && <div style={{ fontSize: 11, color: '#5A7089' }}>📍 {d.location}</div>}
+                                                            {d.description && <div style={{ fontSize: 11, color: '#5A7089', marginTop: 2 }}>{d.description}</div>}
+                                                            {d.tip && <div style={{ fontSize: 10, color: '#8FA3B8', fontStyle: 'italic', marginTop: 2 }}>💡 {d.tip}</div>}
+                                                            {d.cost !== undefined && <div style={{ fontSize: 11, fontWeight: 700, color: '#2E7DDB', marginTop: 2 }}>{d.cost}$</div>}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {/* Tips */}
+                            {guide.region_tips && (
+                                <div style={{ padding: '12px 14px', borderRadius: 14, marginTop: 14, background: 'rgba(22,163,74,0.04)', border: '1px solid rgba(22,163,74,0.1)' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#16A34A', marginBottom: 4 }}>🤫 Tips locaux</div>
+                                    <div style={{ fontSize: 12, color: '#1A2B42' }}>{guide.region_tips}</div>
+                                </div>
+                            )}
+                            {guide.packing_list?.length > 0 && (
+                                <div style={{ padding: '12px 14px', borderRadius: 14, marginTop: 10, background: 'rgba(5,150,105,0.03)', border: '1px solid rgba(5,150,105,0.08)' }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', marginBottom: 4 }}>🎒 À ne pas oublier</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {guide.packing_list.map((it: string, j: number) => (<span key={j} style={{ padding: '2px 8px', borderRadius: 100, background: 'rgba(5,150,105,0.06)', fontSize: 10, fontWeight: 600, color: '#059669' }}>{it}</span>))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 20, padding: '14px 0', borderRadius: 14, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#2E7DDB,#1B5BA0)', color: 'white', fontSize: 14, fontWeight: 700, fontFamily: F }}>
+                                ⚜️ Fermer
+                            </button>
+                            <button onClick={() => { setStep('results'); setGuide(null); }}
+                                style={{ display: 'block', margin: '10px auto 0', padding: '6px 16px', borderRadius: 100, border: 'none', background: 'rgba(26,43,66,.04)', color: '#8FA3B8', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
+                                ← Choisir une autre région
+                            </button>
                         </div>
                     )}
                 </div>
