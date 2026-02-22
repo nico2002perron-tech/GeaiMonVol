@@ -23,6 +23,18 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
     const isAdmin = (profile as any)?.role === 'admin';
     const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Voyageur';
 
+    const handleSignOut = async () => {
+        setMenuOpen(false);
+        try {
+            await signOut();
+            window.location.href = '/';
+        } catch (err) {
+            console.error('Sign out error:', err);
+            // Force redirect anyway
+            window.location.href = '/';
+        }
+    };
+
     return (
         <>
             {/* Header dark compact */}
@@ -119,7 +131,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                             {menuOpen && (
                                 <div style={{
                                     position: 'absolute', top: '100%', right: 0, marginTop: 6,
-                                    width: 220, borderRadius: 16, overflow: 'hidden',
+                                    width: 260, borderRadius: 16, overflow: 'hidden',
                                     background: '#1A2B42', border: '1px solid rgba(255,255,255,0.08)',
                                     boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
                                     fontFamily: "'Fredoka', sans-serif",
@@ -143,7 +155,22 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
 
                                     {/* Menu items */}
                                     <div style={{ padding: '6px 0' }}>
-                                        <Link href="/library" onClick={() => setMenuOpen(false)} style={{
+                                        {/* Bucket List — Futurs voyages */}
+                                        <Link href="/library?tab=bucketlist" onClick={() => setMenuOpen(false)} style={{
+                                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+                                            color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600,
+                                            transition: 'background 0.15s',
+                                        }}
+                                            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                        >
+                                            <span style={{ fontSize: 14 }}>🪣</span>
+                                            Ma Bucket List
+                                            <span style={{ marginLeft: 'auto', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>Futurs voyages</span>
+                                        </Link>
+
+                                        {/* Bibliothèque — Voyages complétés */}
+                                        <Link href="/library?tab=completed" onClick={() => setMenuOpen(false)} style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
                                             color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600,
                                             transition: 'background 0.15s',
@@ -153,8 +180,10 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                                         >
                                             <span style={{ fontSize: 14 }}>📚</span>
                                             Ma bibliothèque
+                                            <span style={{ marginLeft: 'auto', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>Complétés</span>
                                         </Link>
 
+                                        {/* Notifications */}
                                         <Link href="/onboarding" onClick={() => setMenuOpen(false)} style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
                                             color: 'white', textDecoration: 'none', fontSize: 12, fontWeight: 600,
@@ -163,8 +192,8 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                                             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                                         >
-                                            <span style={{ fontSize: 14 }}>⚙️</span>
-                                            Préférences
+                                            <span style={{ fontSize: 14 }}>🔔</span>
+                                            Personnaliser mes notifications
                                         </Link>
 
                                         {!isPremium && (
@@ -184,7 +213,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
 
                                     {/* Sign out */}
                                     <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '6px 0' }}>
-                                        <button onClick={() => { signOut(); setMenuOpen(false); }} style={{
+                                        <button onClick={handleSignOut} style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
                                             width: '100%', border: 'none', background: 'transparent',
                                             color: '#F87171', fontSize: 12, fontWeight: 600, cursor: 'pointer',
