@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
     }
 
     const { destination, targetPrice } = await req.json();
+
+    if (!destination || typeof destination !== 'string' || !destination.trim()) {
+        return NextResponse.json({ error: "Invalid destination" }, { status: 400 });
+    }
+    if (targetPrice !== undefined && (typeof targetPrice !== 'number' || targetPrice < 0)) {
+        return NextResponse.json({ error: "Invalid target price" }, { status: 400 });
+    }
+
     try {
         await WatchlistService.addDestination(user.id, destination, targetPrice);
         return NextResponse.json({ success: true });

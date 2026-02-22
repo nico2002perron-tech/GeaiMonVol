@@ -1,9 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+    if (!process.env.RESEND_API_KEY) return null;
+    return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function sendDealAlert(to: string, userName: string, deals: any[]) {
-    if (!process.env.RESEND_API_KEY) return null;
+    const resend = getResendClient();
+    if (!resend) return null;
 
     return await resend.emails.send({
         from: 'GeaiMonVol <onboarding@resend.dev>',

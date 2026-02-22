@@ -9,10 +9,12 @@ export async function POST(request: Request) {
 
     // Trigger the scan
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://geai-mon-vol.vercel.app';
-    const scanUrl = `${baseUrl}/api/cron/scan-prices?secret=${process.env.CRON_SECRET}`;
 
     try {
-        const res = await fetch(scanUrl);
+        const res = await fetch(`${baseUrl}/api/cron/scan-prices`, {
+            method: 'GET',
+            headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
+        });
         const data = await res.json();
         return NextResponse.json(data);
     } catch (error: any) {
