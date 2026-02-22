@@ -202,6 +202,8 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
     useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [step]);
 
     const rankedRegions = useMemo(() => scoreRegions(answers), [answers]);
+    const top3 = useMemo(() => rankedRegions.slice(0, 3), [rankedRegions]);
+
     if (!isOpen) return null;
 
     const STEPS: StepId[] = ['welcome', 'group', 'vibe', 'interests', 'energy', 'season', 'food', 'accommodation', 'transport', 'duration', 'budget', 'special', 'results'];
