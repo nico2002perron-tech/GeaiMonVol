@@ -724,5 +724,6 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                     )}
                 </div>
             </div>
-            );
+        </div>
+    );
 }
