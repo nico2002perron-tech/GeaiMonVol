@@ -393,17 +393,67 @@ export default function QuebecQuiz({ isOpen, onClose, onGenerate }: QuebecQuizPr
                             <Opt icon="🚲" label="Vélo / actif" desc="Cyclotourisme" value="bike" current={answers.transport} onClick={(v: string) => { set('transport', v); setTimeout(next, 300); }} />
                         </div>
                     </>)}
+                    {/* ═══ DURATION ═══ */}
                     {step === 'duration' && (<>
-                        <Title icon="📅" text="Combien de jours?" />
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, margin: '20px 0' }}>
-                            <button onClick={() => set('duration', Math.max(2, answers.duration - 1))} style={{ width: 40, height: 40, borderRadius: '50%' }}>-</button>
-                            <span style={{ fontSize: 32, fontWeight: 800 }}>{answers.duration}</span>
-                            <button onClick={() => set('duration', Math.min(14, answers.duration + 1))} style={{ width: 40, height: 40, borderRadius: '50%' }}>+</button>
+                        <Title icon="📅" text="Combien de jours?" sub="On adaptera l'itinéraire à ta durée" />
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 20, margin: '30px 0' }}>
+                            <button onClick={() => set('duration', Math.max(2, answers.duration - 1))}
+                                style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid rgba(46,125,219,.2)', background: 'rgba(46,125,219,.05)', color: '#2E7DDB', fontSize: 24, fontWeight: 700, cursor: 'pointer', fontFamily: F }}>−</button>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 48, fontWeight: 800, color: '#2E7DDB', fontFamily: F }}>{answers.duration}</div>
+                                <div style={{ fontSize: 13, color: '#5A7089' }}>jours</div>
+                            </div>
+                            <button onClick={() => set('duration', Math.min(14, answers.duration + 1))}
+                                style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid rgba(46,125,219,.2)', background: 'rgba(46,125,219,.05)', color: '#2E7DDB', fontSize: 24, fontWeight: 700, cursor: 'pointer', fontFamily: F }}>+</button>
                         </div>
-                        <button onClick={next} style={{ width: '100%', padding: '12px', borderRadius: 14, background: '#2E7DDB', color: 'white' }}>Continuer</button>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+                            {[3, 5, 7, 10].map(d => (
+                                <button key={d} onClick={() => set('duration', d)}
+                                    style={{ padding: '6px 16px', borderRadius: 100, border: answers.duration === d ? '2px solid #2E7DDB' : '1px solid rgba(26,43,66,.08)', background: answers.duration === d ? 'rgba(46,125,219,.12)' : 'rgba(26,43,66,.03)', color: answers.duration === d ? '#2E7DDB' : '#8FA3B8', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
+                                    {d} jours
+                                </button>
+                            ))}
+                        </div>
+                        <button onClick={next} style={{
+                            display: 'block', width: '100%', padding: '12px', borderRadius: 14, border: 'none',
+                            background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)', color: 'white',
+                            fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: F,
+                        }}>Continuer</button>
                     </>)}
-                    {step === 'budget' && (<Opt icon="🎒" label="Éco" value="budget" current={answers.budget} onClick={(v: string) => { set('budget', v); setTimeout(next, 300); }} />)}
-                    {step === 'special' && (<><textarea value={answers.special} onChange={e => set('special', e.target.value)} style={{ width: '100%', height: 100 }} /><button onClick={next} style={{ width: '100%', background: '#2E7DDB', color: 'white' }}>Voir résultats</button></>)}
+
+                    {/* ═══ BUDGET ═══ */}
+                    {step === 'budget' && (<>
+                        <Title icon="💰" text="Ton budget voyage?" />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <Opt icon="🎒" label="Économique" desc="Camping, restos abordables, activités gratuites" value="budget" current={answers.budget} onClick={(v: string) => { set('budget', v); setTimeout(next, 300); }} />
+                            <Opt icon="🏨" label="Modéré" desc="Hôtels 3★, bons restos, activités variées" value="moderate" current={answers.budget} onClick={(v: string) => { set('budget', v); setTimeout(next, 300); }} />
+                            <Opt icon="✨" label="On se gâte" desc="Hôtels 4-5★, gastronomie, expériences premium" value="luxury" current={answers.budget} onClick={(v: string) => { set('budget', v); setTimeout(next, 300); }} />
+                        </div>
+                    </>)}
+
+                    {/* ═══ SPECIAL ═══ */}
+                    {step === 'special' && (<>
+                        <Title icon="💬" text="Un souhait spécial?" sub="Quelque chose de précis que tu veux absolument voir ou faire? (optionnel)" />
+                        <textarea
+                            value={answers.special}
+                            onChange={e => set('special', e.target.value)}
+                            placeholder="Ex: Je veux absolument voir des baleines, J'adore les escape games, On fête notre anniversaire..."
+                            style={{
+                                width: '100%', minHeight: 100, padding: 14, borderRadius: 14,
+                                border: '1.5px solid rgba(46,125,219,.1)', background: 'rgba(26,43,66,.03)',
+                                color: '#1A2B42', fontSize: 13, fontFamily: F, resize: 'vertical',
+                                outline: 'none',
+                            }}
+                        />
+                        <button onClick={next} style={{
+                            display: 'block', width: '100%', marginTop: 16, padding: '14px', borderRadius: 14, border: 'none',
+                            background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)', color: 'white',
+                            fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: F,
+                            boxShadow: '0 4px 20px rgba(46,125,219,.3)',
+                        }}>
+                            Voir mes résultats! ⚜️
+                        </button>
+                    </>)}
                     {step === 'results' && (<>
                         {rankedRegions.slice(0, 3).map((r, i) => (
                             <div key={r.id} onClick={() => setSelectedRegion(r.id)} style={{ padding: 16, borderRadius: 18, marginBottom: 10, background: selectedRegion === r.id ? '#EBF5FF' : '#F3F4F6' }}>
