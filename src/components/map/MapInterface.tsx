@@ -1036,20 +1036,8 @@ export default function MapInterface() {
                     isOpen={quizOpen}
                     onClose={() => setQuizOpen(false)}
                     onGenerate={(region, quizData) => {
-                        setQuizOpen(false);
-                        // Ouvre le GuidePanel avec les données du quiz
-                        setSelectedDeal({
-                            city: region,
-                            destination: region,
-                            country: 'Canada (Québec)',
-                            destination_code: '',
-                            price: 0,
-                            departure_date: null,
-                            return_date: null,
-                            airline: 'Route',
-                            stops: 0,
-                            quiz_context: quizData.quiz_context,
-                        });
+                        // Guide generation is now handled inside QuebecQuiz
+                        // This callback is kept for compatibility but quiz handles it internally
                     }}
                 />
             </div>
