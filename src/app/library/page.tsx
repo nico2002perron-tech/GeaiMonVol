@@ -1,6 +1,5 @@
 'use client';
-/** Vercel Trigger: Immersive Library V2.0.1 **/
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -273,8 +272,9 @@ function YearDivider({ year, count, isCurrentYear }: { year: string; count: numb
     );
 }
 
-/* ═══ MAIN PAGE ═══ */
-export default function LibraryPage() {
+/* ═══ MAIN PAGE (wrapped for Suspense) ═══ */
+
+function LibraryContent() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -536,5 +536,20 @@ export default function LibraryPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function LibraryPage() {
+    return (
+        <Suspense fallback={
+            <div style={{ minHeight: '100vh', background: '#2A1F14', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>📚</div>
+                    <p style={{ color: '#8B6B48', fontSize: 14, fontFamily: "'Crimson Text', serif" }}>Chargement...</p>
+                </div>
+            </div>
+        }>
+            <LibraryContent />
+        </Suspense>
     );
 }
