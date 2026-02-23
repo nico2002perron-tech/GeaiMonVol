@@ -1,7 +1,7 @@
 'use client';
 // GeaiMonVol V2 - Sync
 import { useState, useEffect, useMemo, useRef } from 'react';
-import MapCanvas from './MapCanvas';
+import CartoonGlobe from './CartoonGlobe';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
 import HowItWorksModal from '@/components/ui/HowItWorksModal';
@@ -765,8 +765,8 @@ export default function MapInterface() {
                             </div>
                         </div>
 
-                        {/* ── MAP CANVAS ── */}
-                        <MapCanvas
+                        {/* ── CARTOON GLOBE ── */}
+                        <CartoonGlobe
                             deals={filteredPrices}
                             mapView={mapView}
                             isMobile={isMobile}
