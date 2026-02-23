@@ -1,7 +1,7 @@
 'use client';
 // GeaiMonVol V2 - Sync
 import { useState, useEffect, useMemo, useRef } from 'react';
-import CartoonGlobe from './CartoonGlobe';
+import MapCanvas from './MapCanvas';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
 import HowItWorksModal from '@/components/ui/HowItWorksModal';
@@ -21,45 +21,8 @@ import QuebecPlanner from './QuebecPlanner';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import QuebecQuiz from './QuebecQuiz';
-
-const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
-
-const LEVEL_COLORS: Record<string, { bg: string; icon: string; label: string }> = {
-    lowest_ever: { bg: '#7C3AED', icon: '⚡', label: 'PRIX RECORD' },
-    incredible: { bg: '#DC2626', icon: '🔥', label: 'INCROYABLE' },
-    great: { bg: '#EA580C', icon: '✨', label: 'SUPER DEAL' },
-    good: { bg: '#2E7DDB', icon: '👍', label: 'BON PRIX' },
-};
-
-const CITY_IMAGES: Record<string, string> = {
-    'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
-    'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400',
-    'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
-    'Barcelone': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
-    'Lisbonne': 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400',
-    'Athènes': 'https://images.unsplash.com/photo-1503152394-c571994fd383?w=400',
-    'Dublin': 'https://images.unsplash.com/photo-1549918837-33fb394ea33d?w=400',
-    'Amsterdam': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=400',
-    'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400',
-    'Marrakech': 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=400',
-    'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
-    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
-    'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
-    'Cancún': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
-    'Miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=400',
-    'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
-    'Reykjavik': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
-    'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400',
-    'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=400',
-    'Punta Cana': 'https://images.unsplash.com/photo-1535916707207-35f97e715e1c?w=400',
-    'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400',
-    'Bogota': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400',
-    'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400',
-    'Fort Lauderdale': 'https://images.unsplash.com/photo-1589083130544-0d6a2926e519?w=400',
-    'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570345070170-51d6e8f38953?w=400',
-    'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400',
-    'Montego Bay': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400',
-};
+import { CANADA_CODES, DEAL_LEVELS as LEVEL_COLORS, CITY_IMAGES } from '@/lib/constants/deals';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
 // Generate next 12 months for filter pills
 function getMonths() {
@@ -156,29 +119,12 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     }
 
     return (
-        <div style={{ background: 'white', paddingBottom: 0 }}>
-            {/* Fade edges */}
+        <div className="carousel-wrap" style={{ paddingBottom: 0 }}>
             <div style={{ position: 'relative' }}>
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, width: 60, height: '100%',
-                    background: 'linear-gradient(to right, white, transparent)',
-                    zIndex: 3, pointerEvents: 'none',
-                }} />
-                <div style={{
-                    position: 'absolute', top: 0, right: 0, width: 60, height: '100%',
-                    background: 'linear-gradient(to left, white, transparent)',
-                    zIndex: 3, pointerEvents: 'none',
-                }} />
+                <div className="carousel-fade-left" />
+                <div className="carousel-fade-right" />
 
-                <div
-                    ref={scrollRef}
-                    className="carousel-scroll"
-                    style={{
-                        display: 'flex', gap: 18,
-                        overflowX: 'auto', padding: '20px 24px 16px',
-                        WebkitOverflowScrolling: 'touch',
-                    }}
-                >
+                <div ref={scrollRef} className="carousel-scroll">
                     {loopedDeals.map((deal: any, i: number) => {
                         const level = deal.dealLevel || 'good';
                         const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
@@ -386,60 +332,18 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
 
             {/* ═══ STATS BAR ═══ */}
             {stats && (
-                <div style={{
-                    display: 'flex', gap: 12, padding: '4px 24px 20px',
-                    overflowX: 'auto', scrollbarWidth: 'none',
-                }}>
+                <div className="stats-bar">
                     {[
-                        {
-                            icon: '⚡',
-                            label: 'Meilleur deal',
-                            value: `${stats.cheapest?.destination || stats.cheapest?.city || '—'} à ${stats.cheapest?.price || 0}$`,
-                            color: '#7C3AED',
-                        },
-                        {
-                            icon: '📉',
-                            label: 'Plus gros rabais',
-                            value: `-${Math.round(stats.biggestDiscount?.discount || 0)}% (${stats.biggestDiscount?.destination || stats.biggestDiscount?.city || '—'})`,
-                            color: '#DC2626',
-                        },
-                        {
-                            icon: '✈️',
-                            label: 'Vols directs',
-                            value: `${stats.directCount} destination${stats.directCount > 1 ? 's' : ''}`,
-                            color: '#2E7DDB',
-                        },
-                        {
-                            icon: '🔄',
-                            label: 'Dernière mise à jour',
-                            value: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
-                            color: '#16A34A',
-                        },
+                        { icon: '⚡', label: 'Meilleur deal', value: `${stats.cheapest?.destination || stats.cheapest?.city || '—'} à ${stats.cheapest?.price || 0}$` },
+                        { icon: '📉', label: 'Plus gros rabais', value: `-${Math.round(stats.biggestDiscount?.discount || 0)}% (${stats.biggestDiscount?.destination || stats.biggestDiscount?.city || '—'})` },
+                        { icon: '✈️', label: 'Vols directs', value: `${stats.directCount} destination${stats.directCount > 1 ? 's' : ''}` },
+                        { icon: '🔄', label: 'Dernière mise à jour', value: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }) },
                     ].map((stat, idx) => (
-                        <div key={idx} style={{
-                            flex: '1 1 200px', minWidth: 180,
-                            padding: '14px 18px',
-                            background: '#FAFBFD',
-                            borderRadius: 14,
-                            border: '1px solid rgba(26,43,66,0.05)',
-                            display: 'flex', alignItems: 'center', gap: 12,
-                            flexShrink: 0,
-                        }}>
+                        <div key={idx} className="stat-chip">
                             <span style={{ fontSize: 18 }}>{stat.icon}</span>
                             <div>
-                                <div style={{
-                                    fontSize: 10, color: '#8FA3B8', fontWeight: 600,
-                                    textTransform: 'uppercase' as const, letterSpacing: 0.5,
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
-                                    {stat.label}
-                                </div>
-                                <div style={{
-                                    fontSize: 14, fontWeight: 700, color: '#1A2B42',
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
-                                    {stat.value}
-                                </div>
+                                <div className="stat-chip-label">{stat.label}</div>
+                                <div className="stat-chip-value">{stat.value}</div>
                             </div>
                         </div>
                     ))}
@@ -458,7 +362,7 @@ export default function MapInterface() {
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
     const [selectedDeal, setSelectedDeal] = useState<any>(null);
-    const [isMobile, setIsMobile] = useState(false);
+    const isMobile = useIsMobile();
     const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
     const { user, loading: authLoading } = useAuth();
@@ -469,13 +373,6 @@ export default function MapInterface() {
     const carouselRef = useRef<HTMLDivElement>(null);
 
     const months = useMemo(() => getMonths(), []);
-
-    useEffect(() => {
-        setIsMobile(window.innerWidth <= 768);
-        const handleResize = () => setIsMobile(window.innerWidth <= 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
 
 
@@ -710,7 +607,7 @@ export default function MapInterface() {
                     {/* ═══ MAP AREA ═══ */}
                     <div style={{
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
-                        background: '#0B1628', overflow: 'hidden',
+                        background: '#1B2D4F', overflow: 'hidden',
                     }}>
                         {/* ── LÉGENDE + TOP 5 GROS DEALS (haut droit) ── */}
                         <div style={{
@@ -868,8 +765,8 @@ export default function MapInterface() {
                             </div>
                         </div>
 
-                        {/* ── CARTOON GLOBE ── */}
-                        <CartoonGlobe
+                        {/* ── MAP CANVAS ── */}
+                        <MapCanvas
                             deals={filteredPrices}
                             mapView={mapView}
                             isMobile={isMobile}

@@ -479,6 +479,9 @@ IMPORTANT :
     let guide;
     try {
       guide = repairJSON(rawText);
+      if (!guide || !guide.days || !Array.isArray(guide.days)) {
+        throw new Error('Invalid guide structure: missing days array');
+      }
     } catch (parseErr: any) {
       console.error('JSON parse error:', parseErr.message);
       return NextResponse.json({ error: 'Erreur de format. Réessaie!' }, { status: 500 });

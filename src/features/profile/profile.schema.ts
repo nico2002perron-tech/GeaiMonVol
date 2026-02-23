@@ -3,7 +3,7 @@ import { z } from "zod";
 export const ProfileSchema = z.object({
     id: z.string().uuid().optional(),
     email: z.string().email(),
-    fullName: z.string().min(2).optional(),
+    full_name: z.string().min(2).optional(),
     preferences: z.object({
         destinations: z.array(z.string()).default([]),
         budget: z.number().optional(),

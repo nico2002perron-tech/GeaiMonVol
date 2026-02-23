@@ -9,7 +9,11 @@ export async function getProfile(userId: string): Promise<Profile | null> {
         .eq("id", userId)
         .single();
 
-    if (error) return null;
+    if (error) {
+        console.error('Profile fetch error:', error.message);
+        return null;
+    }
+    if (!data) return null;
     return data as Profile;
 }
 

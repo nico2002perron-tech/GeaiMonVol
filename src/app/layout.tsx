@@ -1,7 +1,6 @@
 import { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import './globals.css';
-import './legacy.css';
 
 export const metadata: Metadata = {
   title: 'GeaiMonVol — Deals voyage depuis Montréal',

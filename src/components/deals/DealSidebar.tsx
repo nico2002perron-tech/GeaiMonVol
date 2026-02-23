@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import GuidePanel from './GuidePanel';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
 interface DealDetail {
     city: string;
@@ -79,16 +80,9 @@ const AIRLINE_BAGGAGE: Record<string, { cabin: boolean; checked: boolean; label:
 };
 
 export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarProps) {
-    const [isMobile, setIsMobile] = useState(false);
+    const isMobile = useIsMobile();
     const [guideOpen, setGuideOpen] = useState(false);
     const guideDealRef = useRef<DealDetail | null>(null);
-
-    useEffect(() => {
-        setIsMobile(window.innerWidth <= 768);
-        const handleResize = () => setIsMobile(window.innerWidth <= 768);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     useEffect(() => {
         if (deal) setGuideOpen(false);
@@ -152,28 +146,9 @@ export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarPro
 
     return (
         <>
-            {/* Overlay */}
-            <div onClick={onClose} style={{
-                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                background: 'rgba(0,0,0,0.4)', zIndex: 999,
-                backdropFilter: isMobile ? 'none' : 'blur(2px)',
-            }} />
+            <div className="deal-overlay" onClick={onClose} />
 
-            <div style={{
-                position: 'fixed',
-                ...(isMobile ? {
-                    bottom: 0, left: 0, right: 0, width: '100%',
-                    maxHeight: '85vh',
-                    borderTopLeftRadius: 20, borderTopRightRadius: 20,
-                } : {
-                    top: 0, right: 0, width: 380, height: '100vh',
-                }),
-                background: 'white',
-                boxShadow: isMobile ? '0 -4px 20px rgba(0,0,0,0.15)' : '-4px 0 20px rgba(0,0,0,0.1)',
-                zIndex: 1000, overflowY: 'auto',
-                fontFamily: "'Outfit', sans-serif",
-                animation: isMobile ? 'slideUp 0.3s ease-out' : 'slideIn 0.3s ease-out',
-            }}>
+            <div className={`deal-sidebar ${isMobile ? 'deal-sidebar--mobile' : 'deal-sidebar--desktop'}`}>
                 {isMobile && (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
                         <div style={{ width: 36, height: 4, borderRadius: 2, background: '#E2E8F0' }} />
@@ -187,12 +162,7 @@ export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarPro
                         alt={deal.city || deal.destination || 'Destination'}
                         style={{ width: '100%', height: isMobile ? 140 : 180, objectFit: 'cover' }}
                     />
-                    <button onClick={onClose} style={{
-                        position: 'absolute', top: 12, right: 12,
-                        background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none',
-                        borderRadius: '50%', width: 32, height: 32, fontSize: 18,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>✕</button>
+                    <button className="deal-sidebar-close" onClick={onClose}>✕</button>
                     {deal.discount && deal.discount > 0 && (
                         <div style={{
                             position: 'absolute', top: 12, left: 12,
@@ -305,15 +275,7 @@ export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarPro
 
                     {/* ═══ GUIDE GeaiAI — only for exploration destinations ═══ */}
                     {showGuide && (
-                        <button onClick={handleOpenGuide} style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 10, width: '100%', padding: '14px 0',
-                            background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
-                            color: 'white', textAlign: 'center', borderRadius: 12,
-                            fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
-                            fontFamily: "'Outfit', sans-serif",
-                            boxShadow: '0 4px 16px rgba(124,58,237,0.25)', marginBottom: 10,
-                        }}>
+                        <button className="deal-sidebar-guide-btn" onClick={handleOpenGuide}>
                             <span style={{ fontSize: 18 }}>🤖</span>
                             Générer mon Guide GeaiAI
                             <span style={{
@@ -324,13 +286,7 @@ export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarPro
                         </button>
                     )}
 
-                    <a href={googleLink} target="_blank" rel="noopener noreferrer" style={{
-                        display: 'block', width: '100%', padding: '14px 0',
-                        background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
-                        color: 'white', textAlign: 'center', borderRadius: 12,
-                        fontSize: 15, fontWeight: 700, textDecoration: 'none',
-                        fontFamily: "'Outfit', sans-serif",
-                    }}>
+                    <a className="deal-sidebar-cta" href={googleLink} target="_blank" rel="noopener noreferrer">
                         Réserver ce vol – {deal.price}$ ✈️
                     </a>
 

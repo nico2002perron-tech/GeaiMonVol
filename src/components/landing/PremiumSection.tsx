@@ -1,20 +1,7 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-
-function useInView(ref: React.RefObject<HTMLDivElement | null>) {
-    const [visible, setVisible] = useState(false);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const obs = new IntersectionObserver(
-            ([e]) => { if (e.isIntersecting) setVisible(true); },
-            { threshold: 0.1 }
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, []);
-    return visible;
-}
+import { useInView } from '@/lib/hooks/useInView';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
 /* ═══════════════════════════════════════
    MINI MOCKUP — ALERT NOTIFICATION
@@ -369,15 +356,8 @@ function ComparisonTable() {
    ═══════════════════════════════════════ */
 export default function PremiumSection() {
     const ctaRef = useRef<HTMLDivElement>(null);
-    const ctaVisible = useInView(ctaRef);
-    const [isMobile, setIsMobile] = useState(false);
-
-    useEffect(() => {
-        setIsMobile(window.innerWidth <= 768);
-        const h = () => setIsMobile(window.innerWidth <= 768);
-        window.addEventListener('resize', h);
-        return () => window.removeEventListener('resize', h);
-    }, []);
+    const ctaVisible = useInView(ctaRef, { threshold: 0.1 });
+    const isMobile = useIsMobile();
 
     return (
         <section style={{
@@ -385,21 +365,6 @@ export default function PremiumSection() {
             background: 'linear-gradient(175deg, #0F1A2A 0%, #152240 40%, #1A2B42 70%, #0F1A2A 100%)',
             padding: isMobile ? '70px 16px 60px' : '90px 24px 80px',
         }}>
-            {/* ═══ KEYFRAME ANIMATIONS ═══ */}
-            <style>{`
-                @keyframes premFloat { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-5px) rotate(0deg)} }
-                @keyframes premBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
-                @keyframes premOrbDrift { 0%,100%{transform:translate(0,0)} 33%{transform:translate(30px,-20px)} 66%{transform:translate(-20px,15px)} }
-                @keyframes premGlow { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.12);opacity:1} }
-                @keyframes premSpin { to{transform:rotate(360deg)} }
-                @keyframes premBorderShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-                @keyframes premMascotFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-                @keyframes premBadgePop { to{transform:scale(1)} }
-                @keyframes premShimmer { 0%{left:-100%} 50%,100%{left:200%} }
-                @keyframes premGoldShift { 0%{background-position:0% center} 50%{background-position:100% center} 100%{background-position:0% center} }
-                @keyframes premFadeUp { to{opacity:1;transform:translateY(0)} }
-            `}</style>
-
             {/* ═══ BACKGROUND ORBS + GRID ═══ */}
             <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
                 <div style={{

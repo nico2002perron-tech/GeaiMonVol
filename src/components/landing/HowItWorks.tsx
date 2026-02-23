@@ -1,26 +1,8 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useInView } from '@/lib/hooks/useInView';
 const NextImage = Image;
-
-function useInView(ref: React.RefObject<HTMLDivElement | null>, threshold = 0.15) {
-    const [visible, setVisible] = useState(false);
-    const [ratio, setRatio] = useState(0);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const obs = new IntersectionObserver(
-            ([e]) => {
-                if (e.isIntersecting) setVisible(true);
-                setRatio(e.intersectionRatio);
-            },
-            { threshold: [0, 0.15, 0.3, 0.5, 0.7, 1], rootMargin: '0px 0px -30px 0px' }
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, []);
-    return { visible, ratio };
-}
 
 const STEPS = [
     {
@@ -59,7 +41,7 @@ const STEPS = [
 
 function StepRow({ step, index }: { step: typeof STEPS[number]; index: number }) {
     const ref = useRef<HTMLDivElement>(null);
-    const { visible } = useInView(ref);
+    const visible = useInView(ref);
     const isEven = index % 2 === 1;
 
     return (
@@ -158,7 +140,7 @@ function StepRow({ step, index }: { step: typeof STEPS[number]; index: number })
 
 export default function HowItWorks() {
     const headerRef = useRef<HTMLDivElement>(null);
-    const { visible: headerVisible } = useInView(headerRef);
+    const headerVisible = useInView(headerRef);
 
     return (
         <section style={{

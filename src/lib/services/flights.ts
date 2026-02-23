@@ -172,7 +172,7 @@ export async function scanExplore(): Promise<FlightDeal[]> {
                     city: dest.title || dest.city || 'Unknown',
                     country: dest.country || '',
                     airportCode: dest.airport_code || dest.airports?.[0]?.code || '',
-                    price: typeof dest.price === 'number' ? dest.price : parseInt(dest.price),
+                    price: typeof dest.price === 'number' ? dest.price : (parseInt(String(dest.price), 10) || 0),
                     currency: 'CAD',
                     airline: dest.flights?.[0]?.airline || '',
                     airlineCode: dest.flights?.[0]?.airline_code || '',

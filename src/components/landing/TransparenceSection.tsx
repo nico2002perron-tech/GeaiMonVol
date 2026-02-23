@@ -1,20 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-
-function useInView(ref: React.RefObject<HTMLDivElement | null>) {
-    const [visible, setVisible] = useState(false);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const obs = new IntersectionObserver(
-            ([e]) => { if (e.isIntersecting) setVisible(true); },
-            { threshold: 0.15 }
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, []);
-    return visible;
-}
+import { useInView } from '@/lib/hooks/useInView';
 
 function AnimatedDiv({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
     const ref = useRef<HTMLDivElement>(null);

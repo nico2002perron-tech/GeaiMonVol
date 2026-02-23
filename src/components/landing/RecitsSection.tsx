@@ -1,21 +1,7 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
-
-function useInView(ref: React.RefObject<HTMLDivElement | null>) {
-    const [visible, setVisible] = useState(false);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const obs = new IntersectionObserver(
-            ([e]) => { if (e.isIntersecting) setVisible(true); },
-            { threshold: 0.15 }
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, []);
-    return visible;
-}
+import { useInView } from '@/lib/hooks/useInView';
 
 function AnimatedDiv({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
     const ref = useRef<HTMLDivElement>(null);
@@ -241,11 +227,7 @@ export default function RecitsSection() {
 
             {/* Story cards */}
             <AnimatedDiv delay={0.2}>
-                <div style={{
-                    display: 'flex', gap: 20, overflowX: 'auto',
-                    padding: '0 0 20px', scrollbarWidth: 'none',
-                    justifyContent: 'center',
-                }}>
+                <div className="recits-scroll">
                     {PLACEHOLDER_STORIES.map((story, i) => (
                         <StoryCard key={story.id} story={story} featured={i === 0} />
                     ))}

@@ -6,7 +6,7 @@ export const maxDuration = 300; // 5 minutes max (le scan est plus long maintena
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const secret = searchParams.get('secret');
+    const secret = searchParams.get('secret') || request.headers.get('x-cron-secret');
 
     if (secret !== process.env.CRON_SECRET) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

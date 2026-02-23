@@ -22,8 +22,8 @@ export async function GET() {
                 .order('scanned_at', { ascending: false }),
         ]);
 
-        if (latestResult.error) {
-            return NextResponse.json({ error: latestResult.error.message }, { status: 500 });
+        if (latestResult.error || !latestResult.data) {
+            return NextResponse.json({ error: latestResult.error?.message || 'Failed to fetch prices' }, { status: 500 });
         }
 
         // Deduplicate: keep best price per destination
