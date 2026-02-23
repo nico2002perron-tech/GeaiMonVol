@@ -1,7 +1,7 @@
 'use client';
 // GeaiMonVol V2 - Sync
 import { useState, useEffect, useMemo, useRef } from 'react';
-import MapCanvas from './MapCanvas';
+import CartoonGlobe from './CartoonGlobe';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
 import HowItWorksModal from '@/components/ui/HowItWorksModal';
@@ -710,7 +710,7 @@ export default function MapInterface() {
                     {/* ═══ MAP AREA ═══ */}
                     <div style={{
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
-                        background: '#1B2D4F', overflow: 'hidden',
+                        background: '#0B1628', overflow: 'hidden',
                     }}>
                         {/* ── LÉGENDE + TOP 5 GROS DEALS (haut droit) ── */}
                         <div style={{
@@ -868,8 +868,8 @@ export default function MapInterface() {
                             </div>
                         </div>
 
-                        {/* ── MAP CANVAS ── */}
-                        <MapCanvas
+                        {/* ── CARTOON GLOBE ── */}
+                        <CartoonGlobe
                             deals={filteredPrices}
                             mapView={mapView}
                             isMobile={isMobile}
