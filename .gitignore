@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build logs
+*.log
+build_*.txt
+full_build.log
+
+# personal / non-project files
+Nicolas Perron/
