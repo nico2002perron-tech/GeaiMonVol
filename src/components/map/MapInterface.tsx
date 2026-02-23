@@ -770,11 +770,11 @@ export default function MapInterface() {
                             deals={filteredPrices}
                             mapView={mapView}
                             isMobile={isMobile}
-                            onRegionSelect={(region) => {
+                            onRegionSelect={(region: string) => {
                                 setSelectedRegion(region);
                                 setSidebarOpen(true);
                             }}
-                            onHoverDeal={(deal, e) => {
+                            onHoverDeal={(deal: any, e: MouseEvent | React.MouseEvent) => {
                                 setHoveredDeal(deal);
                                 setHoverPos({ x: e.clientX, y: e.clientY });
                                 setHoverVisible(true);
