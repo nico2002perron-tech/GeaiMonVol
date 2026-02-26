@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { fullDailyScan } from '@/lib/services/flights';
+import { chunkedScan, getPhaseForToday } from '@/lib/services/flights';
+import type { ScanPhase } from '@/lib/services/flights';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-export const maxDuration = 300; // 5 minutes max (le scan est plus long maintenant)
+export const maxDuration = 60; // Chaque phase tient dans 60s
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -13,12 +14,18 @@ export async function GET(request: Request) {
     }
 
     try {
-        console.log('Starting full daily scan...');
+        // Permettre de forcer une phase via query param (utile pour tests)
+        const forcePhase = searchParams.get('phase');
+        const phase: ScanPhase = forcePhase
+            ? (parseInt(forcePhase, 10) as ScanPhase)
+            : getPhaseForToday();
 
-        const deals = await fullDailyScan();
+        console.log(`Starting chunked scan — Phase ${phase}...`);
+
+        const deals = await chunkedScan(phase);
 
         if (deals.length === 0) {
-            return NextResponse.json({ message: 'No deals found', count: 0 });
+            return NextResponse.json({ message: `Phase ${phase}: No deals found`, phase, count: 0 });
         }
 
         const supabase = await createServerSupabase();
@@ -64,7 +71,8 @@ export async function GET(request: Request) {
 
         // Résumé
         const summary = {
-            message: 'Scan complete',
+            message: `Phase ${phase} scan complete`,
+            phase,
             totalDeals: deals.length,
             inserted,
             topDeals: deals
@@ -80,6 +88,7 @@ export async function GET(request: Request) {
             sources: {
                 explore: deals.filter(d => d.source === 'google_explore').length,
                 deep: deals.filter(d => d.source === 'google_flights_deep').length,
+                canada: deals.filter(d => d.source === 'google_flights_canada').length,
             },
         };
 

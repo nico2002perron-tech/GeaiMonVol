@@ -41,10 +41,11 @@ function getMonths() {
 // ═══════════════════════════════════════════════════════
 // INFINITE CAROUSEL — PILL STYLE + EXPAND ON CLICK
 // ═══════════════════════════════════════════════════════
-function InfiniteCarousel({ deals, isMobile, onDealClick }: {
+function InfiniteCarousel({ deals, isMobile, onDealClick, isLive }: {
     deals: any[];
     isMobile: boolean;
     onDealClick: (deal: any) => void;
+    isLive?: boolean;
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
@@ -101,7 +102,21 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
         return new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
     };
 
-    if (deals.length === 0) return null;
+    if (deals.length === 0) {
+        return (
+            <div className="carousel-wrap" style={{ paddingBottom: 0, pointerEvents: 'auto' }}>
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: isMobile ? '16px 12px' : '20px',
+                    color: 'rgba(255,255,255,0.5)', fontSize: isMobile ? 13 : 14,
+                    fontFamily: "'Outfit', sans-serif", gap: 8,
+                }}>
+                    <span style={{ fontSize: 18 }}>📡</span>
+                    Aucun deal trouvé pour ce filtre — essayez «Tous»
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="carousel-wrap" style={{ paddingBottom: 0, pointerEvents: 'auto' }}>
@@ -359,7 +374,7 @@ export default function MapInterface() {
     const [confettiTrigger, setConfettiTrigger] = useState(0);
     const [confettiPos, setConfettiPos] = useState({ x: 0, y: 0 });
 
-    const { prices, loading: pricesLoading, lastUpdated } = useLivePrices();
+    const { prices, loading: pricesLoading, lastUpdated, isLive } = useLivePrices();
 
     // Handle tab switching — sync with mapView
     const handleTabChange = (tab: string) => {
@@ -840,11 +855,30 @@ export default function MapInterface() {
                                 })}
                             </div>
 
+                            {/* Live/indicative data badge */}
+                            {!pricesLoading && !isLive && prices.length > 0 && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    padding: isMobile ? '4px 12px' : '4px 20px',
+                                    pointerEvents: 'auto',
+                                }}>
+                                    <span style={{
+                                        fontSize: isMobile ? 10 : 11,
+                                        color: 'rgba(255,255,255,0.4)',
+                                        fontFamily: "'Outfit', sans-serif",
+                                        fontWeight: 500,
+                                    }}>
+                                        📊 Données indicatives — mise à jour bientôt
+                                    </span>
+                                </div>
+                            )}
+
                             {/* Carousel */}
                             <InfiniteCarousel
                                 deals={carouselDeals}
                                 isMobile={isMobile}
                                 onDealClick={handleCarouselDealClick}
+                                isLive={isLive}
                             />
                         </div>
                     </div>

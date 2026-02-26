@@ -5,7 +5,7 @@ import { calculateRealDiscount } from '@/lib/services/flights';
 export async function GET() {
     try {
         const supabase = await createServerSupabase();
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const threeDaysAgo = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
         // Fetch latest prices AND 30-day history in parallel (2 queries instead of N+1)
@@ -13,7 +13,7 @@ export async function GET() {
             supabase
                 .from('price_history')
                 .select('*')
-                .gte('scanned_at', oneDayAgo)
+                .gte('scanned_at', threeDaysAgo)
                 .order('price', { ascending: true }),
             supabase
                 .from('price_history')

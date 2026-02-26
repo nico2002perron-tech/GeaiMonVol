@@ -13,6 +13,10 @@
             "schedule": "0 8 * * *"
         },
         {
+            "path": "/api/cron/scan-prices?secret=${CRON_SECRET}",
+            "schedule": "0 20 * * *"
+        },
+        {
             "path": "/api/cron/send-alerts?secret=${CRON_SECRET}",
             "schedule": "0 9 * * *"
         }

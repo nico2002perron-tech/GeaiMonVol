@@ -490,6 +490,153 @@ export function calculateRealDiscount(
     };
 }
 
+// ============================================
+// STRATÉGIE 4 : Scan par phase (chunked)
+// Chaque phase tient dans ~60s (Vercel limit)
+// Phase choisie par jour de la semaine
+// ============================================
+
+export type ScanPhase = 1 | 2 | 3 | 4;
+
+/**
+ * Retourne la phase à exécuter selon le jour de la semaine.
+ * Lundi/Jeudi = Phase 1 (Explore, ~10s)
+ * Mardi/Vendredi = Phase 2 (Deep scan destinations 1-15, ~45s)
+ * Mercredi/Samedi = Phase 3 (Deep scan destinations 16-30, ~45s)
+ * Dimanche = Phase 4 (Canada domestique, ~30s)
+ */
+export function getPhaseForToday(): ScanPhase {
+    const day = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    switch (day) {
+        case 1: case 4: return 1; // Lundi, Jeudi
+        case 2: case 5: return 2; // Mardi, Vendredi
+        case 3: case 6: return 3; // Mercredi, Samedi
+        case 0: return 4;         // Dimanche
+        default: return 1;
+    }
+}
+
+export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
+    const effectivePhase = phase ?? getPhaseForToday();
+
+    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase}`);
+
+    const allDeals: FlightDeal[] = [];
+
+    if (effectivePhase === 1) {
+        // Phase 1 : Google Travel Explore (3 requêtes, ~10s)
+        console.log('--- Phase 1: Google Travel Explore ---');
+        const exploreDeals = await scanExplore();
+        allDeals.push(...exploreDeals);
+
+    } else if (effectivePhase === 2) {
+        // Phase 2 : Deep scan destinations internationales 1-15 (~45s)
+        console.log('--- Phase 2: Deep scan international 1-15 ---');
+        const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
+        const batch = international.slice(0, 15);
+        for (const dest of batch) {
+            const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
+            allDeals.push(...deepDeals);
+        }
+
+    } else if (effectivePhase === 3) {
+        // Phase 3 : Deep scan destinations internationales 16-30 (~45s)
+        console.log('--- Phase 3: Deep scan international 16-30 ---');
+        const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
+        const batch = international.slice(15, 30);
+        for (const dest of batch) {
+            const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
+            allDeals.push(...deepDeals);
+        }
+
+    } else if (effectivePhase === 4) {
+        // Phase 4 : Canada domestique (~30s)
+        console.log('--- Phase 4: Canada domestic ---');
+        const canadaDests = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
+        const canadaDates = getMonthlyDates().slice(0, 3);
+
+        for (const dest of canadaDests) {
+            for (const date of canadaDates) {
+                try {
+                    const params = new URLSearchParams({
+                        engine: 'google_flights',
+                        departure_id: 'YUL',
+                        arrival_id: dest.code,
+                        outbound_date: date.outbound,
+                        return_date: date.return,
+                        currency: 'CAD',
+                        hl: 'fr',
+                        gl: 'ca',
+                        type: '1',
+                        travel_class: '1',
+                        sort_by: '2',
+                        api_key: API_KEY!,
+                    });
+
+                    console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
+                    const response = await fetch(
+                        `https://serpapi.com/search.json?${params.toString()}`
+                    );
+
+                    if (!response.ok) continue;
+
+                    const data = await response.json();
+                    const flights = [
+                        ...(data.best_flights || []),
+                        ...(data.other_flights || []),
+                    ];
+
+                    if (flights.length === 0) continue;
+
+                    const cheapest = flights[0];
+                    const firstLeg = cheapest.flights?.[0];
+                    if (!firstLeg || !cheapest.price) continue;
+
+                    allDeals.push({
+                        city: dest.city,
+                        country: 'Canada',
+                        airportCode: dest.code,
+                        price: cheapest.price,
+                        currency: 'CAD',
+                        airline: firstLeg.airline || '',
+                        airlineCode: firstLeg.airline_code || '',
+                        stops: (cheapest.flights?.length || 1) - 1,
+                        duration: cheapest.total_duration || 0,
+                        departureDate: date.outbound,
+                        returnDate: date.return,
+                        route: `YUL – ${dest.code}`,
+                        tripDuration: 7,
+                        source: 'google_flights_canada',
+                        googleFlightsLink: data.search_metadata?.google_flights_url || '',
+                        rawData: {
+                            flights: cheapest.flights,
+                            price_insights: data.price_insights,
+                        },
+                    });
+
+                    await sleep(1500);
+                } catch (error) {
+                    console.error(`[Canada] Error scanning ${dest.city} ${date.month}:`, error);
+                }
+            }
+        }
+    }
+
+    // Dédupliquer : garder le meilleur prix par destination + mois
+    const bestByKey: Record<string, FlightDeal> = {};
+    for (const deal of allDeals) {
+        const month = deal.departureDate ? deal.departureDate.substring(0, 7) : 'unknown';
+        const key = `${deal.city}-${month}-${deal.tripDuration}`;
+        if (!bestByKey[key] || deal.price < bestByKey[key].price) {
+            bestByKey[key] = deal;
+        }
+    }
+
+    const uniqueDeals = Object.values(bestByKey);
+    console.log(`[GeaiMonVol] Phase ${effectivePhase} complete — ${uniqueDeals.length} unique deals`);
+    return uniqueDeals;
+}
+
 // Export pour backward compatibility
 export async function scanFlightPrices(): Promise<FlightDeal[]> {
     return fullDailyScan();
