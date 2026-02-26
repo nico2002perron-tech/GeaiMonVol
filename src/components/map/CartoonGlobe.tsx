@@ -195,6 +195,8 @@ interface CartoonGlobeProps {
     onHoverDeal: (deal: any, e: React.MouseEvent) => void;
     onLeaveDeal: () => void;
     onSelectDeal?: (deal: any, e: React.MouseEvent) => void;
+    flyToDeal?: any;
+    onHoloComplete?: () => void;
 }
 
 function getCoords(deal: any): { lat: number; lng: number } | null {
@@ -211,6 +213,95 @@ function getCoords(deal: any): { lat: number; lng: number } | null {
 }
 
 // ÔòÉÔòÉÔòÉ SPACE PARTICLES ÔòÉÔòÉÔòÉ
+
+// ═══ ZOOM & INERTIA CONSTANTS ═══
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3.0;
+const ZOOM_DEFAULT = 1.0;
+const ZOOM_STEP = 0.15;
+const ZOOM_SMOOTHING = 0.12;
+const INERTIA_FRICTION = 0.95;
+const INERTIA_THRESHOLD = 0.01;
+const CITY_LABEL_ZOOM_THRESHOLD = 1.2;
+const AIRPLANE_CYCLE_FRAMES = 300;
+
+// ═══ HOLOGRAPHIC TRAJECTORY ═══
+const HOLO_ROTATE_FRAMES = 40;
+const HOLO_ARC_FRAMES = 60;
+const HOLO_SUSTAIN_FRAMES = 40;
+const HOLO_FADEOUT_FRAMES = 30;
+const HOLO_PARTICLE_COUNT = 35;
+const HOLO_TRAIL_LENGTH = 60;
+const HOLO_COLORS = {
+    primary: '#00FFFF',
+    secondary: '#FF00FF',
+    glow: 'rgba(0, 255, 255, 0.6)',
+    trail: 'rgba(0, 200, 255, 0.3)',
+    particle: ['#00FFFF', '#40E0D0', '#FFFFFF', '#80FFE0', '#00CED1'],
+};
+
+interface HoloParticle {
+    t: number;
+    offset: number;
+    size: number;
+    speed: number;
+    alpha: number;
+    color: string;
+    phase: number;
+}
+
+interface HoloTrajectory {
+    active: boolean;
+    phase: 'rotate' | 'arc' | 'sustain' | 'fadeOut';
+    frame: number;
+    deal: any;
+    originCoords: [number, number]; // [lng, lat] YUL
+    destCoords: [number, number];   // [lng, lat] destination
+    startRotation: [number, number, number];
+    targetRotation: [number, number, number];
+    startScale: number;
+    particles: HoloParticle[];
+    arcProgress: number;
+    glowIntensity: number;
+    trailPoints: { x: number; y: number; alpha: number }[];
+    ripples: { radius: number; alpha: number }[];
+    dimFactor: number; // 1 = normal, 0 = fully dimmed
+}
+
+// ═══ CLOUD PATCH ═══
+interface CloudPatch {
+    lng: number;
+    lat: number;
+    rx: number;
+    ry: number;
+    rotation: number;
+    driftSpeed: number;
+    opacity: number;
+    phase: number;
+}
+
+function generateCloudPatches(): CloudPatch[] {
+    const patches: CloudPatch[] = [];
+    const positions = [
+        { lng: -30, lat: 20 }, { lng: 60, lat: 10 }, { lng: -90, lat: 35 },
+        { lng: 120, lat: -15 }, { lng: -150, lat: 5 }, { lng: 20, lat: -30 },
+        { lng: 170, lat: 30 }, { lng: -60, lat: -10 }, { lng: 90, lat: 45 },
+        { lng: -120, lat: -25 },
+    ];
+    for (const pos of positions) {
+        patches.push({
+            lng: pos.lng + (Math.random() - 0.5) * 20,
+            lat: pos.lat + (Math.random() - 0.5) * 10,
+            rx: 15 + Math.random() * 25,
+            ry: 8 + Math.random() * 12,
+            rotation: Math.random() * Math.PI,
+            driftSpeed: 0.04 + Math.random() * 0.04,
+            opacity: 0.08 + Math.random() * 0.07,
+            phase: Math.random() * Math.PI * 2,
+        });
+    }
+    return patches;
+}
 
 interface Star {
     x: number;
@@ -337,6 +428,8 @@ export default function CartoonGlobe({
     onHoverDeal,
     onLeaveDeal,
     onSelectDeal,
+    flyToDeal,
+    onHoloComplete,
 }: CartoonGlobeProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -352,6 +445,11 @@ export default function CartoonGlobe({
     const timeRef = useRef(0);
     const hoveredCountryRef = useRef<string | null>(null);
     const isMouseOnGlobeRef = useRef(false);
+    const zoomTargetRef = useRef(ZOOM_DEFAULT);
+    const zoomCurrentRef = useRef(ZOOM_DEFAULT);
+    const velocityRef = useRef<[number, number]>([0, 0]);
+    const lastDragTimeRef = useRef(0);
+    const cloudPatchesRef = useRef<CloudPatch[]>([]);
 
     // Tooltip state
     const [tooltip, setTooltip] = useState<{
@@ -385,6 +483,26 @@ export default function CartoonGlobe({
         deal: null,
     });
 
+    // Holographic trajectory state
+    const holoRef = useRef<HoloTrajectory>({
+        active: false,
+        phase: 'rotate',
+        frame: 0,
+        deal: null,
+        originCoords: [-73.74, 45.47],
+        destCoords: [0, 0],
+        startRotation: [0, 0, 0],
+        targetRotation: [0, 0, 0],
+        startScale: 1,
+        particles: [],
+        arcProgress: 0,
+        glowIntensity: 0,
+        trailPoints: [],
+        ripples: [],
+        dimFactor: 1,
+    });
+    const holoIdRef = useRef<number>(0); // to distinguish successive holo triggers
+
     useEffect(() => {
         loadWorldAtlas().then(setWorldData).catch(() => { });
     }, []);
@@ -408,6 +526,7 @@ export default function CartoonGlobe({
         shootingStarsRef.current = [];
         const radius = Math.min(dimensions.width, dimensions.height) * (isMobile ? 0.38 : 0.40);
         sparklesRef.current = generateSparkles(dimensions.width / 2, dimensions.height / 2, radius);
+        cloudPatchesRef.current = generateCloudPatches();
     }, [dimensions, isMobile]);
 
     const visibleDeals = useMemo(() => {
@@ -452,6 +571,54 @@ export default function CartoonGlobe({
         fly.deal = deal;
     }, []);
 
+    // Helper: start holographic fly-to animation
+    const startHoloFlyTo = useCallback((deal: any) => {
+        const coords = getCoords(deal);
+        if (!coords) return;
+
+        // Cancel any existing fly-to
+        flyToRef.current.active = false;
+
+        const holo = holoRef.current;
+        holo.active = true;
+        holo.phase = 'rotate';
+        holo.frame = 0;
+        holo.deal = deal;
+        holo.originCoords = [-73.74, 45.47]; // YUL
+        holo.destCoords = [coords.lng, coords.lat];
+        holo.startRotation = [...rotationRef.current] as [number, number, number];
+        holo.targetRotation = [-coords.lng, -coords.lat, 0];
+        holo.startScale = zoomCurrentRef.current;
+        holo.arcProgress = 0;
+        holo.glowIntensity = 0;
+        holo.trailPoints = [];
+        holo.ripples = [];
+        holo.dimFactor = 1;
+
+        // Generate particles
+        holo.particles = [];
+        for (let i = 0; i < HOLO_PARTICLE_COUNT; i++) {
+            holo.particles.push({
+                t: Math.random(),
+                offset: (Math.random() - 0.5) * 2,
+                size: 1.5 + Math.random() * 2.5,
+                speed: 0.003 + Math.random() * 0.007,
+                alpha: 0.4 + Math.random() * 0.6,
+                color: HOLO_COLORS.particle[Math.floor(Math.random() * HOLO_COLORS.particle.length)],
+                phase: Math.random() * Math.PI * 2,
+            });
+        }
+
+        holoIdRef.current += 1;
+    }, []);
+
+    // Watch flyToDeal prop to trigger holographic animation
+    useEffect(() => {
+        if (flyToDeal) {
+            startHoloFlyTo(flyToDeal);
+        }
+    }, [flyToDeal, startHoloFlyTo]);
+
     // Main render loop
     useEffect(() => {
         if (!canvasRef.current || !worldData?.objects || dimensions.width === 0) return;
@@ -489,13 +656,22 @@ export default function CartoonGlobe({
             const dx = e.clientX - lastMouseRef.current[0];
             const dy = e.clientY - lastMouseRef.current[1];
             lastMouseRef.current = [e.clientX, e.clientY];
+            const rotDx = dx * 0.3;
+            const rotDy = -dy * 0.3;
             rotationRef.current = [
-                rotationRef.current[0] + dx * 0.3,
-                Math.max(-80, Math.min(80, rotationRef.current[1] - dy * 0.3)),
+                rotationRef.current[0] + rotDx,
+                Math.max(-80, Math.min(80, rotationRef.current[1] + rotDy)),
                 0,
             ];
+            velocityRef.current = [rotDx, rotDy];
+            lastDragTimeRef.current = performance.now();
         };
-        const onMouseUp = () => { isDraggingRef.current = false; };
+        const onMouseUp = () => {
+            isDraggingRef.current = false;
+            if (performance.now() - lastDragTimeRef.current > 100) {
+                velocityRef.current = [0, 0];
+            }
+        };
 
         const onTouchStart = (e: TouchEvent) => {
             if (e.touches.length === 1) {
@@ -509,14 +685,35 @@ export default function CartoonGlobe({
             const dx = e.touches[0].clientX - lastMouseRef.current[0];
             const dy = e.touches[0].clientY - lastMouseRef.current[1];
             lastMouseRef.current = [e.touches[0].clientX, e.touches[0].clientY];
+            const rotDx = dx * 0.3;
+            const rotDy = -dy * 0.3;
             rotationRef.current = [
-                rotationRef.current[0] + dx * 0.3,
-                Math.max(-80, Math.min(80, rotationRef.current[1] - dy * 0.3)),
+                rotationRef.current[0] + rotDx,
+                Math.max(-80, Math.min(80, rotationRef.current[1] + rotDy)),
                 0,
             ];
+            velocityRef.current = [rotDx, rotDy];
+            lastDragTimeRef.current = performance.now();
         };
-        const onTouchEnd = () => { isDraggingRef.current = false; };
+        const onTouchEnd = () => {
+            isDraggingRef.current = false;
+            if (performance.now() - lastDragTimeRef.current > 100) {
+                velocityRef.current = [0, 0];
+            }
+        };
 
+        const onWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const delta = -Math.sign(e.deltaY) * ZOOM_STEP;
+            zoomTargetRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomTargetRef.current + delta));
+        };
+        const onDblClick = (e: MouseEvent) => {
+            e.preventDefault();
+            zoomTargetRef.current = ZOOM_DEFAULT;
+        };
+
+        canvas.addEventListener('wheel', onWheel, { passive: false });
+        canvas.addEventListener('dblclick', onDblClick);
         canvas.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
@@ -526,11 +723,11 @@ export default function CartoonGlobe({
 
         // Click
         const onClick = (e: MouseEvent) => {
-            if (flyToRef.current.active) return; // ignore clicks during fly-to
+            if (flyToRef.current.active || holoRef.current.active) return; // ignore clicks during fly-to or holo
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-            const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
+            const projection = d3.geoOrthographic().scale(radius * zoomCurrentRef.current).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
 
             // Check pins first -> fly-to
             for (const deal of visibleDeals) {
@@ -545,13 +742,10 @@ export default function CartoonGlobe({
             }
 
             // Check countries -> direct region select (no zoom)
-            for (const country of countries) {
-                const ctx2 = document.createElement('canvas').getContext('2d');
-                if (ctx2) {
-                    const pathGen = d3.geoPath().projection(projection).context(ctx2);
-                    ctx2.beginPath();
-                    pathGen(country);
-                    if (ctx2.isPointInPath(mx, my)) {
+            const inverted = projection.invert?.([mx, my]);
+            if (inverted) {
+                for (const country of countries) {
+                    if (d3.geoContains(country, inverted)) {
                         const region = getRegionForCountry(country.properties?.name || '');
                         if (region) onRegionSelect(region);
                         return;
@@ -567,7 +761,7 @@ export default function CartoonGlobe({
             const rect = canvas.getBoundingClientRect();
             const mx = e.clientX - rect.left;
             const my = e.clientY - rect.top;
-            const projection = d3.geoOrthographic().scale(radius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
+            const projection = d3.geoOrthographic().scale(radius * zoomCurrentRef.current).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
 
             let found = false;
             for (const deal of visibleDeals) {
@@ -585,13 +779,10 @@ export default function CartoonGlobe({
 
             if (!found) {
                 let countryFound = false;
-                for (const country of countries) {
-                    const ctx2 = document.createElement('canvas').getContext('2d');
-                    if (ctx2) {
-                        const pathGen = d3.geoPath().projection(projection).context(ctx2);
-                        ctx2.beginPath();
-                        pathGen(country);
-                        if (ctx2.isPointInPath(mx, my)) {
+                const invertedHover = projection.invert?.([mx, my]);
+                if (invertedHover) {
+                    for (const country of countries) {
+                        if (d3.geoContains(country, invertedHover)) {
                             const countryName = country.properties?.name || '';
                             const region = getRegionForCountry(countryName);
                             if (region) { canvas.style.cursor = 'pointer'; countryFound = true; }
@@ -701,15 +892,145 @@ export default function CartoonGlobe({
                         currentScale = 1;
                     }
                 }
-            } else {
-                // Auto-rotate only when NOT dragging AND mouse NOT on globe
-                if (!isDraggingRef.current && !isMouseOnGlobeRef.current) {
-                    rotationRef.current = [rotationRef.current[0] + 0.03, rotationRef.current[1], 0];
+            } else if (!holoRef.current.active) {
+                // Apply inertia (only when holo not active)
+                const [vx, vy] = velocityRef.current;
+                if (Math.abs(vx) > INERTIA_THRESHOLD || Math.abs(vy) > INERTIA_THRESHOLD) {
+                    rotationRef.current = [
+                        rotationRef.current[0] + vx,
+                        Math.max(-80, Math.min(80, rotationRef.current[1] + vy)),
+                        0,
+                    ];
+                    velocityRef.current = [vx * INERTIA_FRICTION, vy * INERTIA_FRICTION];
+                } else {
+                    velocityRef.current = [0, 0];
+                    // Auto-rotate only when NOT dragging AND mouse NOT on globe AND no inertia
+                    if (!isDraggingRef.current && !isMouseOnGlobeRef.current) {
+                        rotationRef.current = [rotationRef.current[0] + 0.03, rotationRef.current[1], 0];
+                    }
                 }
             }
 
+            // ═══ HOLOGRAPHIC TRAJECTORY ANIMATION ═══
+            const holo = holoRef.current;
+            if (holo.active) {
+                holo.frame += 1;
+
+                // Cancel on drag
+                if (isDraggingRef.current && holo.phase !== 'fadeOut') {
+                    holo.phase = 'fadeOut';
+                    holo.frame = 0;
+                }
+
+                if (holo.phase === 'rotate') {
+                    const t = Math.min(holo.frame / HOLO_ROTATE_FRAMES, 1);
+                    const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                    // Rotate globe toward destination
+                    rotationRef.current = [
+                        holo.startRotation[0] + (holo.targetRotation[0] - holo.startRotation[0]) * ease,
+                        holo.startRotation[1] + (holo.targetRotation[1] - holo.startRotation[1]) * ease,
+                        0,
+                    ];
+                    // Zoom in (enhanced for premium feel)
+                    const targetZoom = Math.min(2.0, holo.startScale + 0.8);
+                    zoomTargetRef.current = holo.startScale + (targetZoom - holo.startScale) * ease;
+                    // Dim other elements progressively
+                    holo.dimFactor = 1 - ease * 0.85;
+                    holo.glowIntensity = ease * 0.3;
+
+                    if (t >= 1) {
+                        holo.phase = 'arc';
+                        holo.frame = 0;
+                    }
+                } else if (holo.phase === 'arc') {
+                    const t = Math.min(holo.frame / HOLO_ARC_FRAMES, 1);
+                    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                    holo.arcProgress = ease;
+                    holo.glowIntensity = 0.3 + ease * 0.7;
+                    holo.dimFactor = 0.15;
+
+                    // Update particles along arc
+                    for (const p of holo.particles) {
+                        p.t = (p.t + p.speed) % 1;
+                        if (p.t > holo.arcProgress) p.alpha *= 0.5;
+                    }
+
+                    if (t >= 1) {
+                        holo.phase = 'sustain';
+                        holo.frame = 0;
+                        // Trigger deal select callback
+                        if (holo.deal && onSelectDeal) {
+                            onSelectDeal(holo.deal, { clientX: cx, clientY: cy } as any);
+                        }
+                    }
+                } else if (holo.phase === 'sustain') {
+                    const t = Math.min(holo.frame / HOLO_SUSTAIN_FRAMES, 1);
+                    holo.arcProgress = 1;
+                    // Keep zoom locked at enhanced level
+                    zoomTargetRef.current = Math.min(2.0, holo.startScale + 0.8);
+                    // Pulsing glow
+                    holo.glowIntensity = 0.7 + Math.sin(holo.frame * 0.15) * 0.3;
+                    holo.dimFactor = 0.15;
+
+                    // Particles keep circulating
+                    for (const p of holo.particles) {
+                        p.t = (p.t + p.speed) % 1;
+                        p.alpha = 0.4 + Math.sin(holo.frame * 0.1 + p.phase) * 0.3;
+                    }
+
+                    // Ripple effect at destination
+                    if (holo.frame % 12 === 0) {
+                        holo.ripples.push({ radius: 0, alpha: 0.8 });
+                    }
+                    for (let i = holo.ripples.length - 1; i >= 0; i--) {
+                        holo.ripples[i].radius += 1.2;
+                        holo.ripples[i].alpha *= 0.96;
+                        if (holo.ripples[i].alpha < 0.02) holo.ripples.splice(i, 1);
+                    }
+
+                    if (t >= 1) {
+                        holo.phase = 'fadeOut';
+                        holo.frame = 0;
+                    }
+                } else if (holo.phase === 'fadeOut') {
+                    const t = Math.min(holo.frame / HOLO_FADEOUT_FRAMES, 1);
+                    const ease = t * t; // ease-in
+                    holo.glowIntensity = Math.max(0, (1 - ease));
+                    holo.dimFactor = 0.15 + ease * 0.85; // restore to 1
+                    holo.arcProgress = Math.max(0, 1 - ease);
+                    // Zoom back
+                    zoomTargetRef.current = 1.0;
+
+                    // Fade particles
+                    for (const p of holo.particles) {
+                        p.alpha *= 0.92;
+                    }
+                    // Fade ripples
+                    for (const r of holo.ripples) {
+                        r.alpha *= 0.85;
+                    }
+
+                    if (t >= 1) {
+                        holo.active = false;
+                        holo.dimFactor = 1;
+                        holo.glowIntensity = 0;
+                        holo.particles = [];
+                        holo.trailPoints = [];
+                        holo.ripples = [];
+                        if (onHoloComplete) onHoloComplete();
+                    }
+                }
+            }
+
+            // Smooth zoom interpolation
+            zoomCurrentRef.current += (zoomTargetRef.current - zoomCurrentRef.current) * ZOOM_SMOOTHING;
+            if (Math.abs(zoomCurrentRef.current - zoomTargetRef.current) < 0.001) {
+                zoomCurrentRef.current = zoomTargetRef.current;
+            }
+
+            const visibleRadius = radius * currentScale * zoomCurrentRef.current;
             const projection = d3.geoOrthographic()
-                .scale(radius * currentScale).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
+                .scale(visibleRadius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
             const path = d3.geoPath().projection(projection).context(ctx);
 
             // ÔöÇÔöÇÔöÇ CLEAR WITH SPACE BACKGROUND ÔöÇÔöÇÔöÇ
@@ -817,27 +1138,54 @@ export default function CartoonGlobe({
                 ctx.restore();
             }
 
-            // ÔöÇÔöÇÔöÇ ATMOSPHERE GLOW (blue halo around globe) ÔöÇÔöÇÔöÇ
-            const atmoGrad = ctx.createRadialGradient(cx, cy, radius * 0.95, cx, cy, radius * 1.3);
-            atmoGrad.addColorStop(0, 'rgba(80, 180, 255, 0.25)');
-            atmoGrad.addColorStop(0.3, 'rgba(60, 140, 220, 0.12)');
-            atmoGrad.addColorStop(0.6, 'rgba(40, 100, 200, 0.05)');
-            atmoGrad.addColorStop(1, 'rgba(20, 60, 150, 0)');
-            ctx.fillStyle = atmoGrad;
+            // ═══ IMPROVED ATMOSPHERE GLOW (multi-layer + Fresnel + pulse) ═══
+            const atmoPulse = 1.0 + Math.sin(timeRef.current * 0.015) * 0.05;
+
+            // Layer 1: Outer fading blue
+            const atmo1 = ctx.createRadialGradient(cx, cy, visibleRadius * 1.0, cx, cy, visibleRadius * 1.5 * atmoPulse);
+            atmo1.addColorStop(0, 'rgba(80, 180, 255, 0.10)');
+            atmo1.addColorStop(0.4, 'rgba(60, 140, 220, 0.05)');
+            atmo1.addColorStop(1, 'rgba(20, 60, 150, 0)');
+            ctx.fillStyle = atmo1;
             ctx.beginPath();
-            ctx.arc(cx, cy, radius * 1.3, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.5 * atmoPulse, 0, Math.PI * 2);
             ctx.fill();
+
+            // Layer 2: Inner bright rim
+            const atmo2 = ctx.createRadialGradient(cx, cy, visibleRadius * 0.93, cx, cy, visibleRadius * 1.12);
+            atmo2.addColorStop(0, 'rgba(100, 200, 255, 0.0)');
+            atmo2.addColorStop(0.5, 'rgba(80, 180, 255, 0.18)');
+            atmo2.addColorStop(1, 'rgba(60, 140, 200, 0.0)');
+            ctx.fillStyle = atmo2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius * 1.12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Layer 3: Fresnel-like edge glow
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            const fresnelGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.88, cx, cy, visibleRadius * 1.05);
+            fresnelGrad.addColorStop(0, 'rgba(100, 200, 255, 0)');
+            fresnelGrad.addColorStop(0.7, 'rgba(100, 200, 255, 0.06)');
+            fresnelGrad.addColorStop(0.9, 'rgba(120, 210, 255, 0.14)');
+            fresnelGrad.addColorStop(1, 'rgba(140, 220, 255, 0.20)');
+            ctx.fillStyle = fresnelGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius * 1.05, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
 
             // ÔöÇÔöÇÔöÇ OCEAN ÔöÇÔöÇÔöÇ
             const oceanGrad = ctx.createRadialGradient(
-                cx - radius * 0.3, cy - radius * 0.3, 0, cx, cy, radius
+                cx - visibleRadius * 0.3, cy - visibleRadius * 0.3, 0, cx, cy, visibleRadius
             );
             oceanGrad.addColorStop(0, '#1A5F8B');
             oceanGrad.addColorStop(0.5, '#144D72');
             oceanGrad.addColorStop(1, '#0E3D5E');
             ctx.fillStyle = oceanGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
 
             // Graticule (subtle grid)
@@ -885,9 +1233,54 @@ export default function CartoonGlobe({
                 }
             }
 
+            // ═══ CLOUD LAYER ═══
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.clip();
+            const clouds = cloudPatchesRef.current;
+            for (const cloud of clouds) {
+                const cloudLng = cloud.lng + timeRef.current * cloud.driftSpeed;
+                const cloudCenter = projection([cloudLng, cloud.lat]);
+                if (!cloudCenter) continue;
+                const edgePoint = projection([cloudLng + cloud.rx, cloud.lat]);
+                const edgePointY = projection([cloudLng, cloud.lat + cloud.ry]);
+                if (!edgePoint || !edgePointY) continue;
+                const screenRx = Math.abs(edgePoint[0] - cloudCenter[0]);
+                const screenRy = Math.abs(edgePointY[1] - cloudCenter[1]);
+                if (screenRx < 2 || screenRy < 2) continue;
+                const pulseOpacity = cloud.opacity + Math.sin(timeRef.current * 0.02 + cloud.phase) * 0.02;
+                ctx.globalAlpha = pulseOpacity;
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                if (!isMobile) ctx.filter = `blur(${Math.max(3, screenRx * 0.3)}px)`;
+                ctx.beginPath();
+                ctx.ellipse(cloudCenter[0], cloudCenter[1], screenRx, screenRy, cloud.rotation, 0, Math.PI * 2);
+                ctx.fill();
+                if (!isMobile) ctx.filter = 'none';
+            }
+            ctx.restore();
+
+            // ═══ SOLAR LIGHTING (directional light from top-left) ═══
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.clip();
+            const solarGrad = ctx.createRadialGradient(
+                cx - visibleRadius * 0.5, cy - visibleRadius * 0.5, 0,
+                cx + visibleRadius * 0.2, cy + visibleRadius * 0.2, visibleRadius * 1.2
+            );
+            solarGrad.addColorStop(0, 'rgba(255, 255, 255, 0.06)');
+            solarGrad.addColorStop(0.3, 'rgba(0, 0, 0, 0)');
+            solarGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.08)');
+            solarGrad.addColorStop(1, 'rgba(0, 0, 20, 0.18)');
+            ctx.fillStyle = solarGrad;
+            ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
+            ctx.restore();
+
             // ÔöÇÔöÇÔöÇ FLIGHT ARCS ÔöÇÔöÇÔöÇ
             const yulCoord: [number, number] = [-73.74, 45.47];
             const yulProjected = projection(yulCoord);
+            const holoDim = holo.active ? holo.dimFactor : 1;
 
             if (yulProjected) {
                 for (const deal of visibleDeals) {
@@ -914,7 +1307,7 @@ export default function CartoonGlobe({
                     ctx.quadraticCurveTo(midX, midY, destProjected[0], destProjected[1]);
                     ctx.strokeStyle = arcColor;
                     ctx.lineWidth = 5;
-                    ctx.globalAlpha = 0.08;
+                    ctx.globalAlpha = 0.08 * holoDim;
                     ctx.stroke();
 
                     // Arc line (dashed, animated)
@@ -923,7 +1316,7 @@ export default function CartoonGlobe({
                     ctx.quadraticCurveTo(midX, midY, destProjected[0], destProjected[1]);
                     ctx.strokeStyle = arcColor;
                     ctx.lineWidth = 1.8;
-                    ctx.globalAlpha = 0.6;
+                    ctx.globalAlpha = 0.6 * holoDim;
                     ctx.setLineDash([6, 4]);
                     ctx.lineDashOffset = -timeRef.current * 0.6;
                     ctx.stroke();
@@ -933,26 +1326,264 @@ export default function CartoonGlobe({
                 }
             }
 
-            // ÔöÇÔöÇÔöÇ YUL PIN (Montreal) ÔöÇÔöÇÔöÇ
+            // ═══ ANIMATED AIRPLANES ON ARCS ═══
+            if (yulProjected) {
+                visibleDeals.forEach((deal, dealIndex) => {
+                    const coords = getCoords(deal);
+                    if (!coords) return;
+                    const destProjected = projection([coords.lng, coords.lat]);
+                    if (!destProjected) return;
+                    const apMidX = (yulProjected[0] + destProjected[0]) / 2;
+                    const apDist = Math.sqrt(
+                        (destProjected[0] - yulProjected[0]) ** 2 +
+                        (destProjected[1] - yulProjected[1]) ** 2
+                    );
+                    const apMidY = Math.min(yulProjected[1], destProjected[1]) - apDist * 0.25;
+                    const phaseOffset = (dealIndex * 73) % AIRPLANE_CYCLE_FRAMES;
+                    const at = ((timeRef.current + phaseOffset) % AIRPLANE_CYCLE_FRAMES) / AIRPLANE_CYCLE_FRAMES;
+                    const omt = 1 - at;
+                    const px = omt * omt * yulProjected[0] + 2 * omt * at * apMidX + at * at * destProjected[0];
+                    const py = omt * omt * yulProjected[1] + 2 * omt * at * apMidY + at * at * destProjected[1];
+                    const tx = 2 * omt * (apMidX - yulProjected[0]) + 2 * at * (destProjected[0] - apMidX);
+                    const ty = 2 * omt * (apMidY - yulProjected[1]) + 2 * at * (destProjected[1] - apMidY);
+                    const angle = Math.atan2(ty, tx);
+                    const sz = isMobile ? 4 : 5;
+                    ctx.save();
+                    ctx.translate(px, py);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.globalAlpha = 0.85 * holoDim;
+                    ctx.shadowColor = 'rgba(80, 180, 255, 0.6)';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(sz * 1.5, 0);
+                    ctx.lineTo(-sz, -sz * 0.7);
+                    ctx.lineTo(-sz * 0.5, 0);
+                    ctx.lineTo(-sz, sz * 0.7);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.restore();
+                });
+            }
+
+            // ═══ HOLOGRAPHIC ARC RENDERING ═══
+            if (holo.active && yulProjected) {
+                const originProj = yulProjected;
+                const destProj = projection(holo.destCoords);
+
+                if (originProj && destProj) {
+                    const hMidX = (originProj[0] + destProj[0]) / 2;
+                    const hDist = Math.sqrt(
+                        (destProj[0] - originProj[0]) ** 2 +
+                        (destProj[1] - originProj[1]) ** 2
+                    );
+                    const hMidY = Math.min(originProj[1], destProj[1]) - hDist * 0.3;
+                    const intensity = holo.glowIntensity;
+
+                    // Helper: get point on quadratic bézier at parameter t
+                    const bezierPt = (bt: number): [number, number] => {
+                        const omt2 = 1 - bt;
+                        return [
+                            omt2 * omt2 * originProj[0] + 2 * omt2 * bt * hMidX + bt * bt * destProj[0],
+                            omt2 * omt2 * originProj[1] + 2 * omt2 * bt * hMidY + bt * bt * destProj[1],
+                        ];
+                    };
+                    // Helper: get tangent on quadratic bézier at parameter t
+                    const bezierTangent = (bt: number): [number, number] => {
+                        const omt2 = 1 - bt;
+                        return [
+                            2 * omt2 * (hMidX - originProj[0]) + 2 * bt * (destProj[0] - hMidX),
+                            2 * omt2 * (hMidY - originProj[1]) + 2 * bt * (destProj[1] - hMidY),
+                        ];
+                    };
+                    // Helper: get perpendicular normal at parameter t
+                    const bezierNormal = (bt: number): [number, number] => {
+                        const [tgx, tgy] = bezierTangent(bt);
+                        const len = Math.sqrt(tgx * tgx + tgy * tgy) || 1;
+                        return [-tgy / len, tgx / len];
+                    };
+
+                    // --- TRAIL POINTS ---
+                    if (holo.arcProgress > 0) {
+                        const trailSteps = Math.floor(holo.arcProgress * HOLO_TRAIL_LENGTH);
+                        holo.trailPoints = [];
+                        for (let i = 0; i <= trailSteps; i++) {
+                            const tt = i / HOLO_TRAIL_LENGTH;
+                            const [ptx, pty] = bezierPt(tt);
+                            const alpha = (i / trailSteps) * 0.3 * intensity;
+                            holo.trailPoints.push({ x: ptx, y: pty, alpha });
+                        }
+
+                        // Draw trail
+                        ctx.save();
+                        for (const tp of holo.trailPoints) {
+                            ctx.globalAlpha = tp.alpha;
+                            ctx.fillStyle = HOLO_COLORS.trail;
+                            ctx.beginPath();
+                            ctx.arc(tp.x, tp.y, 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.restore();
+                    }
+
+                    // --- MAIN HOLOGRAPHIC ARC ---
+                    if (holo.arcProgress > 0.01) {
+                        ctx.save();
+                        // Outer glow
+                        ctx.shadowColor = HOLO_COLORS.glow;
+                        ctx.shadowBlur = 15 * intensity;
+                        ctx.globalCompositeOperation = 'lighter';
+
+                        // Draw the arc up to arcProgress
+                        const steps = 60;
+                        const maxStep = Math.floor(holo.arcProgress * steps);
+
+                        // Thick glow stroke
+                        ctx.beginPath();
+                        const [startPt0, startPt1] = bezierPt(0);
+                        ctx.moveTo(startPt0, startPt1);
+                        for (let i = 1; i <= maxStep; i++) {
+                            const [bpx, bpy] = bezierPt(i / steps);
+                            ctx.lineTo(bpx, bpy);
+                        }
+                        // Gradient stroke cyan→magenta→cyan
+                        const arcGrad = ctx.createLinearGradient(originProj[0], originProj[1], destProj[0], destProj[1]);
+                        arcGrad.addColorStop(0, HOLO_COLORS.primary);
+                        arcGrad.addColorStop(0.5, HOLO_COLORS.secondary);
+                        arcGrad.addColorStop(1, HOLO_COLORS.primary);
+                        ctx.strokeStyle = arcGrad;
+                        ctx.lineWidth = 6;
+                        ctx.globalAlpha = 0.4 * intensity;
+                        ctx.stroke();
+
+                        // Inner bright stroke
+                        ctx.shadowBlur = 8 * intensity;
+                        ctx.beginPath();
+                        ctx.moveTo(startPt0, startPt1);
+                        for (let i = 1; i <= maxStep; i++) {
+                            const [bpx, bpy] = bezierPt(i / steps);
+                            ctx.lineTo(bpx, bpy);
+                        }
+                        ctx.strokeStyle = arcGrad;
+                        ctx.lineWidth = 2.5;
+                        ctx.globalAlpha = 0.8 * intensity;
+                        ctx.stroke();
+
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.shadowBlur = 0;
+                        ctx.restore();
+
+                        // --- ARC HEAD (bright point at leading edge) ---
+                        if (holo.arcProgress < 1) {
+                            const [headX, headY] = bezierPt(holo.arcProgress);
+                            ctx.save();
+                            ctx.globalCompositeOperation = 'lighter';
+                            ctx.globalAlpha = intensity;
+                            const headGrad = ctx.createRadialGradient(headX, headY, 0, headX, headY, 12);
+                            headGrad.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                            headGrad.addColorStop(0.3, HOLO_COLORS.primary);
+                            headGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                            ctx.fillStyle = headGrad;
+                            ctx.beginPath();
+                            ctx.arc(headX, headY, 12, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.globalCompositeOperation = 'source-over';
+                            ctx.restore();
+                        }
+                    }
+
+                    // --- PARTICLES ---
+                    if (holo.arcProgress > 0) {
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'lighter';
+                        for (const p of holo.particles) {
+                            if (p.t > holo.arcProgress) continue;
+                            const [ptx, pty] = bezierPt(p.t);
+                            const [nx, ny] = bezierNormal(p.t);
+                            const wobble = Math.sin(timeRef.current * 0.08 + p.phase) * 8 * p.offset;
+                            const fx = ptx + nx * wobble;
+                            const fy = pty + ny * wobble;
+
+                            ctx.globalAlpha = p.alpha * intensity;
+                            ctx.fillStyle = p.color;
+                            ctx.shadowColor = p.color;
+                            ctx.shadowBlur = 4;
+                            ctx.beginPath();
+                            ctx.arc(fx, fy, p.size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.shadowBlur = 0;
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.restore();
+                    }
+
+                    // --- RIPPLE EFFECT AT DESTINATION ---
+                    if (holo.ripples.length > 0) {
+                        ctx.save();
+                        for (const r of holo.ripples) {
+                            ctx.globalAlpha = r.alpha * intensity;
+                            ctx.strokeStyle = HOLO_COLORS.primary;
+                            ctx.lineWidth = 1.5;
+                            ctx.shadowColor = HOLO_COLORS.glow;
+                            ctx.shadowBlur = 6;
+                            ctx.beginPath();
+                            ctx.arc(destProj[0], destProj[1], r.radius, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                        ctx.shadowBlur = 0;
+                        ctx.restore();
+                    }
+
+                    // --- DESTINATION GLOW LABEL ---
+                    if (holo.phase === 'sustain' || (holo.phase === 'arc' && holo.arcProgress > 0.8)) {
+                        const labelAlpha = holo.phase === 'sustain' ? intensity : (holo.arcProgress - 0.8) * 5 * intensity;
+                        const destName = holo.deal?.destination || holo.deal?.city || '';
+                        if (destName) {
+                            ctx.save();
+                            ctx.globalAlpha = labelAlpha;
+                            ctx.font = `800 ${isMobile ? 10 : 12}px 'Outfit', sans-serif`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            // Glow text
+                            ctx.shadowColor = HOLO_COLORS.glow;
+                            ctx.shadowBlur = 12;
+                            ctx.fillStyle = HOLO_COLORS.primary;
+                            ctx.fillText(destName, destProj[0], destProj[1] - 18);
+                            ctx.shadowBlur = 0;
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+
+            // ═══ IMPROVED YUL PIN (Montreal) ═══
             if (yulProjected) {
                 const pulse = Math.sin(timeRef.current * 0.06);
-                const pulseRadius = 14 + pulse * 4;
 
+                // Double pulse ring
+                const pulseRadius = 18 + pulse * 6;
                 ctx.save();
-                ctx.globalAlpha = 0.2 + pulse * 0.08;
+                ctx.globalAlpha = 0.15 + pulse * 0.08;
                 ctx.fillStyle = '#50B4FF';
                 ctx.beginPath();
                 ctx.arc(yulProjected[0], yulProjected[1], pulseRadius, 0, Math.PI * 2);
                 ctx.fill();
+                // Second pulse ring (offset phase)
+                const pulse2 = Math.sin(timeRef.current * 0.06 + Math.PI);
+                ctx.globalAlpha = 0.10 + pulse2 * 0.05;
+                ctx.beginPath();
+                ctx.arc(yulProjected[0], yulProjected[1], 22 + pulse2 * 4, 0, Math.PI * 2);
+                ctx.fill();
                 ctx.restore();
 
-                // White circle with blue border
+                // Main circle (larger)
                 ctx.save();
-                ctx.shadowColor = 'rgba(80,180,255,0.5)';
-                ctx.shadowBlur = 10;
+                ctx.shadowColor = 'rgba(80,180,255,0.7)';
+                ctx.shadowBlur = 15;
                 ctx.fillStyle = '#FFFFFF';
                 ctx.beginPath();
-                ctx.arc(yulProjected[0], yulProjected[1], 8, 0, Math.PI * 2);
+                ctx.arc(yulProjected[0], yulProjected[1], 10, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.strokeStyle = '#50B4FF';
                 ctx.lineWidth = 3;
@@ -960,21 +1591,46 @@ export default function CartoonGlobe({
                 ctx.shadowBlur = 0;
                 ctx.restore();
 
+                // Bird/geai silhouette inside the circle
                 ctx.save();
-                ctx.font = `${isMobile ? 10 : 12}px sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('Ô£ê´©Å', yulProjected[0], yulProjected[1]);
+                ctx.translate(yulProjected[0], yulProjected[1]);
+                ctx.scale(0.5, 0.5);
+                ctx.fillStyle = '#50B4FF';
+                ctx.beginPath();
+                ctx.moveTo(0, -8);
+                ctx.quadraticCurveTo(6, -6, 8, 0);
+                ctx.quadraticCurveTo(6, 2, 3, 4);
+                ctx.lineTo(0, 8);
+                ctx.lineTo(-3, 4);
+                ctx.quadraticCurveTo(-6, 2, -8, 0);
+                ctx.quadraticCurveTo(-6, -6, 0, -8);
+                ctx.closePath();
+                ctx.fill();
                 ctx.restore();
 
+                // Pill-shaped label
                 ctx.save();
+                const yulLabel = 'YUL Montr\u00e9al';
                 ctx.font = `800 ${isMobile ? 8 : 10}px 'Outfit', sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.fillStyle = '#FFFFFF';
-                ctx.shadowColor = 'rgba(0,0,0,0.6)';
-                ctx.shadowBlur = 6;
-                ctx.fillText('YUL', yulProjected[0], yulProjected[1] - 16);
+                const labelWidth = ctx.measureText(yulLabel).width;
+                const pillW = labelWidth + 16;
+                const pillH = isMobile ? 16 : 18;
+                const pillX = yulProjected[0] - pillW / 2;
+                const pillY = yulProjected[1] - 24;
+                ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = 'rgba(10, 18, 32, 0.85)';
+                ctx.beginPath();
+                ctx.roundRect(pillX, pillY - pillH / 2, pillW, pillH, pillH / 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(80, 180, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
                 ctx.shadowBlur = 0;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(yulLabel, yulProjected[0], pillY);
                 ctx.restore();
             }
 
@@ -1044,6 +1700,33 @@ export default function CartoonGlobe({
                 }
             }
 
+            // ═══ CITY LABELS (visible when zoomed in) ═══
+            const currentZoom = zoomCurrentRef.current;
+            if (currentZoom > CITY_LABEL_ZOOM_THRESHOLD) {
+                const labelAlpha = Math.min(1, (currentZoom - CITY_LABEL_ZOOM_THRESHOLD) / 0.3);
+                ctx.save();
+                ctx.globalAlpha = labelAlpha;
+                ctx.font = `700 ${isMobile ? 8 : 9}px 'Outfit', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                for (const deal of visibleDeals) {
+                    const coords = getCoords(deal);
+                    if (!coords) continue;
+                    const projected = projection([coords.lng, coords.lat]);
+                    if (!projected) continue;
+                    const cityName = deal.destination || deal.city || '';
+                    if (!cityName) continue;
+                    const labelY = projected[1] + 14;
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    for (const [ox, oy] of [[-1,0],[1,0],[0,-1],[0,1]] as [number,number][]) {
+                        ctx.fillText(cityName, projected[0] + ox, labelY + oy);
+                    }
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillText(cityName, projected[0], labelY);
+                }
+                ctx.restore();
+            }
+
             // ÔöÇÔöÇÔöÇ SPARKLES ÔöÇÔöÇÔöÇ
             const sparkles = sparklesRef.current;
             for (const s of sparkles) {
@@ -1056,31 +1739,19 @@ export default function CartoonGlobe({
             // ÔöÇÔöÇÔöÇ GLOBE HIGHLIGHT (cartoon 3D shine) ÔöÇÔöÇÔöÇ
             ctx.save();
             const highlightGrad = ctx.createRadialGradient(
-                cx - radius * 0.35, cy - radius * 0.35, 0,
-                cx - radius * 0.35, cy - radius * 0.35, radius * 0.5,
+                cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, 0,
+                cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, visibleRadius * 0.5,
             );
             highlightGrad.addColorStop(0, 'rgba(255,255,255,0.18)');
             highlightGrad.addColorStop(0.5, 'rgba(255,255,255,0.04)');
             highlightGrad.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = highlightGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            // ÔöÇÔöÇÔöÇ EDGE GLOW (atmosphere rim) ÔöÇÔöÇÔöÇ
-            ctx.save();
-            ctx.globalCompositeOperation = 'screen';
-            const rimGrad = ctx.createRadialGradient(cx, cy, radius * 0.92, cx, cy, radius * 1.02);
-            rimGrad.addColorStop(0, 'rgba(80,180,255,0)');
-            rimGrad.addColorStop(0.5, 'rgba(80,180,255,0.08)');
-            rimGrad.addColorStop(1, 'rgba(100,200,255,0.15)');
-            ctx.fillStyle = rimGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius * 1.02, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.restore();
+            // (Edge glow replaced by Fresnel layer in atmosphere section above)
 
             animFrameRef.current = requestAnimationFrame(animate);
         };
@@ -1099,8 +1770,10 @@ export default function CartoonGlobe({
             canvas.removeEventListener('mousemove', onCanvasMouseMove);
             canvas.removeEventListener('mouseenter', onCanvasEnter);
             canvas.removeEventListener('mouseleave', onCanvasLeave);
+            canvas.removeEventListener('wheel', onWheel);
+            canvas.removeEventListener('dblclick', onDblClick);
         };
-    }, [worldData, dimensions, isMobile, visibleDeals, onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal, mapView]);
+    }, [worldData, dimensions, isMobile, visibleDeals, onRegionSelect, onHoverDeal, onLeaveDeal, onSelectDeal, onHoloComplete, mapView]);
 
     return (
         <div

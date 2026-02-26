@@ -11,7 +11,7 @@ import GeaiAssistant from './GeaiAssistant';
 import Confetti from './Confetti';
 import Onboarding from './Onboarding';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
-import DealSidebar from '@/components/deals/DealSidebar';
+// DealSidebar removed — deal info now shown on card flip back face
 import HowItWorks from '../landing/HowItWorks';
 import PremiumSection from '../landing/PremiumSection';
 import RecitsSection from '../landing/RecitsSection';
@@ -22,6 +22,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import QuebecQuiz from './QuebecQuiz';
 import { CANADA_CODES, DEAL_LEVELS as LEVEL_COLORS, CITY_IMAGES } from '@/lib/constants/deals';
+import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
 // Generate next 12 months for filter pills
@@ -38,7 +39,7 @@ function getMonths() {
 }
 
 // ═══════════════════════════════════════════════════════
-// INFINITE AUTO-SCROLL CAROUSEL — ENHANCED
+// INFINITE CAROUSEL — PILL STYLE + EXPAND ON CLICK
 // ═══════════════════════════════════════════════════════
 function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     deals: any[];
@@ -46,28 +47,24 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
     onDealClick: (deal: any) => void;
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+    const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+    const isPausedRef = useRef(false);
 
-    // Duplicate deals for seamless infinite loop
     const loopedDeals = useMemo(() => {
         if (deals.length === 0) return [];
         return [...deals, ...deals];
     }, [deals]);
 
-    // Auto-scroll effect
+    // Auto-scroll — pauses when expanded or hovered
     useEffect(() => {
         const container = scrollRef.current;
         if (!container || deals.length === 0) return;
-
         let animationId: number;
-        let isPaused = false;
-
         const startDelay = setTimeout(() => {
             const halfWidth = container.scrollWidth / 2;
             if (halfWidth <= 0) return;
-
             const tick = () => {
-                if (!isPaused) {
+                if (!isPausedRef.current) {
                     let pos = container.scrollLeft + 0.5;
                     if (pos >= halfWidth) pos -= halfWidth;
                     container.scrollLeft = pos;
@@ -76,16 +73,13 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
             };
             animationId = requestAnimationFrame(tick);
         }, 400);
-
-        const pause = () => { isPaused = true; };
-        const resume = () => { isPaused = false; };
+        const pause = () => { isPausedRef.current = true; };
+        const resume = () => { if (expandedIdx === null) isPausedRef.current = false; };
         const delayedResume = () => { setTimeout(resume, 2500); };
-
         container.addEventListener('mouseenter', pause);
         container.addEventListener('mouseleave', resume);
         container.addEventListener('touchstart', pause, { passive: true });
         container.addEventListener('touchend', delayedResume);
-
         return () => {
             clearTimeout(startDelay);
             cancelAnimationFrame(animationId);
@@ -94,32 +88,23 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
             container.removeEventListener('touchstart', pause);
             container.removeEventListener('touchend', delayedResume);
         };
-    }, [deals.length]);
+    }, [deals.length, expandedIdx]);
 
-    // Stats
-    const stats = useMemo(() => {
-        if (deals.length === 0) return null;
-        const sorted = [...deals].sort((a: any, b: any) => a.price - b.price);
-        const cheapest = sorted[0];
-        const biggestDiscount = [...deals].sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0))[0];
-        const directCount = deals.filter((d: any) => d.stops === 0).length;
-        return { cheapest, biggestDiscount, directCount };
-    }, [deals]);
+    useEffect(() => {
+        isPausedRef.current = expandedIdx !== null;
+    }, [expandedIdx]);
 
-    if (deals.length === 0) {
-        return (
-            <div style={{
-                padding: '40px 24px', textAlign: 'center',
-                background: 'white', color: '#8FA3B8', fontSize: 14,
-                fontFamily: "'Outfit', sans-serif",
-            }}>
-                Aucun deal pour cette période
-            </div>
-        );
-    }
+    useEffect(() => { setExpandedIdx(null); }, [deals]);
+
+    const formatShort = (d: string) => {
+        if (!d) return '';
+        return new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+    };
+
+    if (deals.length === 0) return null;
 
     return (
-        <div className="carousel-wrap" style={{ paddingBottom: 0 }}>
+        <div className="carousel-wrap" style={{ paddingBottom: 0, pointerEvents: 'auto' }}>
             <div style={{ position: 'relative' }}>
                 <div className="carousel-fade-left" />
                 <div className="carousel-fade-right" />
@@ -131,224 +116,206 @@ function InfiniteCarousel({ deals, isMobile, onDealClick }: {
                         const discount = deal.discount || deal.disc || 0;
                         const city = deal.destination || deal.city || '';
                         const code = deal.destination_code || deal.code || '';
-                        const img = CITY_IMAGES[city];
-                        const avgPrice = deal.avgPrice || 0;
-                        const savings = avgPrice > deal.price ? avgPrice - deal.price : 0;
                         const airline = deal.airline || '';
-                        const country = deal.country || '';
                         const depDate = deal.departure_date || '';
                         const retDate = deal.return_date || '';
+                        const avgPrice = deal.avgPrice || 0;
+                        const stops = deal.stops ?? null;
+                        const isExpanded = expandedIdx === i;
+
                         let nights = 0;
                         if (depDate && retDate) {
                             nights = Math.round((new Date(retDate).getTime() - new Date(depDate).getTime()) / (1000 * 60 * 60 * 24));
                         }
-                        const formatShort = (d: string) => {
-                            if (!d) return '';
-                            const dt = new Date(d);
-                            return dt.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
-                        };
-                        const datesLabel = depDate ? `${formatShort(depDate)}${retDate ? ' – ' + formatShort(retDate) : ''}` : '';
-                        const isHovered = hoveredIdx === i;
 
-                        return (
-                            <div
-                                key={`inf-${code}-${i}`}
-                                className="carousel-card"
-                                onClick={() => onDealClick(deal)}
-                                onMouseEnter={() => setHoveredIdx(i)}
-                                onMouseLeave={() => setHoveredIdx(null)}
-                                style={{
-                                    minWidth: isMobile ? 240 : 270,
-                                    maxWidth: isMobile ? 240 : 270,
-                                    borderRadius: 20, overflow: 'hidden',
-                                    background: 'white',
-                                    border: isHovered ? `2px solid ${col.bg}` : '1px solid rgba(26,43,66,0.07)',
-                                    boxShadow: isHovered
-                                        ? `0 12px 35px ${col.bg}20, 0 4px 15px rgba(0,0,0,0.06)`
-                                        : '0 4px 15px rgba(26,43,66,0.05)',
-                                    cursor: 'pointer', flexShrink: 0,
-                                    position: 'relative',
-                                    transform: isHovered ? 'translateY(-6px)' : 'translateY(0)',
-                                    transition: 'all 0.35s cubic-bezier(.25,.46,.45,.94)',
-                                }}
-                            >
-                                {/* Badge */}
-                                <div style={{
-                                    position: 'absolute', top: 12, left: 12, zIndex: 5,
-                                    background: col.bg, color: 'white',
-                                    padding: '4px 12px', borderRadius: 100,
-                                    fontSize: 10, fontWeight: 800, letterSpacing: 0.5,
-                                    display: 'flex', alignItems: 'center', gap: 5,
-                                    boxShadow: `0 2px 10px ${col.bg}40`,
-                                    fontFamily: "'Outfit', sans-serif",
-                                }}>
-                                    {col.icon} {col.label}
-                                </div>
+                        const googleLink = deal.googleFlightsLink
+                            || deal.raw_data?.google_flights_link
+                            || `https://www.google.com/travel/flights?q=Flights+from+YUL+to+${code}&curr=CAD&hl=fr`;
 
-                                {/* Watchlist heart */}
+                        // ─── EXPANDED CARD ───
+                        if (isExpanded) {
+                            return (
                                 <div
-                                    onClick={(e) => { e.stopPropagation(); }}
+                                    key={`inf-${code}-${i}`}
                                     style={{
-                                        position: 'absolute', top: 12, right: 12, zIndex: 5,
-                                        background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)',
-                                        borderRadius: '50%', width: 32, height: 32,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s ease',
+                                        minWidth: isMobile ? 260 : 300,
+                                        maxWidth: isMobile ? 260 : 300,
+                                        background: 'rgba(10, 18, 32, 0.92)',
+                                        backdropFilter: 'blur(16px)',
+                                        WebkitBackdropFilter: 'blur(16px)',
+                                        border: '1px solid rgba(0, 229, 255, 0.2)',
+                                        borderRadius: 16,
+                                        padding: '12px 14px',
+                                        flexShrink: 0,
+                                        boxShadow: '0 8px 32px rgba(0,229,255,0.12), 0 4px 16px rgba(0,0,0,0.4)',
+                                        transition: 'all 0.35s cubic-bezier(.25,.46,.45,.94)',
+                                        fontFamily: "'Outfit', sans-serif",
                                     }}
                                 >
-                                    <svg width="16" height="16" viewBox="0 0 24 24"
-                                        fill="none" stroke="white" strokeWidth="2.5">
-                                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                    </svg>
-                                </div>
-
-                                {/* Image with hover zoom */}
-                                <div style={{ height: 150, position: 'relative', overflow: 'hidden' }}>
-                                    <img
-                                        src={img || 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop'}
-                                        alt={city}
-                                        style={{
-                                            width: '100%', height: '100%', objectFit: 'cover',
-                                            transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-                                            transition: 'transform 0.6s cubic-bezier(.25,.46,.45,.94)',
-                                        }}
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).src =
-                                                'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=500&h=300&fit=crop';
-                                        }}
-                                    />
-                                    <div style={{
-                                        position: 'absolute', inset: 0,
-                                        background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))',
-                                    }} />
-                                    {/* Dates overlay */}
-                                    {datesLabel && (
-                                        <div style={{
-                                            position: 'absolute', bottom: 10, left: 12,
-                                        }}>
-                                            <span style={{
-                                                fontSize: 11, color: 'white', fontWeight: 600,
-                                                background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
-                                                padding: '4px 12px', borderRadius: 100,
-                                                fontFamily: "'Outfit', sans-serif",
-                                            }}>
-                                                📅 {datesLabel}{nights > 0 ? ` · ${nights} nuits` : ''}
+                                    {/* Header row */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <div>
+                                            <span style={{ fontSize: 15, fontWeight: 700, color: 'white', fontFamily: "'Fredoka', sans-serif" }}>
+                                                {city}
+                                            </span>
+                                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>
+                                                YUL → {code}
                                             </span>
                                         </div>
-                                    )}
-                                    {/* Direct badge on image */}
-                                    {deal.stops === 0 && (
-                                        <div style={{
-                                            position: 'absolute', bottom: 10, right: 12,
-                                        }}>
-                                            <span style={{
-                                                fontSize: 10, fontWeight: 800, color: 'white',
-                                                background: 'rgba(22,163,74,0.85)', backdropFilter: 'blur(6px)',
-                                                padding: '3px 10px', borderRadius: 100,
-                                                fontFamily: "'Outfit', sans-serif",
-                                            }}>
-                                                ✈️ Direct
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Content */}
-                                <div style={{ padding: '16px 18px 18px' }}>
-                                    {/* City + Country */}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <span style={{
-                                            fontSize: 18, fontWeight: 700, color: '#1A2B42',
-                                            fontFamily: "'Fredoka', sans-serif",
-                                        }}>
-                                            {city}
-                                        </span>
-                                        {country && (
-                                            <span style={{ fontSize: 12, color: '#8FA3B8', fontWeight: 500 }}>
-                                                {country}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {/* Route + airline */}
-                                    <div style={{
-                                        fontSize: 12, color: '#8FA3B8', marginBottom: 14,
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        YUL → {code}{airline ? ` · ${airline}` : ''}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setExpandedIdx(null); }}
+                                            style={{
+                                                background: 'rgba(255,255,255,0.08)', border: 'none',
+                                                color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
+                                                width: 22, height: 22, borderRadius: '50%',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 11,
+                                            }}
+                                        >✕</button>
                                     </div>
 
                                     {/* Price row */}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <span style={{
-                                                fontSize: 26, fontWeight: 800, color: '#2E7DDB',
-                                                fontFamily: "'Fredoka', sans-serif",
-                                            }}>
-                                                {deal.price}$
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                                        <span style={{
+                                            fontSize: 22, fontWeight: 800, color: '#00E5FF',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                            textShadow: '0 0 12px rgba(0,229,255,0.4)',
+                                        }}>
+                                            {deal.price}$
+                                        </span>
+                                        {avgPrice > deal.price && (
+                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
+                                                {avgPrice}$
                                             </span>
-                                            {avgPrice > deal.price && (
-                                                <span style={{
-                                                    fontSize: 13, color: '#B0B8C4', textDecoration: 'line-through',
-                                                }}>
-                                                    {avgPrice}$
-                                                </span>
-                                            )}
-                                        </div>
+                                        )}
                                         {discount > 0 && (
                                             <span style={{
-                                                fontSize: 12, fontWeight: 800, color: col.bg,
-                                                background: `${col.bg}12`, padding: '4px 10px', borderRadius: 8,
+                                                fontSize: 9, fontWeight: 800, color: 'white',
+                                                background: col.bg, padding: '2px 6px', borderRadius: 4,
                                             }}>
                                                 -{Math.round(discount)}%
                                             </span>
                                         )}
+                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>aller-retour</span>
                                     </div>
 
-                                    {/* Savings bar */}
-                                    {savings > 0 && (
-                                        <div style={{
-                                            marginTop: 12, padding: '8px 12px', borderRadius: 10,
-                                            background: 'linear-gradient(135deg, #F0F7FF, #E8F5E9)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        }}>
-                                            <span style={{ fontSize: 11, color: '#5A7089', fontWeight: 600 }}>
-                                                💰 Tu économises
-                                            </span>
-                                            <span style={{
-                                                fontSize: 14, fontWeight: 800, color: '#16A34A',
-                                                fontFamily: "'Fredoka', sans-serif",
-                                            }}>
-                                                {savings}$
-                                            </span>
-                                        </div>
-                                    )}
+                                    {/* Detail rows */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 10, marginBottom: 10 }}>
+                                        {airline && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Compagnie</span>
+                                                <span style={{ color: 'white', fontWeight: 600 }}>{airline}</span>
+                                            </div>
+                                        )}
+                                        {stops !== null && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Escales</span>
+                                                <span style={{ color: stops === 0 ? '#4ADE80' : 'white', fontWeight: 600 }}>
+                                                    {stops === 0 ? 'Direct' : `${stops} escale${stops > 1 ? 's' : ''}`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {depDate && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Dates</span>
+                                                <span style={{ color: 'white', fontWeight: 600 }}>
+                                                    {formatShort(depDate)}{retDate ? ` → ${formatShort(retDate)}` : ''}
+                                                    {nights > 0 && <span style={{ color: '#00E5FF' }}> ({nights}n)</span>}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {airline && AIRLINE_BAGGAGE[airline] && (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Bagages</span>
+                                                <span style={{
+                                                    color: AIRLINE_BAGGAGE[airline].cabin ? '#4ADE80' : '#F87171',
+                                                    fontWeight: 600,
+                                                }}>
+                                                    {AIRLINE_BAGGAGE[airline].label}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* CTA */}
+                                    <a
+                                        href={googleLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            display: 'block', textAlign: 'center',
+                                            padding: '8px 0', borderRadius: 8,
+                                            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                                            color: '#0A1220', fontWeight: 800, fontSize: 11,
+                                            fontFamily: "'Outfit', sans-serif",
+                                            textDecoration: 'none',
+                                            boxShadow: '0 3px 12px rgba(0,229,255,0.25)',
+                                        }}
+                                    >
+                                        Réserver – {deal.price}$
+                                    </a>
                                 </div>
+                            );
+                        }
+
+                        // ─── PILL (collapsed) ───
+                        return (
+                            <div
+                                key={`inf-${code}-${i}`}
+                                className="carousel-pill"
+                                onClick={() => {
+                                    setExpandedIdx(i);
+                                    onDealClick(deal);
+                                }}
+                                style={{
+                                    minWidth: isMobile ? 140 : 160,
+                                    maxWidth: isMobile ? 140 : 160,
+                                    height: isMobile ? 42 : 46,
+                                    borderRadius: 100,
+                                    background: 'rgba(10, 18, 32, 0.8)',
+                                    backdropFilter: 'blur(14px)',
+                                    WebkitBackdropFilter: 'blur(14px)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '0 14px',
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                    transition: 'all 0.3s cubic-bezier(.25,.46,.45,.94)',
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}
+                            >
+                                {/* Colored dot */}
+                                <div style={{
+                                    width: 8, height: 8, borderRadius: '50%',
+                                    background: col.bg, flexShrink: 0,
+                                    boxShadow: `0 0 6px ${col.bg}80`,
+                                }} />
+
+                                {/* City */}
+                                <span style={{
+                                    fontSize: isMobile ? 11 : 12, fontWeight: 700, color: 'white',
+                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                    flex: 1,
+                                }}>
+                                    {city}
+                                </span>
+
+                                {/* Price */}
+                                <span style={{
+                                    fontSize: isMobile ? 12 : 13, fontWeight: 800, color: '#00E5FF',
+                                    whiteSpace: 'nowrap', flexShrink: 0,
+                                    textShadow: '0 0 8px rgba(0,229,255,0.3)',
+                                }}>
+                                    {deal.price}$
+                                </span>
                             </div>
                         );
                     })}
                 </div>
             </div>
-
-            {/* ═══ STATS BAR ═══ */}
-            {stats && (
-                <div className="stats-bar">
-                    {[
-                        { icon: '⚡', label: 'Meilleur deal', value: `${stats.cheapest?.destination || stats.cheapest?.city || '—'} à ${stats.cheapest?.price || 0}$` },
-                        { icon: '📉', label: 'Plus gros rabais', value: `-${Math.round(stats.biggestDiscount?.discount || 0)}% (${stats.biggestDiscount?.destination || stats.biggestDiscount?.city || '—'})` },
-                        { icon: '✈️', label: 'Vols directs', value: `${stats.directCount} destination${stats.directCount > 1 ? 's' : ''}` },
-                        { icon: '🔄', label: 'Dernière mise à jour', value: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }) },
-                    ].map((stat, idx) => (
-                        <div key={idx} className="stat-chip">
-                            <span style={{ fontSize: 18 }}>{stat.icon}</span>
-                            <div>
-                                <div className="stat-chip-label">{stat.label}</div>
-                                <div className="stat-chip-value">{stat.value}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }
@@ -361,7 +328,8 @@ export default function MapInterface() {
     const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
-    const [selectedDeal, setSelectedDeal] = useState<any>(null);
+    // DealSidebar removed — selectedDeal state no longer needed
+    const [flyToDeal, setFlyToDeal] = useState<any>(null);
     const isMobile = useIsMobile();
     const [activeTab, setActiveTab] = useState<'international' | 'canada' | 'tout-inclus'>('international');
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -460,24 +428,9 @@ export default function MapInterface() {
         { key: 'tout-inclus', label: 'Tout inclus', icon: '🏖️', desc: 'Vol + hôtel' },
     ];
 
-    const handleDealClick = (deal: any) => {
-        const code = deal.destination_code || deal.code || '';
-        const city = deal.destination || deal.city || '';
-        const discount = deal.discount || deal.disc || 0;
-        const level = deal.dealLevel || 'good';
-        setSelectedDeal({
-            city, code, price: deal.price, airline: deal.airline,
-            stops: deal.stops, route: `YUL – ${code}`,
-            disc: discount, dealLevel: level,
-            destination_code: code,
-            departure_date: deal.departure_date,
-            return_date: deal.return_date,
-            googleFlightsLink: deal.googleFlightsLink,
-            raw_data: deal.raw_data,
-            avgPrice: deal.avgPrice, discount,
-            img: CITY_IMAGES[city] || '',
-            country: deal.country,
-        });
+    // Called from carousel cards — triggers holo animation only
+    const handleCarouselDealClick = (deal: any) => {
+        setFlyToDeal({ ...deal, _ts: Date.now() });
     };
 
     return (
@@ -491,8 +444,8 @@ export default function MapInterface() {
                 .carousel-scroll{scrollbar-width:none;}
                 .top5-card{transition:all 0.25s cubic-bezier(.25,.46,.45,.94);}
                 .top5-card:hover{background:rgba(255,255,255,0.08)!important;transform:translateX(2px);}
-                .carousel-card{transition:all 0.3s cubic-bezier(.25,.46,.45,.94);}
-                .carousel-card:hover{transform:translateY(-4px);box-shadow:0 8px 25px rgba(0,0,0,0.12)!important;}
+                .carousel-pill{transition:all 0.3s cubic-bezier(.25,.46,.45,.94);}
+                .carousel-pill:hover{transform:translateY(-3px);border-color:rgba(0,229,255,0.25)!important;box-shadow:0 6px 20px rgba(0,229,255,0.12),0 2px 10px rgba(0,0,0,0.3)!important;}
             `}</style>
 
             <div id="app" className={appReady ? 'show' : ''} style={{
@@ -701,7 +654,7 @@ export default function MapInterface() {
                                         <div
                                             key={`top5-${code}-${i}`}
                                             className="top5-card"
-                                            onClick={() => handleDealClick(deal)}
+                                            onClick={() => handleCarouselDealClick(deal)}
                                             style={{
                                                 display: 'flex', alignItems: 'center', gap: 8,
                                                 padding: '5px 8px', borderRadius: 8,
@@ -781,111 +734,121 @@ export default function MapInterface() {
                             }}
                             onLeaveDeal={() => setHoverVisible(false)}
                             onSelectDeal={(deal: any, e: any) => {
-                                handleDealClick(deal);
                                 setConfettiPos({ x: e.clientX, y: e.clientY });
                                 setConfettiTrigger(prev => prev + 1);
                             }}
+                            flyToDeal={flyToDeal}
+                            onHoloComplete={() => setFlyToDeal(null)}
                         />
 
-                        {/* ═══ BAS GAUCHE DE LA CARTE : MOIS ═══ */}
+                        {/* ═══ CAROUSEL + MOIS — collé au bas du globe ═══ */}
                         <div style={{
-                            position: 'absolute', bottom: isMobile ? 12 : 20, left: isMobile ? 12 : 20, zIndex: 20,
-                            display: 'flex', gap: 6,
-                            overflowX: 'auto', maxWidth: isMobile ? 'calc(100% - 24px)' : '70%',
-                            paddingBottom: 2,
-                            scrollbarWidth: 'none',
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0, right: 0,
+                            zIndex: 15,
+                            pointerEvents: 'none',
                         }}>
-                            <button
-                                className="month-pill"
-                                onClick={() => setSelectedMonth('all')}
-                                style={{
-                                    padding: isMobile ? '9px 18px' : '10px 24px',
-                                    borderRadius: 14, cursor: 'pointer',
-                                    fontSize: isMobile ? 13 : 14, fontWeight: 700,
-                                    fontFamily: "'Outfit', sans-serif",
-                                    whiteSpace: 'nowrap',
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    background: selectedMonth === 'all'
-                                        ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                        : 'rgba(15,26,42,0.7)',
-                                    backdropFilter: 'blur(12px)',
-                                    color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.5)',
-                                    boxShadow: selectedMonth === 'all'
-                                        ? '0 4px 14px rgba(46,125,219,0.35)'
-                                        : '0 2px 8px rgba(0,0,0,0.2)',
-                                    border: selectedMonth === 'all'
-                                        ? '1px solid rgba(96,165,250,0.3)'
-                                        : '1px solid rgba(255,255,255,0.08)',
-                                }}
-                            >
-                                Tous
-                                <span style={{
-                                    fontSize: 10, fontWeight: 800,
-                                    background: selectedMonth === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-                                    padding: '2px 8px', borderRadius: 100,
-                                }}>
-                                    {filteredPrices.length || (prices || []).filter((d: any) => {
+                            {/* Month pills — au-dessus du carousel */}
+                            <div style={{
+                                display: 'flex', gap: 5,
+                                overflowX: 'auto', maxWidth: '100%',
+                                padding: isMobile ? '0 12px 6px' : '0 20px 6px',
+                                scrollbarWidth: 'none',
+                                pointerEvents: 'auto',
+                            }}>
+                                <button
+                                    className="month-pill"
+                                    onClick={() => setSelectedMonth('all')}
+                                    style={{
+                                        padding: isMobile ? '6px 14px' : '7px 18px',
+                                        borderRadius: 10, cursor: 'pointer',
+                                        fontSize: isMobile ? 11 : 12, fontWeight: 700,
+                                        fontFamily: "'Outfit', sans-serif",
+                                        whiteSpace: 'nowrap',
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                        background: selectedMonth === 'all'
+                                            ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                            : 'rgba(15,26,42,0.7)',
+                                        backdropFilter: 'blur(12px)',
+                                        color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.5)',
+                                        boxShadow: selectedMonth === 'all'
+                                            ? '0 3px 10px rgba(46,125,219,0.35)'
+                                            : '0 2px 6px rgba(0,0,0,0.2)',
+                                        border: selectedMonth === 'all'
+                                            ? '1px solid rgba(96,165,250,0.3)'
+                                            : '1px solid rgba(255,255,255,0.08)',
+                                    }}
+                                >
+                                    Tous
+                                    <span style={{
+                                        fontSize: 9, fontWeight: 800,
+                                        background: selectedMonth === 'all' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                                        padding: '1px 6px', borderRadius: 100,
+                                    }}>
+                                        {filteredPrices.length || (prices || []).filter((d: any) => {
+                                            const code = d.destination_code || '';
+                                            const isCanadian = CANADA_CODES.includes(code);
+                                            return activeTab === 'canada' ? isCanadian : !isCanadian;
+                                        }).length}
+                                    </span>
+                                </button>
+                                {availableMonths.map(m => {
+                                    const monthCount = (prices || []).filter((d: any) => {
+                                        const dep = d.departure_date || '';
                                         const code = d.destination_code || '';
                                         const isCanadian = CANADA_CODES.includes(code);
-                                        return activeTab === 'canada' ? isCanadian : !isCanadian;
-                                    }).length}
-                                </span>
-                            </button>
-                            {availableMonths.map(m => {
-                                const monthCount = (prices || []).filter((d: any) => {
-                                    const dep = d.departure_date || '';
-                                    const code = d.destination_code || '';
-                                    const isCanadian = CANADA_CODES.includes(code);
-                                    const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
-                                    return isCorrectTab && dep.startsWith(m.value);
-                                }).length;
+                                        const isCorrectTab = activeTab === 'canada' ? isCanadian : !isCanadian;
+                                        return isCorrectTab && dep.startsWith(m.value);
+                                    }).length;
 
-                                return (
-                                    <button
-                                        key={m.value}
-                                        className="month-pill"
-                                        onClick={() => setSelectedMonth(m.value)}
-                                        style={{
-                                            padding: isMobile ? '9px 18px' : '10px 24px',
-                                            borderRadius: 14, cursor: 'pointer',
-                                            fontSize: isMobile ? 13 : 14, fontWeight: 700,
-                                            fontFamily: "'Outfit', sans-serif",
-                                            whiteSpace: 'nowrap',
-                                            display: 'flex', alignItems: 'center', gap: 8,
-                                            background: selectedMonth === m.value
-                                                ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                                : 'rgba(15,26,42,0.7)',
-                                            backdropFilter: 'blur(12px)',
-                                            color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.5)',
-                                            boxShadow: selectedMonth === m.value
-                                                ? '0 4px 14px rgba(46,125,219,0.35)'
-                                                : '0 2px 8px rgba(0,0,0,0.2)',
-                                            border: selectedMonth === m.value
-                                                ? '1px solid rgba(96,165,250,0.3)'
-                                                : '1px solid rgba(255,255,255,0.08)',
-                                        }}
-                                    >
-                                        {m.label}
-                                        <span style={{
-                                            fontSize: 10, fontWeight: 800,
-                                            background: selectedMonth === m.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-                                            padding: '2px 8px', borderRadius: 100,
-                                        }}>
-                                            {monthCount}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                                    return (
+                                        <button
+                                            key={m.value}
+                                            className="month-pill"
+                                            onClick={() => setSelectedMonth(m.value)}
+                                            style={{
+                                                padding: isMobile ? '6px 14px' : '7px 18px',
+                                                borderRadius: 10, cursor: 'pointer',
+                                                fontSize: isMobile ? 11 : 12, fontWeight: 700,
+                                                fontFamily: "'Outfit', sans-serif",
+                                                whiteSpace: 'nowrap',
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                                background: selectedMonth === m.value
+                                                    ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
+                                                    : 'rgba(15,26,42,0.7)',
+                                                backdropFilter: 'blur(12px)',
+                                                color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.5)',
+                                                boxShadow: selectedMonth === m.value
+                                                    ? '0 3px 10px rgba(46,125,219,0.35)'
+                                                    : '0 2px 6px rgba(0,0,0,0.2)',
+                                                border: selectedMonth === m.value
+                                                    ? '1px solid rgba(96,165,250,0.3)'
+                                                    : '1px solid rgba(255,255,255,0.08)',
+                                            }}
+                                        >
+                                            {m.label}
+                                            <span style={{
+                                                fontSize: 9, fontWeight: 800,
+                                                background: selectedMonth === m.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                                                padding: '1px 6px', borderRadius: 100,
+                                            }}>
+                                                {monthCount}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Carousel */}
+                            <InfiniteCarousel
+                                deals={carouselDeals}
+                                isMobile={isMobile}
+                                onDealClick={handleCarouselDealClick}
+                            />
                         </div>
                     </div>
                 </div>
-
-                {/* ═══════════ CARROUSEL INFINI SOUS LA CARTE ═══════════ */}
-                <InfiniteCarousel
-                    deals={carouselDeals}
-                    isMobile={isMobile}
-                    onDealClick={handleDealClick}
-                />
 
                 <Onboarding />
 
@@ -911,7 +874,7 @@ export default function MapInterface() {
 
                 <Footer />
 
-                <DealSidebar deal={selectedDeal} onClose={() => setSelectedDeal(null)} activeTab={activeTab} />
+                {/* DealSidebar removed — info is now on card flip back */}
                 <Sidebar
                     isOpen={sidebarOpen}
                     onClose={() => setSidebarOpen(false)}

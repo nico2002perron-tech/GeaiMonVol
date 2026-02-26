@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import GuidePanel from './GuidePanel';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 
 interface DealDetail {
     city: string;
@@ -62,22 +63,7 @@ function shouldShowGuide(deal: DealDetail, activeTab?: string): boolean {
     return true;
 }
 
-const AIRLINE_BAGGAGE: Record<string, { cabin: boolean; checked: boolean; label: string }> = {
-    'Air Canada': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
-    'WestJet': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
-    'Air Transat': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
-    'Porter Airlines': { cabin: true, checked: true, label: '🧳 Cabine + enregistré inclus' },
-    'Delta': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
-    'United': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
-    'American Airlines': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
-    'JetBlue': { cabin: true, checked: false, label: '🎒 Cabine inclus' },
-    'Southwest': { cabin: true, checked: true, label: '🧳 Cabine + 2 enregistrés inclus' },
-    'Flair Airlines': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
-    'Spirit': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
-    'Frontier': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
-    'Lynx Air': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
-    'Swoop': { cabin: false, checked: false, label: '⚠️ Aucun bagage inclus' },
-};
+// AIRLINE_BAGGAGE imported from @/lib/constants/airlines
 
 export default function DealSidebar({ deal, onClose, activeTab }: DealSidebarProps) {
     const isMobile = useIsMobile();

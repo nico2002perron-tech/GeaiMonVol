@@ -215,8 +215,8 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // Scanner les 3 prochains mois en détail (les plus pertinents)
-    const datesToScan = dates.slice(0, 3);
+    // Scanner les 6 prochains mois en détail
+    const datesToScan = dates.slice(0, 6);
 
     for (const date of datesToScan) {
         try {
@@ -309,10 +309,9 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     const exploreDeals = await scanExplore();
     allDeals.push(...exploreDeals);
 
-    // PHASE 2 : Scan détaillé des 10 destinations prioritaires
-    // (celles qui sont populaires depuis Montréal)
-    console.log('\n--- Phase 2: Deep scan top destinations ---');
-    const topDestinations = PRIORITY_DESTINATIONS.slice(0, 5); // Top 5
+    // PHASE 2 : Scan détaillé de TOUTES les destinations internationales
+    console.log('\n--- Phase 2: Deep scan all international destinations ---');
+    const topDestinations = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
 
     for (const dest of topDestinations) {
         const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
@@ -341,71 +340,74 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
         }
     }
 
-    // PHASE 4 : Scan des vols intra-Canada
+    // PHASE 4 : Scan des vols intra-Canada (3 prochains mois)
     console.log('\n--- Phase 4: Canada domestic flights ---');
     const CANADA_DESTINATIONS = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
+    const canadaDates = getMonthlyDates().slice(0, 3);
 
     for (const dest of CANADA_DESTINATIONS) {
-        try {
-            const params = new URLSearchParams({
-                engine: 'google_flights',
-                departure_id: 'YUL',
-                arrival_id: dest.code,
-                outbound_date: getMonthlyDates()[0].outbound,
-                return_date: getMonthlyDates()[0].return,
-                currency: 'CAD',
-                hl: 'fr',
-                gl: 'ca',
-                type: '1',
-                travel_class: '1',
-                sort_by: '2',
-                api_key: API_KEY!,
-            });
+        for (const date of canadaDates) {
+            try {
+                const params = new URLSearchParams({
+                    engine: 'google_flights',
+                    departure_id: 'YUL',
+                    arrival_id: dest.code,
+                    outbound_date: date.outbound,
+                    return_date: date.return,
+                    currency: 'CAD',
+                    hl: 'fr',
+                    gl: 'ca',
+                    type: '1',
+                    travel_class: '1',
+                    sort_by: '2',
+                    api_key: API_KEY!,
+                });
 
-            console.log(`[Canada] Scanning ${dest.city}...`);
-            const response = await fetch(
-                `https://serpapi.com/search.json?${params.toString()}`
-            );
+                console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
+                const response = await fetch(
+                    `https://serpapi.com/search.json?${params.toString()}`
+                );
 
-            if (!response.ok) continue;
+                if (!response.ok) continue;
 
-            const data = await response.json();
-            const flights = [
-                ...(data.best_flights || []),
-                ...(data.other_flights || []),
-            ];
+                const data = await response.json();
+                const flights = [
+                    ...(data.best_flights || []),
+                    ...(data.other_flights || []),
+                ];
 
-            if (flights.length === 0) continue;
+                if (flights.length === 0) continue;
 
-            const cheapest = flights[0];
-            const firstLeg = cheapest.flights?.[0];
-            if (!firstLeg || !cheapest.price) continue;
+                const cheapest = flights[0];
+                const firstLeg = cheapest.flights?.[0];
+                if (!firstLeg || !cheapest.price) continue;
 
-            allDeals.push({
-                city: dest.city,
-                country: 'Canada',
-                airportCode: dest.code,
-                price: cheapest.price,
-                currency: 'CAD',
-                airline: firstLeg.airline || '',
-                airlineCode: firstLeg.airline_code || '',
-                stops: (cheapest.flights?.length || 1) - 1,
-                duration: cheapest.total_duration || 0,
-                departureDate: getMonthlyDates()[0].outbound,
-                returnDate: getMonthlyDates()[0].return,
-                route: `YUL – ${dest.code}`,
-                tripDuration: 7,
-                source: 'google_flights_canada',
-                googleFlightsLink: data.search_metadata?.google_flights_url || '',
-                rawData: {
-                    flights: cheapest.flights,
-                    price_insights: data.price_insights,
-                },
-            });
+                allDeals.push({
+                    city: dest.city,
+                    country: 'Canada',
+                    airportCode: dest.code,
+                    price: cheapest.price,
+                    currency: 'CAD',
+                    airline: firstLeg.airline || '',
+                    airlineCode: firstLeg.airline_code || '',
+                    stops: (cheapest.flights?.length || 1) - 1,
+                    duration: cheapest.total_duration || 0,
+                    departureDate: date.outbound,
+                    returnDate: date.return,
+                    route: `YUL – ${dest.code}`,
+                    tripDuration: 7,
+                    source: 'google_flights_canada',
+                    googleFlightsLink: data.search_metadata?.google_flights_url || '',
+                    rawData: {
+                        flights: cheapest.flights,
+                        price_insights: data.price_insights,
+                    },
+                });
 
-            await sleep(1500);
-        } catch (error) {
-            console.error(`[Canada] Error scanning ${dest.city}:`, error);
+                await sleep(1500);
+            } catch (error) {
+                console.error(`[Canada] Error scanning ${dest.city} ${date.month}:`, error);
+            }
         }
     }
 
