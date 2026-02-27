@@ -1,6 +1,6 @@
 'use client';
 // GeaiMonVol V2 - Sync
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import CartoonGlobe from './CartoonGlobe';
 import Sidebar from './Sidebar';
 import BookingPanel from './BookingPanel';
@@ -21,7 +21,7 @@ import QuebecPlanner from './QuebecPlanner';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import QuebecQuiz from './QuebecQuiz';
-import { CANADA_CODES, DEAL_LEVELS as LEVEL_COLORS, CITY_IMAGES } from '@/lib/constants/deals';
+import { CANADA_CODES, DEAL_LEVELS as LEVEL_COLORS, CITY_IMAGES, DEFAULT_CITY_IMAGE } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
@@ -49,6 +49,7 @@ function InfiniteCarousel({ deals, isMobile, onDealClick, isLive }: {
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+    const [expandedRect, setExpandedRect] = useState<{ top: number; left: number; width: number } | null>(null);
     const isPausedRef = useRef(false);
 
     const loopedDeals = useMemo(() => {
@@ -95,7 +96,7 @@ function InfiniteCarousel({ deals, isMobile, onDealClick, isLive }: {
         isPausedRef.current = expandedIdx !== null;
     }, [expandedIdx]);
 
-    useEffect(() => { setExpandedIdx(null); }, [deals]);
+    useEffect(() => { setExpandedIdx(null); setExpandedRect(null); }, [deals]);
 
     const formatShort = (d: string) => {
         if (!d) return '';
@@ -137,6 +138,16 @@ function InfiniteCarousel({ deals, isMobile, onDealClick, isLive }: {
                         const avgPrice = deal.avgPrice || 0;
                         const stops = deal.stops ?? null;
                         const isExpanded = expandedIdx === i;
+                        const saved = avgPrice > deal.price ? avgPrice - deal.price : 0;
+                        const isHot = level === 'lowest_ever' || level === 'incredible';
+                        const cityImg = CITY_IMAGES[city] || DEFAULT_CITY_IMAGE;
+                        const LEVEL_GRADIENTS: Record<string, { from: string; to: string; border: string; glow: string }> = {
+                            lowest_ever: { from: '#3D2680', to: '#1A0F3D', border: 'rgba(124,58,237,0.5)', glow: 'rgba(124,58,237,0.3)' },
+                            incredible:  { from: '#4D1F1F', to: '#2A0A0A', border: 'rgba(220,38,38,0.45)', glow: 'rgba(220,38,38,0.25)' },
+                            great:       { from: '#4D3020', to: '#2A1508', border: 'rgba(234,88,12,0.4)', glow: 'rgba(234,88,12,0.2)' },
+                            good:        { from: '#143058', to: '#0A1830', border: 'rgba(46,125,219,0.35)', glow: 'rgba(46,125,219,0.15)' },
+                        };
+                        const grad = LEVEL_GRADIENTS[level] || LEVEL_GRADIENTS.good;
 
                         let nights = 0;
                         if (depDate && retDate) {
@@ -147,190 +158,310 @@ function InfiniteCarousel({ deals, isMobile, onDealClick, isLive }: {
                             || deal.raw_data?.google_flights_link
                             || `https://www.google.com/travel/flights?q=Flights+from+YUL+to+${code}&curr=CAD&hl=fr`;
 
-                        // ─── EXPANDED CARD ───
-                        if (isExpanded) {
-                            return (
-                                <div
-                                    key={`inf-${code}-${i}`}
-                                    style={{
-                                        minWidth: isMobile ? 260 : 300,
-                                        maxWidth: isMobile ? 260 : 300,
-                                        background: 'rgba(10, 18, 32, 0.92)',
-                                        backdropFilter: 'blur(16px)',
-                                        WebkitBackdropFilter: 'blur(16px)',
-                                        border: '1px solid rgba(0, 229, 255, 0.2)',
-                                        borderRadius: 16,
-                                        padding: '12px 14px',
-                                        flexShrink: 0,
-                                        boxShadow: '0 8px 32px rgba(0,229,255,0.12), 0 4px 16px rgba(0,0,0,0.4)',
-                                        transition: 'all 0.35s cubic-bezier(.25,.46,.45,.94)',
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}
-                                >
-                                    {/* Header row */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                        <div>
-                                            <span style={{ fontSize: 15, fontWeight: 700, color: 'white', fontFamily: "'Fredoka', sans-serif" }}>
-                                                {city}
-                                            </span>
-                                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>
-                                                YUL → {code}
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setExpandedIdx(null); }}
-                                            style={{
-                                                background: 'rgba(255,255,255,0.08)', border: 'none',
-                                                color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
-                                                width: 22, height: 22, borderRadius: '50%',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 11,
-                                            }}
-                                        >✕</button>
-                                    </div>
-
-                                    {/* Price row */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                                        <span style={{
-                                            fontSize: 22, fontWeight: 800, color: '#00E5FF',
-                                            fontFamily: "'Fredoka', sans-serif",
-                                            textShadow: '0 0 12px rgba(0,229,255,0.4)',
-                                        }}>
-                                            {deal.price}$
-                                        </span>
-                                        {avgPrice > deal.price && (
-                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
-                                                {avgPrice}$
-                                            </span>
-                                        )}
-                                        {discount > 0 && (
-                                            <span style={{
-                                                fontSize: 9, fontWeight: 800, color: 'white',
-                                                background: col.bg, padding: '2px 6px', borderRadius: 4,
-                                            }}>
-                                                -{Math.round(discount)}%
-                                            </span>
-                                        )}
-                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>aller-retour</span>
-                                    </div>
-
-                                    {/* Detail rows */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 10, marginBottom: 10 }}>
-                                        {airline && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Compagnie</span>
-                                                <span style={{ color: 'white', fontWeight: 600 }}>{airline}</span>
-                                            </div>
-                                        )}
-                                        {stops !== null && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Escales</span>
-                                                <span style={{ color: stops === 0 ? '#4ADE80' : 'white', fontWeight: 600 }}>
-                                                    {stops === 0 ? 'Direct' : `${stops} escale${stops > 1 ? 's' : ''}`}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {depDate && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Dates</span>
-                                                <span style={{ color: 'white', fontWeight: 600 }}>
-                                                    {formatShort(depDate)}{retDate ? ` → ${formatShort(retDate)}` : ''}
-                                                    {nights > 0 && <span style={{ color: '#00E5FF' }}> ({nights}n)</span>}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {airline && AIRLINE_BAGGAGE[airline] && (
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Bagages</span>
-                                                <span style={{
-                                                    color: AIRLINE_BAGGAGE[airline].cabin ? '#4ADE80' : '#F87171',
-                                                    fontWeight: 600,
-                                                }}>
-                                                    {AIRLINE_BAGGAGE[airline].label}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* CTA */}
-                                    <a
-                                        href={googleLink}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={(e) => e.stopPropagation()}
-                                        style={{
-                                            display: 'block', textAlign: 'center',
-                                            padding: '8px 0', borderRadius: 8,
-                                            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
-                                            color: '#0A1220', fontWeight: 800, fontSize: 11,
-                                            fontFamily: "'Outfit', sans-serif",
-                                            textDecoration: 'none',
-                                            boxShadow: '0 3px 12px rgba(0,229,255,0.25)',
-                                        }}
-                                    >
-                                        Réserver – {deal.price}$
-                                    </a>
-                                </div>
-                            );
-                        }
-
-                        // ─── PILL (collapsed) ───
+                        // ─── CARD ───
                         return (
                             <div
                                 key={`inf-${code}-${i}`}
                                 className="carousel-pill"
-                                onClick={() => {
-                                    setExpandedIdx(i);
-                                    onDealClick(deal);
+                                onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    if (expandedIdx === i) {
+                                        setExpandedIdx(null);
+                                        setExpandedRect(null);
+                                    } else {
+                                        setExpandedRect({ top: rect.top, left: rect.left, width: rect.width });
+                                        setExpandedIdx(i);
+                                        onDealClick(deal);
+                                    }
                                 }}
                                 style={{
-                                    minWidth: isMobile ? 140 : 160,
-                                    maxWidth: isMobile ? 140 : 160,
-                                    height: isMobile ? 42 : 46,
-                                    borderRadius: 100,
-                                    background: 'rgba(10, 18, 32, 0.8)',
-                                    backdropFilter: 'blur(14px)',
-                                    WebkitBackdropFilter: 'blur(14px)',
-                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    minWidth: isMobile ? 190 : 215,
+                                    maxWidth: isMobile ? 190 : 215,
+                                    borderRadius: 16,
+                                    background: `linear-gradient(160deg, ${grad.from}, ${grad.to})`,
+                                    border: isExpanded
+                                        ? `2px solid ${col.bg}`
+                                        : `1.5px solid ${grad.border}`,
                                     display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    padding: '0 14px',
+                                    flexDirection: 'column' as const,
+                                    padding: 0,
                                     cursor: 'pointer',
                                     flexShrink: 0,
                                     transition: 'all 0.3s cubic-bezier(.25,.46,.45,.94)',
                                     fontFamily: "'Outfit', sans-serif",
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    transform: isExpanded ? 'scale(1.05)' : 'none',
+                                    boxShadow: isExpanded
+                                        ? `0 0 24px ${col.bg}50, 0 4px 20px ${grad.glow}`
+                                        : `0 4px 20px ${grad.glow}, 0 2px 8px rgba(0,0,0,0.3)`,
                                 }}
                             >
-                                {/* Colored dot */}
+                                {/* City image thumbnail */}
                                 <div style={{
-                                    width: 8, height: 8, borderRadius: '50%',
-                                    background: col.bg, flexShrink: 0,
-                                    boxShadow: `0 0 6px ${col.bg}80`,
-                                }} />
-
-                                {/* City */}
-                                <span style={{
-                                    fontSize: isMobile ? 11 : 12, fontWeight: 700, color: 'white',
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                    flex: 1,
+                                    position: 'relative',
+                                    width: '100%',
+                                    height: isMobile ? 56 : 64,
+                                    overflow: 'hidden',
+                                    borderRadius: '16px 16px 0 0',
+                                    flexShrink: 0,
                                 }}>
-                                    {city}
-                                </span>
+                                    <img
+                                        src={cityImg}
+                                        alt={city}
+                                        loading="lazy"
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            display: 'block',
+                                        }}
+                                    />
+                                    {/* Gradient overlay fading into card */}
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        background: `linear-gradient(180deg, transparent 20%, ${grad.from}80 70%, ${grad.from} 100%)`,
+                                    }} />
+                                    {/* Badge overlay top-right */}
+                                    <span style={{
+                                        position: 'absolute', top: 6, right: 6,
+                                        fontSize: 7, fontWeight: 800, color: 'white',
+                                        background: col.bg, padding: '2px 6px', borderRadius: 4,
+                                        letterSpacing: 0.3, whiteSpace: 'nowrap',
+                                        boxShadow: `0 2px 8px ${col.bg}60`,
+                                    }}>{col.icon} {col.label}</span>
+                                </div>
 
-                                {/* Price */}
-                                <span style={{
-                                    fontSize: isMobile ? 12 : 13, fontWeight: 800, color: '#00E5FF',
-                                    whiteSpace: 'nowrap', flexShrink: 0,
-                                    textShadow: '0 0 8px rgba(0,229,255,0.3)',
-                                }}>
-                                    {deal.price}$
-                                </span>
+                                {/* Content area */}
+                                <div style={{ padding: isMobile ? '8px 12px 10px' : '10px 14px 12px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                                    {/* City name */}
+                                    <span style={{
+                                        fontSize: isMobile ? 13 : 14, fontWeight: 700, color: 'white',
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                        fontFamily: "'Fredoka', sans-serif",
+                                        marginBottom: 4,
+                                    }}>{city}</span>
+
+                                    {/* Price prominent */}
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                                        <span style={{
+                                            fontSize: isMobile ? 20 : 22, fontWeight: 800,
+                                            color: '#FFFFFF',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                            lineHeight: 1,
+                                            textShadow: `0 0 16px ${col.bg}60`,
+                                        }}>{deal.price}$</span>
+                                        {avgPrice > deal.price && (
+                                            <span style={{
+                                                fontSize: 11, color: 'rgba(255,255,255,0.25)',
+                                                textDecoration: 'line-through',
+                                            }}>{avgPrice}$</span>
+                                        )}
+                                    </div>
+
+                                    {/* Savings pill badge */}
+                                    {saved > 0 ? (
+                                        <div style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                                            background: 'rgba(57,255,20,0.08)',
+                                            border: '1px solid rgba(57,255,20,0.15)',
+                                            borderRadius: 6,
+                                            padding: '3px 8px',
+                                            marginBottom: 4,
+                                            alignSelf: 'flex-start',
+                                        }}>
+                                            <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 700, color: '#39FF14' }}>
+                                                💰 −{saved}$
+                                            </span>
+                                            {discount > 0 && (
+                                                <span style={{
+                                                    fontSize: 8, fontWeight: 800, color: 'white',
+                                                    background: col.bg, padding: '1px 4px', borderRadius: 3,
+                                                }}>-{Math.round(discount)}%</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>
+                                            aller-retour
+                                        </div>
+                                    )}
+
+                                    {/* Route + info — boarding pass separator */}
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 'auto',
+                                        paddingTop: 4, borderTop: '1px dashed rgba(255,255,255,0.08)',
+                                    }}>
+                                        <span>YUL → {code}</span>
+                                        {stops === 0 && <span style={{ color: '#4ADE80', fontWeight: 600 }}>Direct</span>}
+                                        {depDate && <span>{formatShort(depDate)}</span>}
+                                    </div>
+                                </div>
+
+                                {/* Shimmer sweep on hot deals */}
+                                {isHot && (
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: '-30%',
+                                        width: '30%', height: '100%',
+                                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)',
+                                        animation: 'cardShimmer 4s ease-in-out infinite',
+                                        pointerEvents: 'none',
+                                    }} />
+                                )}
                             </div>
                         );
                     })}
                 </div>
             </div>
+
+            {/* ── EXPANDED DEAL POPOVER (opens upward from card) ── */}
+            {expandedIdx !== null && expandedRect && (() => {
+                const deal = loopedDeals[expandedIdx];
+                if (!deal) return null;
+                const level = deal.dealLevel || 'good';
+                const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
+                const discount = deal.discount || deal.disc || 0;
+                const city = deal.destination || deal.city || '';
+                const code = deal.destination_code || deal.code || '';
+                const airline = deal.airline || '';
+                const depDate = deal.departure_date || '';
+                const retDate = deal.return_date || '';
+                const avgPrice = deal.avgPrice || 0;
+                const stops = deal.stops ?? null;
+                const saved = avgPrice > deal.price ? avgPrice - deal.price : 0;
+                const EXP_GRAD: Record<string, { from: string; to: string; border: string }> = {
+                    lowest_ever: { from: '#2D1B69', to: '#1A0F3D', border: 'rgba(124,58,237,0.5)' },
+                    incredible:  { from: '#3D1515', to: '#2A0A0A', border: 'rgba(220,38,38,0.45)' },
+                    great:       { from: '#3D2515', to: '#2A1508', border: 'rgba(234,88,12,0.4)' },
+                    good:        { from: '#0F2444', to: '#0A1830', border: 'rgba(46,125,219,0.35)' },
+                };
+                const eGrad = EXP_GRAD[level] || EXP_GRAD.good;
+
+                let nights = 0;
+                if (depDate && retDate) {
+                    nights = Math.round((new Date(retDate).getTime() - new Date(depDate).getTime()) / (1000 * 60 * 60 * 24));
+                }
+
+                const googleLink = deal.googleFlightsLink
+                    || deal.raw_data?.google_flights_link
+                    || `https://www.google.com/travel/flights?q=Flights+from+YUL+to+${code}&curr=CAD&hl=fr`;
+
+                const baggage = AIRLINE_BAGGAGE[airline] || null;
+                const popoverWidth = isMobile ? 230 : 260;
+
+                return (
+                    <>
+                        {/* Invisible backdrop to close on outside click */}
+                        <div
+                            onClick={() => { setExpandedIdx(null); setExpandedRect(null); }}
+                            style={{ position: 'fixed', inset: 0, zIndex: 9997 }}
+                        />
+                        {/* Popover anchored above the card */}
+                        <div style={{
+                            position: 'fixed',
+                            bottom: `calc(100vh - ${expandedRect.top}px + 8px)`,
+                            left: expandedRect.left + expandedRect.width / 2,
+                            transform: 'translateX(-50%)',
+                            zIndex: 9999,
+                            width: popoverWidth,
+                            background: `linear-gradient(160deg, ${eGrad.from}, ${eGrad.to})`,
+                            border: `1.5px solid ${eGrad.border}`,
+                            borderRadius: 14,
+                            padding: isMobile ? '12px 12px' : '14px 14px',
+                            fontFamily: "'Outfit', sans-serif",
+                            boxShadow: `0 12px 40px rgba(0,0,0,0.5), 0 0 24px ${col.bg}20`,
+                            animation: 'popoverSlideUp 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
+                        }}>
+                            {/* Top accent */}
+                            <div style={{
+                                position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                                borderRadius: '14px 14px 0 0',
+                                background: `linear-gradient(90deg, transparent, ${col.bg}, transparent)`,
+                            }} />
+
+                            {/* Arrow pointing down to card */}
+                            <div style={{
+                                position: 'absolute', bottom: -7,
+                                left: '50%', transform: 'translateX(-50%)',
+                                width: 0, height: 0,
+                                borderLeft: '7px solid transparent',
+                                borderRight: '7px solid transparent',
+                                borderTop: `7px solid ${eGrad.from}`,
+                                filter: `drop-shadow(0 2px 3px rgba(0,0,0,0.3))`,
+                            }} />
+
+                            {/* Route + stops */}
+                            <div style={{
+                                fontSize: 11, color: 'rgba(255,255,255,0.5)',
+                                marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                                <span>YUL → {code}</span>
+                                {stops === 0 && <span style={{ color: '#4ADE80', fontWeight: 700, fontSize: 10 }}>✓ Direct</span>}
+                                {stops != null && stops > 0 && <span style={{ fontSize: 10 }}>{stops} escale{stops > 1 ? 's' : ''}</span>}
+                            </div>
+
+                            {/* Dates + duration */}
+                            {depDate && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                                    padding: '8px 0', marginBottom: 8,
+                                    borderTop: '1px solid rgba(255,255,255,0.06)',
+                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                    fontSize: 11, color: 'rgba(255,255,255,0.6)',
+                                }}>
+                                    <span>📅 {formatShort(depDate)}</span>
+                                    {retDate && <span>→ {formatShort(retDate)}</span>}
+                                    {nights > 0 && (
+                                        <span style={{
+                                            fontSize: 9, fontWeight: 700,
+                                            background: 'rgba(255,255,255,0.08)',
+                                            padding: '2px 7px', borderRadius: 100,
+                                        }}>{nights} nuits</span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Airline + baggage */}
+                            {airline && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                                    fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 10,
+                                }}>
+                                    <span>✈️ {airline}</span>
+                                    {baggage && (
+                                        <span style={{
+                                            fontSize: 9, fontWeight: 600,
+                                            background: 'rgba(255,255,255,0.08)',
+                                            padding: '2px 6px', borderRadius: 4,
+                                        }}>
+                                            🧳 {baggage.cabin ? 'Cabine incluse' : 'Cabine en extra'}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* CTA Button */}
+                            <a
+                                href={googleLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    width: '100%', padding: '9px 12px', borderRadius: 10,
+                                    background: `linear-gradient(135deg, ${col.bg}, ${col.bg}CC)`,
+                                    color: 'white', fontSize: 12, fontWeight: 700,
+                                    textDecoration: 'none', border: 'none', cursor: 'pointer',
+                                    boxShadow: `0 3px 12px ${col.bg}40`,
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}
+                            >
+                                Voir sur Google Flights →
+                            </a>
+                        </div>
+                    </>
+                );
+            })()}
         </div>
     );
 }
@@ -443,16 +574,104 @@ export default function MapInterface() {
         { key: 'tout-inclus', label: 'Tout inclus', icon: '🏖️', desc: 'Vol + hôtel' },
     ];
 
+    // ─── FLOATING PILL TABS — refs & sliding indicator ───
+    const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+    const [indicatorStyle, setIndicatorStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+
+    const tabCounts = useMemo(() => {
+        const all = prices || [];
+        const intl = all.filter((d: any) => {
+            const code = d.destination_code || d.code || '';
+            return !CANADA_CODES.includes(code);
+        }).length;
+        const ca = all.filter((d: any) => {
+            const code = d.destination_code || d.code || '';
+            return CANADA_CODES.includes(code);
+        }).length;
+        return { international: intl, canada: ca, 'tout-inclus': intl };
+    }, [prices]);
+
+    useLayoutEffect(() => {
+        const idx = tabs.findIndex(t => t.key === activeTab);
+        const el = tabRefs.current[idx];
+        if (el) {
+            setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
+        }
+    }, [activeTab, tabCounts]);
+
     // Called from carousel cards — triggers holo animation only
     const handleCarouselDealClick = (deal: any) => {
+        setPingDeal(null);
+        userInteractedRef.current = true;
+        if (pingTimerRef.current) clearTimeout(pingTimerRef.current);
         setFlyToDeal({ ...deal, _ts: Date.now() });
     };
+
+    // ─── AUTO-PING TOP DEALS (idle state) ───
+    const [pingDeal, setPingDeal] = useState<any>(null);
+    const pingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pingIdxRef = useRef(0);
+    const userInteractedRef = useRef(false);
+
+    // Reset user interaction flag when holo completes
+    const handleHoloComplete = () => {
+        setFlyToDeal(null);
+        // If it was a user click, keep paused for a bit then resume
+        if (userInteractedRef.current) {
+            userInteractedRef.current = false;
+        }
+    };
+
+    useEffect(() => {
+        if (top5Deals.length === 0) return;
+
+        const triggerPing = () => {
+            // Skip if a holo is currently playing
+            if (flyToDeal) return;
+            const idx = pingIdxRef.current % top5Deals.length;
+            pingIdxRef.current = idx + 1;
+            const deal = top5Deals[idx];
+            setPingDeal(deal);
+            // Trigger holo fly for the ping
+            setFlyToDeal({ ...deal, _ts: Date.now(), _autoPing: true });
+
+            // Auto-dismiss card after 7s
+            if (pingTimerRef.current) clearTimeout(pingTimerRef.current);
+            pingTimerRef.current = setTimeout(() => {
+                setPingDeal(null);
+            }, 7000);
+        };
+
+        // Initial delay before first ping
+        const startDelay = setTimeout(triggerPing, 6000);
+
+        // Recurring — slower rotation (~18s between pings)
+        const interval = setInterval(triggerPing, 18000);
+
+        return () => {
+            clearTimeout(startDelay);
+            clearInterval(interval);
+            if (pingTimerRef.current) clearTimeout(pingTimerRef.current);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [top5Deals.length]);
 
     return (
         <>
             <style>{`
                 @keyframes liveBlink{0%,100%{opacity:1}50%{opacity:.3}}
+                @keyframes tabGlow{0%,100%{box-shadow:0 0 20px rgba(96,165,250,0.15)}50%{box-shadow:0 0 28px rgba(96,165,250,0.25)}}
+                @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
                 @keyframes scrollHint{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+                @keyframes pingSlideIn{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}
+                @keyframes pingSlideOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.7)}}
+                @keyframes pingPulseRing{0%{transform:scale(0.8);opacity:0.8}100%{transform:scale(2.5);opacity:0}}
+                @keyframes popoverSlideUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+                @keyframes pingEntrance{0%{opacity:0;transform:scale(0.5) translateX(30px);filter:blur(8px)}50%{opacity:1;filter:blur(0)}70%{transform:scale(1.05) translateX(0)}100%{transform:scale(1) translateX(0)}}
+                @keyframes pingGlowBreath{0%,100%{box-shadow:0 8px 32px var(--ping-glow),0 4px 16px rgba(0,0,0,0.4)}50%{box-shadow:0 12px 48px var(--ping-glow),0 4px 16px rgba(0,0,0,0.4),0 0 40px 4px var(--ping-glow)}}
+                @keyframes pingScanLine{0%{left:-20%}100%{left:120%}}
+                @keyframes savingsPulse{0%,100%{box-shadow:0 0 4px rgba(57,255,20,0.3)}50%{box-shadow:0 0 12px rgba(57,255,20,0.6),0 0 24px rgba(57,255,20,0.2)}}
+                @keyframes cardShimmer{0%{left:-30%}100%{left:130%}}
                 .month-pill{transition:all 0.25s ease;}
                 .month-pill:hover{background:rgba(255,255,255,0.08)!important;}
                 .carousel-scroll::-webkit-scrollbar{display:none;}
@@ -460,7 +679,7 @@ export default function MapInterface() {
                 .top5-card{transition:all 0.25s cubic-bezier(.25,.46,.45,.94);}
                 .top5-card:hover{background:rgba(255,255,255,0.08)!important;transform:translateX(2px);}
                 .carousel-pill{transition:all 0.3s cubic-bezier(.25,.46,.45,.94);}
-                .carousel-pill:hover{transform:translateY(-3px);border-color:rgba(0,229,255,0.25)!important;box-shadow:0 6px 20px rgba(0,229,255,0.12),0 2px 10px rgba(0,0,0,0.3)!important;}
+                .carousel-pill:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 36px rgba(96,165,250,0.25),0 6px 16px rgba(0,0,0,0.5)!important;border-color:rgba(96,165,250,0.35)!important;z-index:2;}
             `}</style>
 
             <div id="app" className={appReady ? 'show' : ''} style={{
@@ -471,95 +690,123 @@ export default function MapInterface() {
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <MapTopbar prices={prices} />
 
-                    {/* ONGLETS Monde / Canada / Tout-inclus */}
+                    {/* ═══ MAP AREA ═══ */}
                     <div style={{
-                        background: 'linear-gradient(180deg, #0F1A2A 0%, #1B2D4F 100%)',
-                        padding: '0 28px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        flexShrink: 0,
+                        flex: '1 1 auto', minHeight: 0, position: 'relative',
+                        background: '#1B2D4F', overflow: 'hidden',
                     }}>
-                        <div style={{ display: 'flex', gap: 6, padding: '14px 0' }}>
-                            {tabs.map(tab => {
+                        {/* ── FLOATING ORBIT SELECTOR (Pill Tabs) ── */}
+                        <div style={{
+                            position: 'absolute',
+                            top: isMobile ? 10 : 16,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 40,
+                            background: 'rgba(10,18,32,0.65)',
+                            backdropFilter: 'blur(24px)',
+                            WebkitBackdropFilter: 'blur(24px)',
+                            borderRadius: isMobile ? 22 : 26,
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            padding: isMobile ? 4 : 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: isMobile ? 2 : 4,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+                            animation: 'fadeInUp 0.5s ease-out both',
+                        }}>
+                            {/* Sliding indicator */}
+                            <div style={{
+                                position: 'absolute',
+                                top: isMobile ? 4 : 6,
+                                left: indicatorStyle.left,
+                                width: indicatorStyle.width,
+                                height: isMobile ? 'calc(100% - 8px)' : 'calc(100% - 12px)',
+                                borderRadius: isMobile ? 18 : 20,
+                                background: 'linear-gradient(135deg, rgba(46,125,219,0.35), rgba(96,165,250,0.2))',
+                                border: '1px solid rgba(96,165,250,0.2)',
+                                transition: 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                animation: 'tabGlow 3s ease-in-out infinite',
+                                pointerEvents: 'none',
+                                zIndex: 0,
+                            }} />
+                            {tabs.map((tab, i) => {
                                 const isActive = activeTab === tab.key;
+                                const count = tabCounts[tab.key as keyof typeof tabCounts] || 0;
                                 return (
                                     <button
                                         key={tab.key}
+                                        ref={el => { tabRefs.current[i] = el; }}
                                         onClick={() => handleTabChange(tab.key)}
                                         style={{
-                                            padding: '10px 28px',
-                                            borderRadius: 12,
-                                            border: isActive
-                                                ? '1px solid rgba(96,165,250,0.3)'
-                                                : '1px solid rgba(255,255,255,0.06)',
-                                            background: isActive
-                                                ? 'linear-gradient(135deg, rgba(46,125,219,0.15), rgba(96,165,250,0.08))'
-                                                : 'rgba(255,255,255,0.02)',
+                                            position: 'relative',
+                                            zIndex: 1,
+                                            padding: isMobile ? '10px 16px' : '12px 28px',
+                                            borderRadius: isMobile ? 18 : 20,
+                                            border: 'none',
+                                            background: 'transparent',
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: 8,
-                                            transition: 'all 0.3s cubic-bezier(.25,.46,.45,.94)',
-                                            position: 'relative',
-                                            overflow: 'hidden',
+                                            gap: isMobile ? 6 : 10,
+                                            transition: 'all 0.3s ease',
                                             fontFamily: "'Outfit', sans-serif",
+                                            whiteSpace: 'nowrap' as const,
                                         }}
                                     >
-                                        {isActive && (
-                                            <div style={{
-                                                position: 'absolute', inset: 0,
-                                                background: 'radial-gradient(ellipse at center, rgba(96,165,250,0.08) 0%, transparent 70%)',
-                                                pointerEvents: 'none',
-                                            }} />
-                                        )}
                                         <span style={{
-                                            fontSize: 18,
+                                            fontSize: isMobile ? 17 : 20,
+                                            transition: 'transform 0.3s ease',
+                                            transform: isActive ? 'scale(1.15)' : 'scale(1)',
                                             filter: isActive ? 'none' : 'grayscale(0.6)',
-                                            transition: 'filter 0.3s',
                                         }}>{tab.icon}</span>
-                                        <div style={{ textAlign: 'left', position: 'relative', zIndex: 1 }}>
-                                            <div style={{
-                                                fontSize: 13,
-                                                fontWeight: isActive ? 700 : 500,
-                                                color: isActive ? 'white' : 'rgba(255,255,255,0.4)',
-                                                transition: 'color 0.3s',
-                                                lineHeight: 1.2,
-                                            }}>{tab.label}</div>
-                                            <div style={{
-                                                fontSize: 9,
-                                                color: isActive ? 'rgba(96,165,250,0.8)' : 'rgba(255,255,255,0.2)',
-                                                fontWeight: 500,
-                                                transition: 'color 0.3s',
-                                            }}>{tab.desc}</div>
-                                        </div>
-                                        {isActive && (
-                                            <div style={{
-                                                width: 5, height: 5, borderRadius: '50%',
-                                                background: '#60A5FA',
-                                                boxShadow: '0 0 8px #60A5FA',
-                                                marginLeft: 2,
-                                            }} />
+                                        <span style={{
+                                            fontSize: isMobile ? 13 : 14,
+                                            fontWeight: isActive ? 700 : 500,
+                                            color: isActive ? '#FFF' : 'rgba(255,255,255,0.45)',
+                                            transition: 'color 0.3s, font-weight 0.3s',
+                                            lineHeight: 1.2,
+                                        }}>{tab.label}</span>
+                                        {count > 0 && (
+                                            <span style={{
+                                                fontSize: isMobile ? 9 : 10,
+                                                fontWeight: 600,
+                                                padding: '1px 6px',
+                                                borderRadius: 100,
+                                                background: isActive ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.06)',
+                                                color: isActive ? '#93C5FD' : 'rgba(255,255,255,0.3)',
+                                                transition: 'all 0.3s ease',
+                                                fontFamily: "'Outfit', sans-serif",
+                                                lineHeight: '16px',
+                                            }}>{count}</span>
                                         )}
                                     </button>
                                 );
                             })}
                         </div>
+
+                        {/* ── BOUTON QUÉBEC (FAB top-left) ── */}
                         <button
                             onClick={handleQuebecClick}
                             style={{
-                                display: 'flex', alignItems: 'center', gap: 8,
-                                padding: isMobile ? '8px 14px' : '10px 20px',
-                                borderRadius: 14, border: 'none', cursor: 'pointer',
+                                position: 'absolute',
+                                top: isMobile ? 10 : 16,
+                                left: isMobile ? 10 : 16,
+                                zIndex: 40,
+                                display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 8,
+                                padding: isMobile ? '8px 12px' : '10px 18px',
+                                borderRadius: 16,
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                cursor: 'pointer',
                                 fontFamily: "'Fredoka', sans-serif",
-                                background: 'linear-gradient(135deg, #2E7DDB, #1A3A6B)',
+                                background: 'rgba(10,18,32,0.65)',
+                                backdropFilter: 'blur(24px)',
+                                WebkitBackdropFilter: 'blur(24px)',
                                 color: 'white',
                                 fontSize: isMobile ? 11 : 13,
                                 fontWeight: 700,
-                                boxShadow: '0 4px 16px rgba(46,125,219,0.25), 0 0 20px rgba(46,125,219,0.1)',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
                                 transition: 'all 0.3s ease',
                                 whiteSpace: 'nowrap' as const,
-                                marginLeft: 'auto',
                             }}
                         >
                             <span style={{ fontSize: isMobile ? 14 : 16 }}>⚜️</span>
@@ -567,16 +814,189 @@ export default function MapInterface() {
                             <span style={{
                                 fontSize: 9, fontWeight: 600,
                                 padding: '2px 6px', borderRadius: 100,
-                                background: 'rgba(255,255,255,0.15)',
+                                background: 'rgba(96,165,250,0.2)',
+                                color: '#93C5FD',
                             }}>GRATUIT</span>
                         </button>
-                    </div>
 
-                    {/* ═══ MAP AREA ═══ */}
-                    <div style={{
-                        flex: '1 1 auto', minHeight: 0, position: 'relative',
-                        background: '#1B2D4F', overflow: 'hidden',
-                    }}>
+                        {/* ── PING DEAL NOTIFICATION ── */}
+                        {pingDeal && (() => {
+                            const pLevel = pingDeal.dealLevel || 'good';
+                            const pCol = LEVEL_COLORS[pLevel] || LEVEL_COLORS.good;
+                            const pAvg = pingDeal.avgPrice || 0;
+                            const pSaved = pAvg > pingDeal.price ? pAvg - pingDeal.price : 0;
+                            const pDiscount = pingDeal.discount || pingDeal.disc || 0;
+                            const pCity = pingDeal.destination || pingDeal.city || '';
+                            const pCode = pingDeal.destination_code || pingDeal.code || '';
+                            const pGrad: Record<string, { from: string; to: string }> = {
+                                lowest_ever: { from: '#3D2680', to: '#1A0F3D' },
+                                incredible:  { from: '#4D1F1F', to: '#2A0A0A' },
+                                great:       { from: '#4D3020', to: '#2A1508' },
+                                good:        { from: '#143058', to: '#0A1830' },
+                            };
+                            const pg = pGrad[pLevel] || pGrad.good;
+                            const pingGlowColor = pCol.bg + '30';
+                            return (
+                                <div style={{
+                                    position: 'fixed',
+                                    top: '45%',
+                                    left: isMobile ? '50%' : 'calc(50% + 40px)',
+                                    transform: isMobile ? 'translate(-50%, -120%)' : 'translateY(-50%)',
+                                    zIndex: 9990,
+                                }}>
+                                <div
+                                    onClick={() => {
+                                        setPingDeal(null);
+                                        setFlyToDeal({ ...pingDeal, _ts: Date.now() });
+                                    }}
+                                    style={{
+                                        width: isMobile ? 240 : 280,
+                                        background: `linear-gradient(160deg, ${pg.from}, ${pg.to})`,
+                                        border: `1.5px solid ${pCol.bg}50`,
+                                        borderRadius: 18,
+                                        padding: isMobile ? '14px 16px' : '16px 18px',
+                                        cursor: 'pointer',
+                                        animation: 'pingEntrance 0.5s cubic-bezier(0.34,1.56,0.64,1) both',
+                                        fontFamily: "'Outfit', sans-serif",
+                                        overflow: 'hidden',
+                                        position: 'relative',
+                                        // @ts-ignore -- CSS custom property for glow animation
+                                        '--ping-glow': pingGlowColor,
+                                    } as React.CSSProperties & { '--ping-glow': string }}
+                                    className="ping-deal-card"
+                                >
+                                    {/* Animated glow breath */}
+                                    <style>{`.ping-deal-card{animation:pingEntrance 0.5s cubic-bezier(0.34,1.56,0.64,1) both,pingGlowBreath 3s ease-in-out infinite 0.5s!important;}`}</style>
+
+                                    {/* Scan line */}
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: '-20%',
+                                        width: '20%', height: '100%',
+                                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent)',
+                                        animation: 'pingScanLine 3s linear infinite',
+                                        pointerEvents: 'none',
+                                    }} />
+
+                                    {/* Arrow pointing toward globe center (left side) */}
+                                    {!isMobile && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: -8,
+                                            transform: 'translateY(-50%)',
+                                            width: 0, height: 0,
+                                            borderTop: '8px solid transparent',
+                                            borderBottom: '8px solid transparent',
+                                            borderRight: `8px solid ${pg.from}`,
+                                            filter: `drop-shadow(-2px 0 4px ${pCol.bg}40)`,
+                                        }} />
+                                    )}
+
+                                    {/* Top accent */}
+                                    <div style={{
+                                        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                                        background: `linear-gradient(90deg, transparent, ${pCol.bg}, transparent)`,
+                                    }} />
+
+                                    {/* Double pulse ring */}
+                                    <div style={{
+                                        position: 'absolute', top: -4, right: -4,
+                                        width: 14, height: 14, borderRadius: '50%',
+                                        background: pCol.bg,
+                                        boxShadow: `0 0 8px ${pCol.bg}`,
+                                    }}>
+                                        <div style={{
+                                            position: 'absolute', inset: -6,
+                                            borderRadius: '50%',
+                                            border: `2px solid ${pCol.bg}`,
+                                            animation: 'pingPulseRing 1.5s ease-out infinite',
+                                        }} />
+                                        <div style={{
+                                            position: 'absolute', inset: -6,
+                                            borderRadius: '50%',
+                                            border: `2px solid ${pCol.bg}`,
+                                            animation: 'pingPulseRing 1.5s ease-out infinite 0.5s',
+                                        }} />
+                                    </div>
+
+                                    {/* Header with live dot */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                        <span style={{
+                                            width: 6, height: 6, borderRadius: '50%',
+                                            background: '#16A34A',
+                                            animation: 'liveBlink 2s ease-in-out infinite',
+                                            flexShrink: 0,
+                                        }} />
+                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' as const }}>
+                                            deal détecté
+                                        </span>
+                                        <span style={{
+                                            fontSize: 7, fontWeight: 800, color: 'white',
+                                            background: `linear-gradient(135deg, ${pCol.bg}, ${pCol.bg}CC)`,
+                                            padding: '2px 7px', borderRadius: 4,
+                                            boxShadow: `0 2px 8px ${pCol.bg}40`,
+                                        }}>{pCol.icon} {pCol.label}</span>
+                                    </div>
+
+                                    {/* City + route */}
+                                    <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 700, color: 'white', fontFamily: "'Fredoka', sans-serif", marginBottom: 4 }}>
+                                        {pCity}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 10 }}>
+                                        YUL → {pCode}
+                                    </div>
+
+                                    {/* Price hero panel */}
+                                    <div style={{
+                                        background: 'rgba(255,255,255,0.06)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        borderRadius: 10,
+                                        padding: isMobile ? '10px 12px' : '12px 14px',
+                                        marginBottom: 8,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: pSaved > 0 ? 6 : 0 }}>
+                                            <span style={{
+                                                fontSize: isMobile ? 28 : 32, fontWeight: 800, color: '#FFF',
+                                                fontFamily: "'Fredoka', sans-serif", lineHeight: 1,
+                                                textShadow: `0 0 20px ${pCol.bg}60`,
+                                            }}>{pingDeal.price}$</span>
+                                            {pAvg > pingDeal.price && (
+                                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.25)', textDecoration: 'line-through' }}>
+                                                    {pAvg}$
+                                                </span>
+                                            )}
+                                        </div>
+                                        {pSaved > 0 && (
+                                            <div style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                background: 'rgba(57,255,20,0.08)',
+                                                border: '1px solid rgba(57,255,20,0.15)',
+                                                borderRadius: 6,
+                                                padding: '3px 10px',
+                                                animation: 'savingsPulse 2s ease-in-out infinite',
+                                            }}>
+                                                <span style={{ fontSize: 11, fontWeight: 800, color: '#39FF14' }}>
+                                                    💰 −{pSaved}$/billet
+                                                </span>
+                                                {pDiscount > 0 && (
+                                                    <span style={{
+                                                        fontSize: 9, fontWeight: 700, color: 'white',
+                                                        background: pCol.bg, padding: '2px 6px', borderRadius: 4,
+                                                    }}>-{Math.round(pDiscount)}%</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Tap hint */}
+                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', textAlign: 'center' }}>
+                                        Touche pour voir le trajet →
+                                    </div>
+                                </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* ── LÉGENDE + TOP 5 GROS DEALS (haut droit) ── */}
                         <div style={{
                             position: 'absolute',
@@ -735,7 +1155,7 @@ export default function MapInterface() {
 
                         {/* ── CARTOON GLOBE ── */}
                         <CartoonGlobe
-                            deals={filteredPrices}
+                            deals={flyToDeal ? [flyToDeal] : (prices || [])}
                             mapView={mapView}
                             isMobile={isMobile}
                             onRegionSelect={(region: string) => {
@@ -753,7 +1173,7 @@ export default function MapInterface() {
                                 setConfettiTrigger(prev => prev + 1);
                             }}
                             flyToDeal={flyToDeal}
-                            onHoloComplete={() => setFlyToDeal(null)}
+                            onHoloComplete={handleHoloComplete}
                         />
 
                         {/* ═══ CAROUSEL + MOIS — collé au bas du globe ═══ */}
