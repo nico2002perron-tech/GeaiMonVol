@@ -393,7 +393,7 @@ export default function CartoonGlobe({
             countries = (topojson.feature(worldData, worldData.objects.countries) as any)
                 .features.filter((f: any) => f?.properties?.name !== 'Antarctica');
         } catch { return; }
-        const step = isMobile ? 3.0 : 2.5;
+        const step = isMobile ? 2.2 : 1.8;
         precomputeLandDots(countries, step).then((dots) => {
             if (!cancelled) landDotsRef.current = dots;
         });
@@ -848,7 +848,7 @@ export default function CartoonGlobe({
             const path = d3.geoPath().projection(projection).context(ctx);
 
             // ─── CLEAR: DARK SPACE BACKGROUND ───
-            ctx.fillStyle = '#020205';
+            ctx.fillStyle = '#050a1a';
             ctx.fillRect(0, 0, width, height);
 
             // ─── STARS (cool tones, subtle) ───
@@ -973,19 +973,54 @@ export default function CartoonGlobe({
                 const rotLng = -rotationRef.current[0];
                 const rotLat = -rotationRef.current[1];
 
+                // ═══ DEAL-COLORED TERRAIN GLOW ═══
+                // Nearby land dots glow in deal colors
+                const dealGlowRadius = 35; // pixels around each deal location
+                const dealPositions: { x: number; y: number; color: string }[] = [];
+                for (const deal of visibleDeals) {
+                    const coords = getCoords(deal);
+                    if (!coords) continue;
+                    const pt = projectOrtho(coords.lng, coords.lat, rotLng, rotLat, cx, cy, visibleRadius);
+                    if (!pt) continue;
+                    const discount = deal.discount || deal.disc || 0;
+                    const level = deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
+                    const color = BADGE_COLORS[level] || '#00D4FF';
+                    dealPositions.push({ x: pt[0], y: pt[1], color });
+                }
+
                 // Single batched fill — all dots as tiny rects (fastest)
                 ctx.save();
-                ctx.fillStyle = 'rgba(120, 220, 255, 0.55)';
-                const dotSize = isMobile ? 1.0 : 1.2;
+                // First pass: regular dots
+                ctx.shadowColor = 'rgba(100, 220, 255, 0.3)';
+                ctx.shadowBlur = 2;
+                const dotSize = isMobile ? 1.8 : 2.0;
                 const halfDot = dotSize / 2;
-                ctx.beginPath();
                 for (let i = 0; i < landDots.length; i++) {
                     const dot = landDots[i];
                     const pt = projectOrtho(dot.lng, dot.lat, rotLng, rotLat, cx, cy, visibleRadius);
                     if (!pt) continue;
-                    ctx.rect(pt[0] - halfDot, pt[1] - halfDot, dotSize, dotSize);
+
+                    // Check if near a deal — glow in deal color
+                    let nearDeal = false;
+                    for (let d = 0; d < dealPositions.length; d++) {
+                        const dp = dealPositions[d];
+                        const dist = Math.sqrt((pt[0] - dp.x) ** 2 + (pt[1] - dp.y) ** 2);
+                        if (dist < dealGlowRadius) {
+                            const intensity = 1 - (dist / dealGlowRadius);
+                            const pulse = 0.6 + 0.4 * Math.sin(timeRef.current * 0.03 + d * 2);
+                            ctx.fillStyle = dp.color;
+                            ctx.globalAlpha = (0.5 + intensity * 0.5) * pulse;
+                            ctx.fillRect(pt[0] - halfDot - 0.3, pt[1] - halfDot - 0.3, dotSize + 0.6, dotSize + 0.6);
+                            nearDeal = true;
+                            break;
+                        }
+                    }
+                    if (!nearDeal) {
+                        ctx.fillStyle = 'rgba(160, 220, 255, 0.75)';
+                        ctx.globalAlpha = 1;
+                        ctx.fillRect(pt[0] - halfDot, pt[1] - halfDot, dotSize, dotSize);
+                    }
                 }
-                ctx.fill();
                 ctx.restore();
             }
 
@@ -1303,7 +1338,7 @@ export default function CartoonGlobe({
                 ctx.restore();
             }
 
-            // ═══ DEAL PINS (luminous dots, simplified) ═══
+            // ═══ DEAL PINS (subtle glowing dots — no radar rings) ═══
             for (let di = 0; di < visibleDeals.length; di++) {
                 const deal = visibleDeals[di];
                 const coords = getCoords(deal);
@@ -1314,45 +1349,37 @@ export default function CartoonGlobe({
                 const discount = deal.discount || deal.disc || 0;
                 const level = deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
                 const pinColor = BADGE_COLORS[level] || '#00D4FF';
-                const phaseOffset = di * 1.2;
+                const pulse = 0.7 + 0.3 * Math.sin(timeRef.current * 0.04 + di * 1.5);
 
-                // Single subtle radar ring
-                const ringPhase = (timeRef.current * 0.025 + phaseOffset) % 1;
-                ctx.save();
-                ctx.globalAlpha = (1 - ringPhase) * 0.2;
-                ctx.strokeStyle = pinColor;
-                ctx.lineWidth = 0.8;
-                ctx.beginPath();
-                ctx.arc(projected[0], projected[1], 6 + ringPhase * 20, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-
-                // Radial halo glow
+                // Soft radial glow
                 ctx.save();
                 const haloGrad = ctx.createRadialGradient(
                     projected[0], projected[1], 0,
-                    projected[0], projected[1], 10
+                    projected[0], projected[1], 12
                 );
-                haloGrad.addColorStop(0, pinColor + '40');
+                haloGrad.addColorStop(0, pinColor + '30');
                 haloGrad.addColorStop(1, pinColor + '00');
                 ctx.fillStyle = haloGrad;
+                ctx.globalAlpha = pulse;
                 ctx.beginPath();
-                ctx.arc(projected[0], projected[1], 10, 0, Math.PI * 2);
+                ctx.arc(projected[0], projected[1], 12, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
 
                 // Small luminous dot
                 ctx.save();
                 ctx.shadowColor = pinColor;
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 6;
                 ctx.fillStyle = pinColor;
+                ctx.globalAlpha = 0.9 * pulse;
                 ctx.beginPath();
-                ctx.arc(projected[0], projected[1], 3.5, 0, Math.PI * 2);
+                ctx.arc(projected[0], projected[1], 3, 0, Math.PI * 2);
                 ctx.fill();
                 // Bright center
-                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.globalAlpha = pulse;
                 ctx.beginPath();
-                ctx.arc(projected[0], projected[1], 1.2, 0, Math.PI * 2);
+                ctx.arc(projected[0], projected[1], 1, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 ctx.restore();
@@ -1402,7 +1429,7 @@ export default function CartoonGlobe({
                     if (!cityName) continue;
                     const labelY = projected[1] + 10;
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                    for (const [ox, oy] of [[-1,0],[1,0],[0,-1],[0,1]] as [number,number][]) {
+                    for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
                         ctx.fillText(cityName, projected[0] + ox, labelY + oy);
                     }
                     ctx.fillStyle = 'rgba(200, 230, 255, 0.9)';

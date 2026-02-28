@@ -2336,8 +2336,8 @@ a {
    ═══════════════════════════════ */
 .carousel-wrap {
   position: relative;
-  background: linear-gradient(180deg, transparent 0%, rgba(11,22,40,0.4) 30%, rgba(11,22,40,0.6) 100%);
-  border-top: 1px solid rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, transparent 0%, rgba(11, 22, 40, 0.4) 30%, rgba(11, 22, 40, 0.6) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .carousel-fade-left,
@@ -2789,11 +2789,11 @@ a {
   bottom: 40px;
   width: 3px;
   background: linear-gradient(180deg,
-      #2E7DDB 0%,
-      #7C3AED 33%,
-      #EA580C 66%,
-      #16A34A 100%);
-  opacity: 0.12;
+      rgba(0, 212, 255, 0.3) 0%,
+      rgba(167, 139, 250, 0.25) 33%,
+      rgba(0, 180, 255, 0.3) 66%,
+      rgba(167, 139, 250, 0.3) 100%);
+  opacity: 0.5;
   border-radius: 10px;
   transform: translateX(-50%);
 }
@@ -2926,10 +2926,11 @@ a {
   height: 100%;
   border-radius: 50%;
   overflow: hidden;
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
   box-shadow:
-    0 12px 40px rgba(26, 43, 66, 0.08),
-    0 2px 8px rgba(26, 43, 66, 0.04);
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.15),
+    0 0 30px rgba(0, 212, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
