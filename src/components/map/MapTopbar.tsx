@@ -43,8 +43,8 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '10px 28px',
-                background: '#0F1A2A',
-                borderBottom: '1px solid rgba(255,255,255,0.04)',
+                background: '#000000',
+                borderBottom: '1px solid rgba(0, 200, 255, 0.06)',
                 zIndex: 100,
                 flexShrink: 0,
             }}>
@@ -58,12 +58,12 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                             fontSize: 16,
                             color: 'white',
                         }}>
-                            Geai<span style={{ color: '#60A5FA' }}>MonVol</span>
+                            Geai<span style={{ color: '#00D4FF' }}>MonVol</span>
                         </span>
                     </div>
                     <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
-                        Meilleurs prix depuis <span style={{ color: '#60A5FA', fontWeight: 700 }}>Montréal</span> ✈️
+                        Meilleurs prix depuis <span style={{ color: '#00D4FF', fontWeight: 700 }}>Montréal</span> ✈️
                     </span>
                 </div>
 
@@ -115,7 +115,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                             >
                                 <div style={{
                                     width: 22, height: 22, borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #2E7DDB, #60A5FA)',
+                                    background: 'linear-gradient(135deg, #00A5CC, #00D4FF)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 10, fontWeight: 800, color: 'white',
                                 }}>
@@ -132,7 +132,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
                                 <div style={{
                                     position: 'absolute', top: '100%', right: 0, marginTop: 6,
                                     width: 260, borderRadius: 16, overflow: 'hidden',
-                                    background: '#1A2B42', border: '1px solid rgba(255,255,255,0.08)',
+                                    background: '#0A0A10', border: '1px solid rgba(0,212,255,0.08)',
                                     boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
                                     fontFamily: "'Fredoka', sans-serif",
                                     animation: 'qF 0.2s ease',
@@ -237,7 +237,7 @@ export default function MapTopbar({ prices = [] }: { prices?: any[] }) {
             {/* Bande bleue accent */}
             <div style={{
                 height: 2,
-                background: 'linear-gradient(90deg, #2E7DDB 0%, #06B6D4 50%, #7C3AED 100%)',
+                background: 'linear-gradient(90deg, #00D4FF 0%, #0099CC 50%, #7832C8 100%)',
                 opacity: 0.6,
                 flexShrink: 0,
             }} />

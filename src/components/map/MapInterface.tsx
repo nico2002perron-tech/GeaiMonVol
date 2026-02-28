@@ -660,7 +660,7 @@ export default function MapInterface() {
         <>
             <style>{`
                 @keyframes liveBlink{0%,100%{opacity:1}50%{opacity:.3}}
-                @keyframes tabGlow{0%,100%{box-shadow:0 0 20px rgba(96,165,250,0.15)}50%{box-shadow:0 0 28px rgba(96,165,250,0.25)}}
+                @keyframes tabGlow{0%,100%{box-shadow:0 0 20px rgba(0,212,255,0.15)}50%{box-shadow:0 0 28px rgba(0,212,255,0.25)}}
                 @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
                 @keyframes scrollHint{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
                 @keyframes pingSlideIn{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}
@@ -679,12 +679,12 @@ export default function MapInterface() {
                 .top5-card{transition:all 0.25s cubic-bezier(.25,.46,.45,.94);}
                 .top5-card:hover{background:rgba(255,255,255,0.08)!important;transform:translateX(2px);}
                 .carousel-pill{transition:all 0.3s cubic-bezier(.25,.46,.45,.94);}
-                .carousel-pill:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 36px rgba(96,165,250,0.25),0 6px 16px rgba(0,0,0,0.5)!important;border-color:rgba(96,165,250,0.35)!important;z-index:2;}
+                .carousel-pill:hover{transform:translateY(-6px) scale(1.03);box-shadow:0 12px 36px rgba(0,212,255,0.2),0 6px 16px rgba(0,0,0,0.5)!important;border-color:rgba(0,212,255,0.3)!important;z-index:2;}
             `}</style>
 
             <div id="app" className={appReady ? 'show' : ''} style={{
                 minHeight: '100vh',
-                background: '#F4F8FB',
+                background: '#050508',
             }}>
                 {/* ═══════════ SECTION 1 : CARTE INTERACTIVE FULL ═══════════ */}
                 <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -693,7 +693,7 @@ export default function MapInterface() {
                     {/* ═══ MAP AREA ═══ */}
                     <div style={{
                         flex: '1 1 auto', minHeight: 0, position: 'relative',
-                        background: '#1B2D4F', overflow: 'hidden',
+                        background: '#000000', overflow: 'hidden',
                     }}>
                         {/* ── FLOATING ORBIT SELECTOR (Pill Tabs) ── */}
                         <div style={{
@@ -702,11 +702,11 @@ export default function MapInterface() {
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 40,
-                            background: 'rgba(10,18,32,0.65)',
+                            background: 'rgba(0,0,0,0.5)',
                             backdropFilter: 'blur(24px)',
                             WebkitBackdropFilter: 'blur(24px)',
                             borderRadius: isMobile ? 22 : 26,
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            border: '1px solid rgba(0,212,255,0.08)',
                             padding: isMobile ? 4 : 6,
                             display: 'flex',
                             alignItems: 'center',
@@ -722,8 +722,8 @@ export default function MapInterface() {
                                 width: indicatorStyle.width,
                                 height: isMobile ? 'calc(100% - 8px)' : 'calc(100% - 12px)',
                                 borderRadius: isMobile ? 18 : 20,
-                                background: 'linear-gradient(135deg, rgba(46,125,219,0.35), rgba(96,165,250,0.2))',
-                                border: '1px solid rgba(96,165,250,0.2)',
+                                background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,180,220,0.15))',
+                                border: '1px solid rgba(0,212,255,0.2)',
                                 transition: 'left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                 animation: 'tabGlow 3s ease-in-out infinite',
                                 pointerEvents: 'none',
@@ -772,8 +772,8 @@ export default function MapInterface() {
                                                 fontWeight: 600,
                                                 padding: '1px 6px',
                                                 borderRadius: 100,
-                                                background: isActive ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.06)',
-                                                color: isActive ? '#93C5FD' : 'rgba(255,255,255,0.3)',
+                                                background: isActive ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.06)',
+                                                color: isActive ? '#7DF9FF' : 'rgba(255,255,255,0.3)',
                                                 transition: 'all 0.3s ease',
                                                 fontFamily: "'Outfit', sans-serif",
                                                 lineHeight: '16px',
@@ -795,10 +795,10 @@ export default function MapInterface() {
                                 display: 'flex', alignItems: 'center', gap: isMobile ? 5 : 8,
                                 padding: isMobile ? '8px 12px' : '10px 18px',
                                 borderRadius: 16,
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                border: '1px solid rgba(0,212,255,0.08)',
                                 cursor: 'pointer',
                                 fontFamily: "'Fredoka', sans-serif",
-                                background: 'rgba(10,18,32,0.65)',
+                                background: 'rgba(0,0,0,0.5)',
                                 backdropFilter: 'blur(24px)',
                                 WebkitBackdropFilter: 'blur(24px)',
                                 color: 'white',
@@ -814,8 +814,8 @@ export default function MapInterface() {
                             <span style={{
                                 fontSize: 9, fontWeight: 600,
                                 padding: '2px 6px', borderRadius: 100,
-                                background: 'rgba(96,165,250,0.2)',
-                                color: '#93C5FD',
+                                background: 'rgba(0,212,255,0.15)',
+                                color: '#7DF9FF',
                             }}>GRATUIT</span>
                         </button>
 
@@ -1010,11 +1010,11 @@ export default function MapInterface() {
                         }}>
                             {/* Légende des couleurs */}
                             <div style={{
-                                background: 'rgba(15,26,42,0.75)',
+                                background: 'rgba(0,0,0,0.6)',
                                 backdropFilter: 'blur(12px)',
                                 borderRadius: 10,
                                 padding: isMobile ? '6px 10px' : '8px 14px',
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                border: '1px solid rgba(0,212,255,0.08)',
                                 boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -1031,7 +1031,7 @@ export default function MapInterface() {
                                     { color: '#7C3AED', label: 'Prix record', icon: '⚡' },
                                     { color: '#DC2626', label: 'Incroyable', icon: '🔥' },
                                     { color: '#EA580C', label: 'Super deal', icon: '✨' },
-                                    { color: '#2E7DDB', label: 'Bon prix', icon: '👍' },
+                                    { color: '#00D4FF', label: 'Bon prix', icon: '👍' },
                                 ].map(item => (
                                     <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <div style={{
@@ -1051,11 +1051,11 @@ export default function MapInterface() {
 
                             {/* ── TOP 5 GROS DEALS ── */}
                             <div style={{
-                                background: 'rgba(15,26,42,0.75)',
+                                background: 'rgba(0,0,0,0.6)',
                                 backdropFilter: 'blur(12px)',
                                 borderRadius: 10,
                                 padding: isMobile ? '6px 8px' : '8px 10px',
-                                border: '1px solid rgba(255,255,255,0.08)',
+                                border: '1px solid rgba(0,212,255,0.08)',
                                 boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -1203,16 +1203,16 @@ export default function MapInterface() {
                                         whiteSpace: 'nowrap',
                                         display: 'flex', alignItems: 'center', gap: 6,
                                         background: selectedMonth === 'all'
-                                            ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                            : 'rgba(15,26,42,0.7)',
+                                            ? 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,160,200,0.15))'
+                                            : 'rgba(0,0,0,0.5)',
                                         backdropFilter: 'blur(12px)',
                                         color: selectedMonth === 'all' ? 'white' : 'rgba(255,255,255,0.5)',
                                         boxShadow: selectedMonth === 'all'
-                                            ? '0 3px 10px rgba(46,125,219,0.35)'
+                                            ? '0 3px 10px rgba(0,212,255,0.2)'
                                             : '0 2px 6px rgba(0,0,0,0.2)',
                                         border: selectedMonth === 'all'
-                                            ? '1px solid rgba(96,165,250,0.3)'
-                                            : '1px solid rgba(255,255,255,0.08)',
+                                            ? '1px solid rgba(0,212,255,0.25)'
+                                            : '1px solid rgba(255,255,255,0.06)',
                                     }}
                                 >
                                     Tous
@@ -1250,16 +1250,16 @@ export default function MapInterface() {
                                                 whiteSpace: 'nowrap',
                                                 display: 'flex', alignItems: 'center', gap: 6,
                                                 background: selectedMonth === m.value
-                                                    ? 'linear-gradient(135deg, #2E7DDB, #1B5BA0)'
-                                                    : 'rgba(15,26,42,0.7)',
+                                                    ? 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,160,200,0.15))'
+                                                    : 'rgba(0,0,0,0.5)',
                                                 backdropFilter: 'blur(12px)',
                                                 color: selectedMonth === m.value ? 'white' : 'rgba(255,255,255,0.5)',
                                                 boxShadow: selectedMonth === m.value
-                                                    ? '0 3px 10px rgba(46,125,219,0.35)'
+                                                    ? '0 3px 10px rgba(0,212,255,0.2)'
                                                     : '0 2px 6px rgba(0,0,0,0.2)',
                                                 border: selectedMonth === m.value
-                                                    ? '1px solid rgba(96,165,250,0.3)'
-                                                    : '1px solid rgba(255,255,255,0.08)',
+                                                    ? '1px solid rgba(0,212,255,0.25)'
+                                                    : '1px solid rgba(255,255,255,0.06)',
                                             }}
                                         >
                                             {m.label}
@@ -1313,8 +1313,15 @@ export default function MapInterface() {
                     visible={hoverVisible}
                 />
 
+                {/* ═══ GRADIENT TRANSITION: dark → light ═══ */}
+                <div style={{
+                    height: 200,
+                    background: 'linear-gradient(180deg, #050508 0%, #F4F8FB 100%)',
+                    flexShrink: 0,
+                }} />
+
                 {/* ═══════════ SECTION 2+ : Below the fold ═══════════ */}
-                <div id="deals">
+                <div id="deals" style={{ background: '#F4F8FB' }}>
                     <HowItWorks />
                 </div>
 
@@ -1361,7 +1368,7 @@ export default function MapInterface() {
                 <div style={{
                     position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
                     zIndex: 2000, padding: '12px 24px', borderRadius: 14,
-                    background: 'linear-gradient(135deg, #1A2B42, #0F1D2F)',
+                    background: 'linear-gradient(135deg, #0A0A14, #050510)',
                     color: 'white', fontFamily: "'Fredoka', sans-serif",
                     fontSize: 14, fontWeight: 600,
                     boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
@@ -1373,7 +1380,7 @@ export default function MapInterface() {
                             <span>Connecte-toi pour planifier ton voyage</span>
                             <a href="/auth" style={{
                                 padding: '4px 12px', borderRadius: 100,
-                                background: '#2E7DDB', color: 'white',
+                                background: '#00A5CC', color: 'white',
                                 fontSize: 12, fontWeight: 700, textDecoration: 'none',
                             }}>Se connecter</a>
                         </>
