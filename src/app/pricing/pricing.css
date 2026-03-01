@@ -1,3 +1,22 @@
+/* ===== BANNERS ===== */
+.pricing-banner {
+    text-align: center;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 10px;
+    max-width: 600px;
+    margin: 24px auto 0;
+}
+.pricing-banner.success {
+    background: rgba(22, 163, 74, .1);
+    color: #15803d;
+}
+.pricing-banner.canceled {
+    background: rgba(232, 70, 106, .1);
+    color: #be123c;
+}
+
 /* ===== PRICING VISUALS ===== */
 .pricing-page {
     --bg: #F4F8FB;

@@ -1,21 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import type { PlanKey } from '@/lib/stripe-config';
 import './pricing.css';
 
 export default function PricingPage() {
+    return (
+        <Suspense>
+            <PricingContent />
+        </Suspense>
+    );
+}
+
+function PricingContent() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [checkoutLoading, setCheckoutLoading] = useState<PlanKey | null>(null);
+    const searchParams = useSearchParams();
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
 
     const toggleFaq = (index: number) => {
         setOpenFaq(openFaq === index ? null : index);
+    };
+
+    const handleCheckout = async (plan: PlanKey) => {
+        setCheckoutLoading(plan);
+        try {
+            const res = await fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan }),
+            });
+            const data = await res.json();
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                alert(data.error || 'Erreur lors de la création du paiement');
+            }
+        } catch {
+            alert('Erreur réseau. Réessayez.');
+        } finally {
+            setCheckoutLoading(null);
+        }
     };
 
     return (
         <>
             <Navbar />
             <div className="pricing-page">
+                {/* SUCCESS / CANCEL BANNERS */}
+                {success && (
+                    <div className="pricing-banner success">
+                        Paiement réussi ! Bienvenue parmi les voyageurs Premium.
+                    </div>
+                )}
+                {canceled && (
+                    <div className="pricing-banner canceled">
+                        Paiement annulé. Vous pouvez réessayer quand vous voulez.
+                    </div>
+                )}
+
                 {/* HERO */}
                 <section className="hero">
                     <div className="mascot-ph">Mascotte<br />ici</div>
@@ -42,7 +89,7 @@ export default function PricingPage() {
                             <li><span className="ck n">&times;</span>"Meilleur moment pour acheter"</li>
                             <li><span className="ck n">&times;</span>Guide IA gratuit</li>
                         </ul>
-                        <button className="p-cta out">Commencer gratuitement</button>
+                        <a href="/auth" className="p-cta out">Commencer gratuitement</a>
                     </div>
 
                     {/* PREMIUM */}
@@ -61,7 +108,13 @@ export default function PricingPage() {
                             <li><span className="ck y">&#10003;</span><strong>Notification drop de prix</strong></li>
                             <li><span className="ck y">&#10003;</span><span className="bonus">Guide IA gratuit à chaque réservation</span></li>
                         </ul>
-                        <button className="p-cta pri">S'abonner à 5 $/mois</button>
+                        <button
+                            className="p-cta pri"
+                            disabled={checkoutLoading === 'premium'}
+                            onClick={() => handleCheckout('premium')}
+                        >
+                            {checkoutLoading === 'premium' ? 'Redirection…' : 'S\'abonner à 5 $/mois'}
+                        </button>
                     </div>
 
                     {/* GUIDE */}
@@ -80,7 +133,13 @@ export default function PricingPage() {
                             <li><span className="ck n">&times;</span>Alertes personnalisées</li>
                             <li><span className="ck n">&times;</span>Packs voyage</li>
                         </ul>
-                        <button className="p-cta gld">Acheter un guide — 10 $</button>
+                        <button
+                            className="p-cta gld"
+                            disabled={checkoutLoading === 'guide'}
+                            onClick={() => handleCheckout('guide')}
+                        >
+                            {checkoutLoading === 'guide' ? 'Redirection…' : 'Acheter un guide — 10 $'}
+                        </button>
                     </div>
                 </section>
 

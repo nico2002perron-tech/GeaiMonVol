@@ -1,6 +1,8 @@
 'use client';
 
 import { Flight } from '@/lib/data/flights';
+import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
+import Sparkline from '@/components/ui/Sparkline';
 
 interface HoverCardProps {
     deal: Flight | null;
@@ -10,6 +12,7 @@ interface HoverCardProps {
 }
 
 export default function HoverCard({ deal, x, y, visible }: HoverCardProps) {
+    const { prices } = usePriceHistory(visible && deal ? deal.city : null);
     if (!deal || !visible) return null;
 
     // Keep card within viewport
@@ -58,6 +61,11 @@ export default function HoverCard({ deal, x, y, visible }: HoverCardProps) {
                         <span>{deal.route}</span>
                         <span>{deal.dates}</span>
                     </div>
+                    {prices.length >= 2 && (
+                        <div style={{ padding: '0 0 4px' }}>
+                            <Sparkline data={prices} width={232} height={28} />
+                        </div>
+                    )}
                     <div className="hcard-tags">
                         {(deal.tags || []).map((tag, i) => (
                             <span
