@@ -26,6 +26,28 @@ import { CANADA_CODES, DEAL_LEVELS as LEVEL_COLORS, CITY_IMAGES, DEFAULT_CITY_IM
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 
+// Map deal city names → topojson country names for filter matching
+const CITY_TO_COUNTRY: Record<string, string> = {
+    'Toronto': 'Canada', 'Ottawa': 'Canada', 'Vancouver': 'Canada',
+    'Calgary': 'Canada', 'Edmonton': 'Canada', 'Winnipeg': 'Canada',
+    'Halifax': 'Canada', 'Québec': 'Canada',
+    'Paris': 'France', 'Barcelone': 'Spain', 'Madrid': 'Spain',
+    'Lisbonne': 'Portugal', 'Porto': 'Portugal',
+    'Rome': 'Italy', 'Athènes': 'Greece',
+    'Cancún': 'Mexico', 'Punta Cana': 'Dominican Republic',
+    'Cuba (Varadero)': 'Cuba', 'La Havane': 'Cuba',
+    'Fort Lauderdale': 'United States of America', 'Miami': 'United States of America',
+    'New York': 'United States of America', 'Los Angeles': 'United States of America',
+    'Londres': 'United Kingdom', 'Dublin': 'Ireland',
+    'Amsterdam': 'Netherlands', 'Marrakech': 'Morocco',
+    'Bangkok': 'Thailand', 'Tokyo': 'Japan',
+    'Bogota': 'Colombia', 'Cartagena': 'Colombia',
+    'Lima': 'Peru', 'São Paulo': 'Brazil', 'Buenos Aires': 'Argentina',
+    'Bali': 'Indonesia', 'Ho Chi Minh': 'Vietnam',
+    'Reykjavik': 'Iceland', 'Montego Bay': 'Jamaica',
+    'San José': 'Costa Rica',
+};
+
 // Generate next 12 months for filter pills
 function getMonths() {
     const ms: { value: string; label: string }[] = [];
@@ -472,7 +494,7 @@ export default function MapInterface() {
     const [bookingOpen, setBookingOpen] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [appReady, setAppReady] = useState(true);
-    const [selectedRegion, setSelectedRegion] = useState<string | undefined>();
+    const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
     const [selectedFlight, setSelectedFlight] = useState<any>(null);
     const [mapView, setMapView] = useState<'world' | 'canada'>('world');
     // DealSidebar removed — selectedDeal state no longer needed
@@ -549,11 +571,32 @@ export default function MapInterface() {
             .slice(0, 5);
     }, [filteredPrices]);
 
-    // ─── CAROUSEL DEALS (sorted by discount) ───
+    // ─── CAROUSEL DEALS (sorted by discount, filtered by selectedCountry) ───
     const carouselDeals = useMemo(() => {
-        return [...filteredPrices]
-            .sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0));
-    }, [filteredPrices]);
+        let deals = [...filteredPrices];
+
+        // Apply country filter if one is selected
+        if (selectedCountry) {
+            deals = deals.filter((d: any) => {
+                const code = d.destination_code || d.code || '';
+                const city = d.destination || d.city || '';
+
+                // For Canada tab, selectedCountry is 'Canada'.
+                // If the user clicks Canada on the globe, we only show Canadian deals.
+                // For other countries, we map the city to the country name using CITY_TO_COUNTRY.
+
+                if (code && CANADA_CODES.includes(code)) {
+                    return selectedCountry === 'Canada';
+                } else if (city && CITY_TO_COUNTRY[city]) {
+                    return CITY_TO_COUNTRY[city] === selectedCountry;
+                }
+
+                return false;
+            });
+        }
+
+        return deals.sort((a: any, b: any) => (b.discount || 0) - (a.discount || 0));
+    }, [filteredPrices, selectedCountry]);
 
     // ─── AVAILABLE MONTHS (only months with deals) ───
     const availableMonths = useMemo(() => {
@@ -627,12 +670,14 @@ export default function MapInterface() {
         }
     };
 
+    // Auto-zoom through top 5 deals — slow, leisurely pace
+    const flyToDealRef = useRef(flyToDeal);
+    flyToDealRef.current = flyToDeal;
+
     useEffect(() => {
         if (top5Deals.length === 0) return;
 
         const triggerPing = () => {
-            // Skip if a holo is currently playing
-            if (flyToDeal) return;
             // Skip if globe section is not visible
             if (globeSectionRef.current) {
                 const rect = globeSectionRef.current.getBoundingClientRect();
@@ -642,21 +687,20 @@ export default function MapInterface() {
             pingIdxRef.current = idx + 1;
             const deal = top5Deals[idx];
             setPingDeal(deal);
-            // Trigger holo fly for the ping
             setFlyToDeal({ ...deal, _ts: Date.now(), _autoPing: true });
 
-            // Auto-dismiss card after 7s
+            // Auto-dismiss card after 12s
             if (pingTimerRef.current) clearTimeout(pingTimerRef.current);
             pingTimerRef.current = setTimeout(() => {
                 setPingDeal(null);
-            }, 7000);
+            }, 12000);
         };
 
-        // Initial delay before first ping
-        const startDelay = setTimeout(triggerPing, 6000);
+        // Initial delay — 15s before first ping
+        const startDelay = setTimeout(triggerPing, 15000);
 
-        // Recurring — slower rotation (~18s between pings)
-        const interval = setInterval(triggerPing, 18000);
+        // Recurring — slow rotation (~40s between pings)
+        const interval = setInterval(triggerPing, 40000);
 
         return () => {
             clearTimeout(startDelay);
@@ -682,6 +726,7 @@ export default function MapInterface() {
                 @keyframes pingScanLine{0%{left:-20%}100%{left:120%}}
                 @keyframes savingsPulse{0%,100%{box-shadow:0 0 4px rgba(57,255,20,0.3)}50%{box-shadow:0 0 12px rgba(57,255,20,0.6),0 0 24px rgba(57,255,20,0.2)}}
                 @keyframes toastSlideUp{0%{opacity:0;transform:translateX(-50%) translateY(30px) scale(0.95)}60%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.01)}100%{transform:translateX(-50%) translateY(0) scale(1)}}
+                @keyframes toastGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.15)}}
                 @keyframes scrollChevron{0%,100%{opacity:0.3;transform:translateY(0)}50%{opacity:0.8;transform:translateY(6px)}}
                 @keyframes cardShimmer{0%{left:-30%}100%{left:130%}}
                 @keyframes starTwinkle{0%,100%{opacity:0.15;transform:scale(0.8)}50%{opacity:1;transform:scale(1.3)}}
@@ -724,82 +769,7 @@ export default function MapInterface() {
                     animation: 'vignetteBreath 12s ease-in-out infinite',
                 }} />
 
-                {/* ═══ CSS STARFIELD — visible behind globe ═══ */}
-                <div className="starfield-layer">
-                    {/* Large nebula orbs — vibrant */}
-                    <div className="nebula-orb" style={{ width: 500, height: 500, top: '5%', left: '0%', background: 'radial-gradient(circle, rgba(0,212,255,0.18), rgba(0,180,255,0.06) 50%, transparent 70%)', animationDelay: '0s', animationDuration: '8s' }} />
-                    <div className="nebula-orb" style={{ width: 450, height: 450, top: '50%', right: '0%', background: 'radial-gradient(circle, rgba(167,139,250,0.15), rgba(130,100,220,0.05) 50%, transparent 70%)', animationDelay: '3s', animationDuration: '10s' }} />
-                    <div className="nebula-orb" style={{ width: 350, height: 350, top: '20%', left: '60%', background: 'radial-gradient(circle, rgba(0,255,200,0.08), transparent 70%)', animationDelay: '5s', animationDuration: '12s' }} />
-                    <div className="nebula-orb" style={{ width: 300, height: 300, bottom: '10%', left: '30%', background: 'radial-gradient(circle, rgba(255,100,200,0.06), transparent 70%)', animationDelay: '7s', animationDuration: '9s' }} />
 
-                    {/* Aurora glow bands */}
-                    <div style={{
-                        position: 'absolute', top: '25%', left: '10%', right: '10%', height: 120,
-                        background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.04), rgba(167,139,250,0.06), rgba(0,255,200,0.04), transparent)',
-                        filter: 'blur(40px)',
-                        animation: 'auroraWave 15s ease-in-out infinite',
-                        pointerEvents: 'none',
-                    }} />
-                    <div style={{
-                        position: 'absolute', top: '55%', left: '5%', right: '15%', height: 80,
-                        background: 'linear-gradient(90deg, transparent, rgba(167,139,250,0.05), rgba(0,212,255,0.04), transparent)',
-                        filter: 'blur(35px)',
-                        animation: 'auroraWave 18s ease-in-out infinite 5s',
-                        pointerEvents: 'none',
-                    }} />
-
-                    {/* Shooting stars */}
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div
-                            key={`shoot-${i}`}
-                            className="shooting-star-el"
-                            style={{
-                                top: `${5 + i * 18}%`,
-                                right: `${-5 + i * 10}%`,
-                                width: 0,
-                                transform: `rotate(${210 + i * 8}deg)`,
-                                animation: `shootingStar ${2.5 + i * 0.5}s ease-in-out ${3 + i * 6}s infinite`,
-                                boxShadow: '0 0 6px rgba(125,249,255,0.5)',
-                            }}
-                        />
-                    ))}
-
-                    {/* Stars — 120 twinkling points */}
-                    {Array.from({ length: 120 }).map((_, i) => (
-                        <div
-                            key={`star-${i}`}
-                            className="star-css"
-                            style={{
-                                width: 0.6 + Math.random() * 2.8,
-                                height: 0.6 + Math.random() * 2.8,
-                                left: `${Math.random() * 100}%`,
-                                top: `${Math.random() * 100}%`,
-                                opacity: 0.1 + Math.random() * 0.8,
-                                animationDuration: `${2.5 + Math.random() * 5}s`,
-                                animationDelay: `${Math.random() * 8}s`,
-                                background: ['#fff', '#C8D6FF', '#B8C8FF', '#A0B0E0', '#D0D8FF', '#7DF9FF', '#E8E0FF'][Math.floor(Math.random() * 7)],
-                                boxShadow: `0 0 ${4 + Math.random() * 8}px rgba(200,220,255,${0.4 + Math.random() * 0.5})`,
-                            }}
-                        />
-                    ))}
-
-                    {/* Sparkle/cross-shaped highlight stars */}
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                            key={`sparkle-${i}`}
-                            className="sparkle-star"
-                            style={{
-                                width: 8 + Math.random() * 8,
-                                height: 8 + Math.random() * 8,
-                                left: `${10 + Math.random() * 80}%`,
-                                top: `${5 + Math.random() * 85}%`,
-                                opacity: 0.3 + Math.random() * 0.5,
-                                animation: `sparkleRotate ${6 + Math.random() * 8}s linear infinite`,
-                                animationDelay: `${Math.random() * 10}s`,
-                            }}
-                        />
-                    ))}
-                </div>
                 <div ref={globeSectionRef} style={{ height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                     <MapTopbar prices={prices} />
 
@@ -949,273 +919,128 @@ export default function MapInterface() {
                                     }}
                                     style={{
                                         position: 'absolute',
-                                        bottom: isMobile ? 90 : 100,
+                                        bottom: isMobile ? 180 : 220,
                                         left: '50%',
                                         transform: 'translateX(-50%)',
                                         zIndex: 9990,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: isMobile ? 10 : 16,
-                                        padding: isMobile ? '10px 14px' : '12px 20px',
-                                        borderRadius: 16,
-                                        background: 'rgba(8,12,28,0.85)',
-                                        backdropFilter: 'blur(24px)',
-                                        WebkitBackdropFilter: 'blur(24px)',
-                                        border: '1px solid rgba(255,255,255,0.08)',
-                                        borderLeft: `3px solid ${pCol.bg}`,
+                                        gap: isMobile ? 12 : 18,
+                                        padding: isMobile ? '14px 18px' : '16px 28px',
+                                        borderRadius: 20,
+                                        background: `linear-gradient(135deg, rgba(8,12,28,0.92), rgba(20,25,50,0.92))`,
+                                        backdropFilter: 'blur(28px)',
+                                        WebkitBackdropFilter: 'blur(28px)',
+                                        border: `2px solid ${pCol.bg}60`,
                                         cursor: 'pointer',
                                         fontFamily: "'Outfit', sans-serif",
-                                        animation: 'toastSlideUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both',
-                                        boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 20px ${pCol.bg}20`,
-                                        maxWidth: isMobile ? '92vw' : 520,
+                                        animation: 'toastSlideUp 0.7s cubic-bezier(0.34,1.56,0.64,1) both, toastGlow 3s ease-in-out infinite',
+                                        boxShadow: `0 12px 48px rgba(0,0,0,0.6), 0 0 40px ${pCol.bg}30, inset 0 1px 0 rgba(255,255,255,0.1)`,
+                                        maxWidth: isMobile ? '94vw' : 580,
                                         whiteSpace: 'nowrap' as const,
                                     }}
                                 >
-                                    {/* Scan line */}
+                                    {/* Animated shimmer */}
                                     <div style={{
-                                        position: 'absolute', top: 0, left: '-20%',
-                                        width: '20%', height: '100%',
-                                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent)',
-                                        animation: 'pingScanLine 4s linear infinite',
-                                        pointerEvents: 'none', borderRadius: 16,
+                                        position: 'absolute', top: 0, left: '-30%',
+                                        width: '30%', height: '100%',
+                                        background: `linear-gradient(90deg, transparent, ${pCol.bg}15, transparent)`,
+                                        animation: 'pingScanLine 3s linear infinite',
+                                        pointerEvents: 'none', borderRadius: 20,
                                     }} />
 
-                                    {/* Live dot + label */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                    {/* Deal level badge — bigger */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                                        <span style={{
+                                            fontSize: 20, lineHeight: 1,
+                                        }}>{pCol.icon}</span>
+                                        <span style={{
+                                            fontSize: 7, fontWeight: 800, color: pCol.bg,
+                                            textTransform: 'uppercase' as const, letterSpacing: 1,
+                                        }}>{pCol.label}</span>
                                         <span style={{
                                             width: 7, height: 7, borderRadius: '50%',
                                             background: '#16A34A',
                                             animation: 'liveBlink 2s ease-in-out infinite',
-                                            boxShadow: '0 0 6px rgba(22,163,74,0.6)',
+                                            boxShadow: '0 0 8px rgba(22,163,74,0.6)',
                                         }} />
-                                        <span style={{
-                                            fontSize: 8, fontWeight: 700, color: 'white',
-                                            background: `linear-gradient(135deg, ${pCol.bg}, ${pCol.bg}CC)`,
-                                            padding: '3px 8px', borderRadius: 6,
-                                            letterSpacing: 0.5,
-                                        }}>{pCol.icon} {pCol.label}</span>
                                     </div>
 
                                     {/* Separator */}
-                                    <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                                    <div style={{ width: 1, height: 40, background: `${pCol.bg}40`, flexShrink: 0 }} />
 
-                                    {/* Destination */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
-                                        <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: 'white', fontFamily: "'Fredoka', sans-serif" }}>
-                                            {pCity}
+                                    {/* Destination — bigger and bolder */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                                        <span style={{
+                                            fontSize: isMobile ? 18 : 22, fontWeight: 800, color: 'white',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                            textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                        }}>
+                                            ✈️ {pCity}
                                         </span>
-                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)' }}>YUL → {pCode}</span>
+                                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>YUL → {pCode}</span>
                                     </div>
 
                                     {/* Separator */}
-                                    <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0 }} />
+                                    <div style={{ width: 1, height: 40, background: `${pCol.bg}40`, flexShrink: 0 }} />
 
-                                    {/* Price */}
-                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexShrink: 0 }}>
+                                    {/* Price — huge and glowing */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
                                         <span style={{
-                                            fontSize: isMobile ? 22 : 26, fontWeight: 800, color: '#FFF',
+                                            fontSize: isMobile ? 28 : 34, fontWeight: 900, color: '#FFF',
                                             fontFamily: "'Fredoka', sans-serif", lineHeight: 1,
-                                            textShadow: `0 0 16px ${pCol.bg}50`,
+                                            textShadow: `0 0 24px ${pCol.bg}60, 0 2px 4px rgba(0,0,0,0.4)`,
                                         }}>{pingDeal.price}$</span>
                                         {pAvg > pingDeal.price && (
-                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textDecoration: 'line-through' }}>
+                                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
                                                 {pAvg}$
                                             </span>
                                         )}
                                     </div>
 
-                                    {/* Savings badge */}
+                                    {/* Savings badge — prominent */}
                                     {pSaved > 0 && (
                                         <div style={{
-                                            display: 'flex', alignItems: 'center', gap: 4,
-                                            background: 'rgba(57,255,20,0.1)',
-                                            border: '1px solid rgba(57,255,20,0.2)',
-                                            borderRadius: 8,
-                                            padding: '4px 10px',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                                            background: 'rgba(57,255,20,0.12)',
+                                            border: '1px solid rgba(57,255,20,0.3)',
+                                            borderRadius: 12,
+                                            padding: '6px 14px',
                                             flexShrink: 0,
                                         }}>
-                                            <span style={{ fontSize: 11, fontWeight: 800, color: '#39FF14' }}>
+                                            <span style={{ fontSize: 14, fontWeight: 900, color: '#39FF14', fontFamily: "'Fredoka', sans-serif" }}>
                                                 −{pSaved}$
                                             </span>
                                             {pDiscount > 0 && (
                                                 <span style={{
-                                                    fontSize: 9, fontWeight: 700, color: 'white',
-                                                    background: pCol.bg, padding: '2px 5px', borderRadius: 4,
+                                                    fontSize: 10, fontWeight: 700, color: 'white',
+                                                    background: pCol.bg, padding: '2px 6px', borderRadius: 6,
                                                 }}>-{Math.round(pDiscount)}%</span>
                                             )}
                                         </div>
                                     )}
 
-                                    {/* Arrow hint */}
-                                    <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.3)', flexShrink: 0, marginLeft: 4 }}>→</span>
+                                    {/* CTA arrow */}
+                                    <span style={{
+                                        fontSize: 18, color: pCol.bg, flexShrink: 0, marginLeft: 4,
+                                        animation: 'scrollHint 2s ease-in-out infinite',
+                                    }}>→</span>
                                 </div>
                             );
                         })()}
 
-                        {/* ── LÉGENDE + TOP 5 GROS DEALS (haut droit) ── */}
-                        <div style={{
-                            position: 'absolute',
-                            top: isMobile ? 8 : 12,
-                            right: isMobile ? 8 : 16,
-                            zIndex: 30,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 8,
-                            maxWidth: isMobile ? 160 : 200,
-                        }}>
-                            {/* Légende des couleurs */}
-                            <div style={{
-                                background: 'rgba(0,0,0,0.6)',
-                                backdropFilter: 'blur(12px)',
-                                borderRadius: 10,
-                                padding: isMobile ? '6px 10px' : '8px 14px',
-                                border: '1px solid rgba(0,212,255,0.08)',
-                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 4,
-                            }}>
-                                <span style={{
-                                    fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
-                                    letterSpacing: 0.5, textTransform: 'uppercase' as const,
-                                    fontFamily: "'Outfit', sans-serif", marginBottom: 1,
-                                }}>
-                                    Niveaux de deal
-                                </span>
-                                {[
-                                    { color: '#7C3AED', label: 'Prix record', icon: '⚡' },
-                                    { color: '#DC2626', label: 'Incroyable', icon: '🔥' },
-                                    { color: '#EA580C', label: 'Super deal', icon: '✨' },
-                                    { color: '#00D4FF', label: 'Bon prix', icon: '👍' },
-                                ].map(item => (
-                                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div style={{
-                                            width: 8, height: 8, borderRadius: '50%',
-                                            background: item.color, flexShrink: 0,
-                                            boxShadow: `0 0 6px ${item.color}60`,
-                                        }} />
-                                        <span style={{
-                                            fontSize: isMobile ? 9 : 10, fontWeight: 600,
-                                            color: 'rgba(255,255,255,0.85)', fontFamily: "'Outfit', sans-serif",
-                                        }}>
-                                            {item.icon} {item.label}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
 
-                            {/* ── TOP 5 GROS DEALS ── */}
-                            <div style={{
-                                background: 'rgba(0,0,0,0.6)',
-                                backdropFilter: 'blur(12px)',
-                                borderRadius: 10,
-                                padding: isMobile ? '6px 8px' : '8px 10px',
-                                border: '1px solid rgba(0,212,255,0.08)',
-                                boxShadow: '0 2px 12px rgba(0,0,0,0.2)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 4,
-                            }}>
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', gap: 5,
-                                    marginBottom: 2,
-                                }}>
-                                    <span style={{ fontSize: 10 }}>🏆</span>
-                                    <span style={{
-                                        fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.55)',
-                                        letterSpacing: 0.8, textTransform: 'uppercase' as const,
-                                        fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        TOP 5 GROS DEALS
-                                    </span>
-                                    <span style={{
-                                        width: 5, height: 5, borderRadius: '50%',
-                                        background: '#16A34A', animation: 'liveBlink 2s ease-in-out infinite',
-                                    }} />
-                                </div>
-                                {top5Deals.map((deal: any, i: number) => {
-                                    const level = deal.dealLevel || 'good';
-                                    const col = LEVEL_COLORS[level] || LEVEL_COLORS.good;
-                                    const discount = deal.discount || deal.disc || 0;
-                                    const city = deal.destination || deal.city || '';
-                                    const code = deal.destination_code || deal.code || '';
-
-                                    return (
-                                        <div
-                                            key={`top5-${code}-${i}`}
-                                            className="top5-card"
-                                            onClick={() => handleCarouselDealClick(deal)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: 8,
-                                                padding: '5px 8px', borderRadius: 8,
-                                                background: 'rgba(255,255,255,0.04)',
-                                                border: '1px solid rgba(255,255,255,0.04)',
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            {/* Rank */}
-                                            <span style={{
-                                                fontSize: 10, fontWeight: 800, color: col.bg,
-                                                fontFamily: "'Fredoka', sans-serif",
-                                                minWidth: 14, textAlign: 'center',
-                                            }}>
-                                                {i + 1}
-                                            </span>
-                                            {/* City + route */}
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{
-                                                    fontSize: isMobile ? 10 : 11, fontWeight: 700, color: 'white',
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                                }}>
-                                                    {city}
-                                                </div>
-                                                <div style={{
-                                                    fontSize: 8, color: 'rgba(255,255,255,0.3)',
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                }}>
-                                                    YUL → {code}{deal.stops === 0 ? ' · Direct' : ''}
-                                                </div>
-                                            </div>
-                                            {/* Price + discount */}
-                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                <div style={{
-                                                    fontSize: isMobile ? 11 : 12, fontWeight: 800,
-                                                    color: '#4ADE80',
-                                                    fontFamily: "'Fredoka', sans-serif",
-                                                }}>
-                                                    {deal.price}$
-                                                </div>
-                                                {discount > 0 && (
-                                                    <span style={{
-                                                        fontSize: 8, fontWeight: 800, color: col.bg,
-                                                    }}>
-                                                        -{Math.round(discount)}%
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {top5Deals.length === 0 && (
-                                    <div style={{
-                                        fontSize: 9, color: 'rgba(255,255,255,0.3)',
-                                        textAlign: 'center', padding: '8px 0',
-                                    }}>
-                                        Aucun deal pour cette période
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
                         {/* ── CARTOON GLOBE ── */}
                         <CartoonGlobe
                             deals={flyToDeal ? [flyToDeal] : (prices || [])}
                             mapView={mapView}
                             isMobile={isMobile}
-                            onRegionSelect={(region: string) => {
-                                setSelectedRegion(region);
-                                setSidebarOpen(true);
+                            onRegionSelect={(countryName: string) => {
+                                // Cartoon globe clicked a country. Filter the carousel by that country.
+                                setSelectedCountry(countryName);
+                                // Scroll carousel to start
+                                if (carouselRef.current) carouselRef.current.scrollLeft = 0;
                             }}
                             onHoverDeal={(deal: any, e: MouseEvent | React.MouseEvent) => {
                                 setHoveredDeal(deal);
@@ -1330,21 +1155,47 @@ export default function MapInterface() {
                                 })}
                             </div>
 
-                            {/* Live/indicative data badge */}
-                            {!pricesLoading && !isLive && prices.length > 0 && (
+                            {/* Active Country Filter Badge */}
+                            {selectedCountry && (
                                 <div style={{
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                    padding: isMobile ? '4px 12px' : '4px 20px',
+                                    display: 'flex', justifyContent: 'center',
+                                    marginBottom: isMobile ? 8 : 12,
                                     pointerEvents: 'auto',
                                 }}>
-                                    <span style={{
-                                        fontSize: isMobile ? 10 : 11,
-                                        color: 'rgba(255,255,255,0.4)',
-                                        fontFamily: "'Outfit', sans-serif",
-                                        fontWeight: 500,
-                                    }}>
-                                        📊 Données indicatives — mise à jour bientôt
-                                    </span>
+                                    <button
+                                        onClick={() => setSelectedCountry(null)}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                            padding: isMobile ? '6px 14px' : '8px 18px',
+                                            borderRadius: 100,
+                                            background: 'rgba(57,255,20,0.15)',
+                                            border: '1px solid rgba(57,255,20,0.3)',
+                                            backdropFilter: 'blur(12px)',
+                                            WebkitBackdropFilter: 'blur(12px)',
+                                            cursor: 'pointer',
+                                            color: '#39FF14',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                            fontSize: isMobile ? 12 : 14,
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                                            transition: 'all 0.3s ease',
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = 'rgba(57,255,20,0.25)';
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = 'rgba(57,255,20,0.15)';
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                        }}
+                                    >
+                                        <span>📍 Filtre actif : <strong>{selectedCountry}</strong></span>
+                                        <span style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            width: 20, height: 20, borderRadius: '50%',
+                                            background: 'rgba(57,255,20,0.2)',
+                                            fontSize: 10, fontWeight: 700,
+                                        }}>✕</span>
+                                    </button>
                                 </div>
                             )}
 
@@ -1438,17 +1289,7 @@ export default function MapInterface() {
                     <Footer />
                 </RevealSection>
 
-                {/* DealSidebar removed — info is now on card flip back */}
-                <Sidebar
-                    isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
-                    selectedRegion={selectedRegion}
-                    onSelectFlight={(flight: any) => {
-                        setSelectedFlight(flight);
-                        setSidebarOpen(false);
-                        setBookingOpen(true);
-                    }}
-                />
+                {/* Sidebar removed — filtering carousel directly via selectedCountry */}
                 <BookingPanel
                     isOpen={bookingOpen}
                     onClose={() => setBookingOpen(false)}
@@ -1465,11 +1306,12 @@ export default function MapInterface() {
                         // This callback is kept for compatibility but quiz handles it internally
                     }}
                 />
-            </div>
+            </div >
             {/* Flight Tracker + Mini Globe */}
-            <FlightTracker />
+            < FlightTracker />
             <MiniGlobeNav />
-            {showQuebecPlanner && <QuebecPlanner onClose={() => setShowQuebecPlanner(false)} />
+            {
+                showQuebecPlanner && <QuebecPlanner onClose={() => setShowQuebecPlanner(false)} />
             }
             {
                 showLoginPrompt && (

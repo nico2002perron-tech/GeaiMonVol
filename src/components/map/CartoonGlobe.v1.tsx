@@ -56,27 +56,14 @@ const CITY_COORDINATES: Record<string, { lat: number; lng: number }> = {
     'Ho Chi Minh': { lat: 10.82, lng: 106.63 },
 };
 
-// Map deal city names → topojson country names
-const CITY_TO_COUNTRY: Record<string, string> = {
-    'Toronto': 'Canada', 'Ottawa': 'Canada', 'Vancouver': 'Canada',
-    'Calgary': 'Canada', 'Edmonton': 'Canada', 'Winnipeg': 'Canada',
-    'Halifax': 'Canada', 'Québec': 'Canada',
-    'Paris': 'France', 'Barcelone': 'Spain', 'Madrid': 'Spain',
-    'Lisbonne': 'Portugal', 'Porto': 'Portugal',
-    'Rome': 'Italy', 'Athènes': 'Greece',
-    'Cancún': 'Mexico', 'Punta Cana': 'Dominican Republic',
-    'Cuba (Varadero)': 'Cuba', 'La Havane': 'Cuba',
-    'Fort Lauderdale': 'United States of America', 'Miami': 'United States of America',
-    'New York': 'United States of America', 'Los Angeles': 'United States of America',
-    'Londres': 'United Kingdom', 'Dublin': 'Ireland',
-    'Amsterdam': 'Netherlands', 'Marrakech': 'Morocco',
-    'Bangkok': 'Thailand', 'Tokyo': 'Japan',
-    'Bogota': 'Colombia', 'Cartagena': 'Colombia',
-    'Lima': 'Peru', 'São Paulo': 'Brazil', 'Buenos Aires': 'Argentina',
-    'Bali': 'Indonesia', 'Ho Chi Minh': 'Vietnam',
-    'Reykjavik': 'Iceland', 'Montego Bay': 'Jamaica',
-    'San José': 'Costa Rica',
-};
+const COUNTRIES_WITH_DEALS = new Set([
+    'France', 'Spain', 'Portugal', 'Italy', 'Cuba', 'Mexico',
+    'Dominican Republic', 'United States of America', 'Thailand',
+    'United Arab Emirates', 'Canada', 'Greece', 'Ireland',
+    'Netherlands', 'United Kingdom', 'Morocco', 'Japan',
+    'Colombia', 'Peru', 'Brazil', 'Indonesia', 'Costa Rica',
+    'Jamaica', 'Vietnam',
+]);
 
 // Badge colors by deal level
 const BADGE_COLORS: Record<string, string> = {
@@ -210,14 +197,14 @@ interface ShootingStar {
 
 function generateStars(width: number, height: number): Star[] {
     const stars: Star[] = [];
-    const starColors = ['#FFF8E7', '#FFE8C8', '#D4E8FF', '#C8D6FF', '#FFD4E8', '#E8D4FF', '#FFFFFF'];
-    for (let i = 0; i < 160; i++) {
+    const starColors = ['#C8D6FF', '#B8C8FF', '#A0B0E0', '#8898CC', '#D0D8FF'];
+    for (let i = 0; i < 120; i++) {
         stars.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            size: 0.3 + Math.random() * 1.8,
-            baseOpacity: 0.25 + Math.random() * 0.65,
-            twinkleSpeed: 0.008 + Math.random() * 0.03,
+            size: 0.2 + Math.random() * 1.2,
+            baseOpacity: 0.2 + Math.random() * 0.5,
+            twinkleSpeed: 0.01 + Math.random() * 0.04,
             phase: Math.random() * Math.PI * 2,
             color: starColors[Math.floor(Math.random() * starColors.length)],
         });
@@ -237,12 +224,12 @@ function createShootingStar(width: number, height: number): ShootingStar {
     }
     return {
         x, y,
-        length: 50 + Math.random() * 100,
-        angle: Math.PI * 0.6 + Math.random() * 0.4,
-        speed: 4 + Math.random() * 5,
-        opacity: 0.5 + Math.random() * 0.5,
+        length: 40 + Math.random() * 80,
+        angle: Math.PI * 0.6 + Math.random() * 0.5,
+        speed: 4 + Math.random() * 6,
+        opacity: 0.6 + Math.random() * 0.4,
         life: 0,
-        maxLife: 30 + Math.random() * 40,
+        maxLife: 40 + Math.random() * 30,
     };
 }
 
@@ -384,28 +371,6 @@ export default function CartoonGlobe({
         loadWorldAtlas().then(setWorldData).catch(() => { });
     }, []);
 
-    // Preload wonder icon images
-    const wonderImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
-    useEffect(() => {
-        const wonderFiles: { key: string; src: string }[] = [
-            { key: 'eiffel', src: '/wonders/eiffel.png' },
-            { key: 'colosseum', src: '/wonders/colosseum.png' },
-            { key: 'cristo', src: '/wonders/cristo.png' },
-            { key: 'tajmahal', src: '/wonders/tajmahal.png' },
-            { key: 'greatwall', src: '/wonders/greatwall.png' },
-            { key: 'liberty', src: '/wonders/liberty.png' },
-            { key: 'pyramids', src: '/wonders/pyramids.png' },
-            { key: 'machupicchu', src: '/wonders/machupicchu.png' },
-        ];
-        for (const { key, src } of wonderFiles) {
-            const img = new Image();
-            img.src = src;
-            img.onload = () => {
-                wonderImagesRef.current.set(key, img);
-            };
-        }
-    }, []);
-
     useEffect(() => {
         const updateDimensions = () => {
             if (!containerRef.current) return;
@@ -464,18 +429,6 @@ export default function CartoonGlobe({
             }
         }
         return map;
-    }, [visibleDeals]);
-
-    // Dynamic set of countries with active deals (changes per tab)
-    const activeCountriesRef = useRef<Set<string>>(new Set());
-    useEffect(() => {
-        const countries = new Set<string>();
-        for (const deal of visibleDeals) {
-            const dest = deal.destination || deal.city || '';
-            const country = CITY_TO_COUNTRY[dest];
-            if (country) countries.add(country);
-        }
-        activeCountriesRef.current = countries;
     }, [visibleDeals]);
 
     const startFlyTo = useCallback((lng: number, lat: number, deal: any) => {
@@ -698,7 +651,7 @@ export default function CartoonGlobe({
                             if (region) { canvas.style.cursor = 'pointer'; countryFound = true; }
                             hoveredCountryRef.current = countryName;
 
-                            const hasDeal = activeCountriesRef.current.has(countryName);
+                            const hasDeal = COUNTRIES_WITH_DEALS.has(countryName);
                             let bestDeal: any = null;
                             for (const deal of visibleDeals) {
                                 const coords = getCoords(deal);
@@ -894,51 +847,9 @@ export default function CartoonGlobe({
                 .scale(visibleRadius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
             const path = d3.geoPath().projection(projection).context(ctx);
 
-            // ─── IMPRESSIVE CARTOON SPACE BACKGROUND ───
-            // Base: diagonal gradient from deep indigo to softer blue-purple
-            const bgBase = ctx.createLinearGradient(0, height, width, 0);
-            bgBase.addColorStop(0, '#05091A');    // deep dark indigo bottom-left
-            bgBase.addColorStop(0.3, '#0A1230');  // dark navy
-            bgBase.addColorStop(0.6, '#121840');  // medium navy-purple
-            bgBase.addColorStop(0.85, '#1A2252'); // softer purple-blue
-            bgBase.addColorStop(1, '#222860');    // lighter top-right
-            ctx.fillStyle = bgBase;
+            // ─── CLEAR: DARK SPACE BACKGROUND ───
+            ctx.fillStyle = '#050a1a';
             ctx.fillRect(0, 0, width, height);
-
-            // Nebula layer 1: warm pink/purple cloud (bottom-right)
-            ctx.globalCompositeOperation = 'screen';
-            const nebula1 = ctx.createRadialGradient(
-                width * 0.75, height * 0.7, 0,
-                width * 0.75, height * 0.7, Math.max(width, height) * 0.5
-            );
-            nebula1.addColorStop(0, 'rgba(120, 40, 140, 0.12)');
-            nebula1.addColorStop(0.3, 'rgba(100, 30, 120, 0.08)');
-            nebula1.addColorStop(0.6, 'rgba(80, 20, 100, 0.04)');
-            nebula1.addColorStop(1, 'rgba(60, 10, 80, 0)');
-            ctx.fillStyle = nebula1;
-            ctx.fillRect(0, 0, width, height);
-
-            // Nebula layer 2: cool cyan/teal cloud (top-left)
-            const nebula2 = ctx.createRadialGradient(
-                width * 0.2, height * 0.25, 0,
-                width * 0.2, height * 0.25, Math.max(width, height) * 0.45
-            );
-            nebula2.addColorStop(0, 'rgba(30, 100, 160, 0.10)');
-            nebula2.addColorStop(0.3, 'rgba(20, 80, 140, 0.06)');
-            nebula2.addColorStop(0.6, 'rgba(15, 60, 120, 0.03)');
-            nebula2.addColorStop(1, 'rgba(10, 40, 100, 0)');
-            ctx.fillStyle = nebula2;
-            ctx.fillRect(0, 0, width, height);
-
-            // Subtle warm accent (center, behind globe)
-            const nebula3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, visibleRadius * 2);
-            nebula3.addColorStop(0, 'rgba(60, 80, 160, 0.06)');
-            nebula3.addColorStop(0.5, 'rgba(40, 50, 120, 0.03)');
-            nebula3.addColorStop(1, 'rgba(20, 30, 80, 0)');
-            ctx.fillStyle = nebula3;
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.globalCompositeOperation = 'source-over';
 
             // ─── STARS (cool tones, subtle) ───
             const stars = starsRef.current;
@@ -955,7 +866,7 @@ export default function CartoonGlobe({
 
             // ─── SHOOTING STARS ───
             const shootingStars = shootingStarsRef.current;
-            if (Math.random() < 0.012 && shootingStars.length < 5) {
+            if (Math.random() < 0.005 && shootingStars.length < 3) {
                 shootingStars.push(createShootingStar(width, height));
             }
             for (let i = shootingStars.length - 1; i >= 0; i--) {
@@ -986,261 +897,233 @@ export default function CartoonGlobe({
                 ctx.restore();
             }
 
-            // ═══ ATMOSPHERE — THICK CARTOON GLOW ═══
-            const atmoPulse = 1.0 + Math.sin(timeRef.current * 0.012) * 0.06;
+            // ═══ ATMOSPHERE — CYAN (right/lit) + VIOLET (left/shadow) ═══
+            const atmoPulse = 1.0 + Math.sin(timeRef.current * 0.015) * 0.04;
 
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
 
-            // Outer warm glow (wide, friendly)
-            const outerGlow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.9, cx, cy, visibleRadius * 1.6 * atmoPulse);
-            outerGlow.addColorStop(0, 'rgba(60, 160, 255, 0.0)');
-            outerGlow.addColorStop(0.3, 'rgba(60, 160, 255, 0.06)');
-            outerGlow.addColorStop(0.5, 'rgba(100, 180, 255, 0.10)');
-            outerGlow.addColorStop(0.7, 'rgba(80, 140, 255, 0.05)');
-            outerGlow.addColorStop(1, 'rgba(60, 120, 255, 0)');
-            ctx.fillStyle = outerGlow;
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.6, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Cyan rim (lit side — top-right)
+            // Cyan halo (right / lit side)
             const cyanGrad = ctx.createRadialGradient(
-                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 0.88,
-                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 1.2 * atmoPulse
+                cx + visibleRadius * 0.3, cy, visibleRadius * 0.85,
+                cx + visibleRadius * 0.3, cy, visibleRadius * 1.4 * atmoPulse
             );
-            cyanGrad.addColorStop(0, 'rgba(0, 200, 255, 0.0)');
-            cyanGrad.addColorStop(0.4, 'rgba(0, 200, 255, 0.12)');
-            cyanGrad.addColorStop(0.7, 'rgba(0, 200, 255, 0.06)');
-            cyanGrad.addColorStop(1, 'rgba(0, 200, 255, 0)');
+            cyanGrad.addColorStop(0, 'rgba(0, 212, 255, 0.0)');
+            cyanGrad.addColorStop(0.4, 'rgba(0, 212, 255, 0.08)');
+            cyanGrad.addColorStop(0.7, 'rgba(0, 212, 255, 0.04)');
+            cyanGrad.addColorStop(1, 'rgba(0, 212, 255, 0)');
             ctx.fillStyle = cyanGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.3, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Warm sunset rim (left side — shadow)
-            const warmGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 0.88,
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 1.15
+            // Violet halo (left / shadow side)
+            const violetGrad = ctx.createRadialGradient(
+                cx - visibleRadius * 0.4, cy, visibleRadius * 0.85,
+                cx - visibleRadius * 0.4, cy, visibleRadius * 1.3
             );
-            warmGrad.addColorStop(0, 'rgba(180, 100, 255, 0.0)');
-            warmGrad.addColorStop(0.4, 'rgba(180, 100, 255, 0.06)');
-            warmGrad.addColorStop(0.7, 'rgba(140, 60, 220, 0.03)');
-            warmGrad.addColorStop(1, 'rgba(140, 60, 220, 0)');
-            ctx.fillStyle = warmGrad;
+            violetGrad.addColorStop(0, 'rgba(120, 50, 200, 0.0)');
+            violetGrad.addColorStop(0.4, 'rgba(120, 50, 200, 0.05)');
+            violetGrad.addColorStop(0.7, 'rgba(120, 50, 200, 0.02)');
+            violetGrad.addColorStop(1, 'rgba(120, 50, 200, 0)');
+            ctx.fillStyle = violetGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.25, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Crisp edge rim (bright ring at globe edge)
-            const rimGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.93, cx, cy, visibleRadius * 1.08);
-            rimGrad.addColorStop(0, 'rgba(100, 200, 255, 0)');
-            rimGrad.addColorStop(0.5, 'rgba(100, 200, 255, 0.08)');
-            rimGrad.addColorStop(0.8, 'rgba(100, 200, 255, 0.18)');
-            rimGrad.addColorStop(0.95, 'rgba(100, 200, 255, 0.12)');
-            rimGrad.addColorStop(1, 'rgba(100, 200, 255, 0.04)');
+            // Edge rim glow (cyan ring)
+            const rimGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.92, cx, cy, visibleRadius * 1.06);
+            rimGrad.addColorStop(0, 'rgba(0, 212, 255, 0)');
+            rimGrad.addColorStop(0.6, 'rgba(0, 212, 255, 0.06)');
+            rimGrad.addColorStop(0.85, 'rgba(0, 212, 255, 0.14)');
+            rimGrad.addColorStop(1, 'rgba(0, 212, 255, 0.08)');
             ctx.fillStyle = rimGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.08, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.06, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.restore();
 
-            // ─── OCEAN (rich cartoon blue) ───
+            // ─── OCEAN (very dark) ───
             const oceanGrad = ctx.createRadialGradient(
                 cx - visibleRadius * 0.3, cy - visibleRadius * 0.3, 0, cx, cy, visibleRadius
             );
-            oceanGrad.addColorStop(0, '#1B3A6B');
-            oceanGrad.addColorStop(0.4, '#143058');
-            oceanGrad.addColorStop(0.7, '#0E2445');
-            oceanGrad.addColorStop(1, '#091A35');
+            oceanGrad.addColorStop(0, '#0a0e1a');
+            oceanGrad.addColorStop(0.5, '#070a14');
+            oceanGrad.addColorStop(1, '#030508');
             ctx.fillStyle = oceanGrad;
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            // ─── GRATICULE (subtle cartoon grid) ───
+            // ─── GRATICULE (very subtle) ───
             ctx.save();
-            ctx.globalAlpha = 0.06;
-            ctx.strokeStyle = '#2A5090';
-            ctx.lineWidth = 0.4;
+            ctx.globalAlpha = 0.03;
+            ctx.strokeStyle = '#1a3a5a';
+            ctx.lineWidth = 0.3;
             ctx.beginPath();
             path(graticule);
             ctx.stroke();
             ctx.restore();
 
-            // ═══ FILLED CARTOON CONTINENTS ═══
-            const hoveredName = hoveredCountryRef.current;
-            const activeCountries = activeCountriesRef.current;
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-            ctx.clip();
+            // ═══ DOT-MATRIX CONTINENTS (fast manual projection) ═══
+            const landDots = landDotsRef.current;
+            if (landDots.length > 0) {
+                const rotLng = -rotationRef.current[0];
+                const rotLat = -rotationRef.current[1];
 
-            for (const country of countries) {
-                const name = country.properties?.name || '';
-                const isHovered = name === hoveredName;
-                const hasDeal = activeCountries.has(name);
-
-                ctx.beginPath();
-                path(country);
-
-                // Cartoon land fill — deal countries in warm red/coral
-                if (isHovered && hasDeal) {
-                    ctx.fillStyle = '#E85454'; // bright red on hover
-                } else if (hasDeal) {
-                    const dealPulse = 0.85 + 0.15 * Math.sin(timeRef.current * 0.02);
-                    const r = Math.round(180 * dealPulse);
-                    ctx.fillStyle = `rgb(${r}, 60, 60)`; // warm red for deal countries
-                } else if (isHovered) {
-                    ctx.fillStyle = '#7CC9A8'; // pastel mint hover
-                } else {
-                    ctx.fillStyle = '#5BAF8A'; // soft sage green — cartoon pastel
+                // ═══ DEAL-COLORED TERRAIN GLOW ═══
+                // Nearby land dots glow in deal colors
+                const dealGlowRadius = 35; // pixels around each deal location
+                const dealPositions: { x: number; y: number; color: string }[] = [];
+                for (const deal of visibleDeals) {
+                    const coords = getCoords(deal);
+                    if (!coords) continue;
+                    const pt = projectOrtho(coords.lng, coords.lat, rotLng, rotLat, cx, cy, visibleRadius);
+                    if (!pt) continue;
+                    const discount = deal.discount || deal.disc || 0;
+                    const level = deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
+                    const color = BADGE_COLORS[level] || '#00D4FF';
+                    dealPositions.push({ x: pt[0], y: pt[1], color });
                 }
-                ctx.fill();
 
-                // Cartoon-style outline
-                if (hasDeal) {
-                    ctx.strokeStyle = isHovered ? '#FF8A8A' : '#C04040';
-                } else {
-                    ctx.strokeStyle = isHovered ? '#A0E8CC' : '#4A9A78';
-                }
-                ctx.lineWidth = isHovered ? 1.8 : 0.8;
-                ctx.stroke();
+                // Single batched fill — all dots as tiny rects (fastest)
+                ctx.save();
+                // First pass: regular dots
+                ctx.shadowColor = 'rgba(100, 220, 255, 0.3)';
+                ctx.shadowBlur = 2;
+                const dotSize = isMobile ? 1.8 : 2.0;
+                const halfDot = dotSize / 2;
+                for (let i = 0; i < landDots.length; i++) {
+                    const dot = landDots[i];
+                    const pt = projectOrtho(dot.lng, dot.lat, rotLng, rotLat, cx, cy, visibleRadius);
+                    if (!pt) continue;
 
-                // Glow effect on hovered deal countries
-                if (isHovered && hasDeal) {
-                    ctx.save();
-                    ctx.globalAlpha = 0.25;
-                    ctx.shadowColor = '#FF5555';
-                    ctx.shadowBlur = 24;
-                    ctx.beginPath();
-                    path(country);
-                    ctx.fill();
-                    ctx.restore();
+                    // Check if near a deal — glow in deal color
+                    let nearDeal = false;
+                    for (let d = 0; d < dealPositions.length; d++) {
+                        const dp = dealPositions[d];
+                        const dist = Math.sqrt((pt[0] - dp.x) ** 2 + (pt[1] - dp.y) ** 2);
+                        if (dist < dealGlowRadius) {
+                            const intensity = 1 - (dist / dealGlowRadius);
+                            const pulse = 0.6 + 0.4 * Math.sin(timeRef.current * 0.03 + d * 2);
+                            ctx.fillStyle = dp.color;
+                            ctx.globalAlpha = (0.5 + intensity * 0.5) * pulse;
+                            ctx.fillRect(pt[0] - halfDot - 0.3, pt[1] - halfDot - 0.3, dotSize + 0.6, dotSize + 0.6);
+                            nearDeal = true;
+                            break;
+                        }
+                    }
+                    if (!nearDeal) {
+                        ctx.fillStyle = 'rgba(160, 220, 255, 0.75)';
+                        ctx.globalAlpha = 1;
+                        ctx.fillRect(pt[0] - halfDot, pt[1] - halfDot, dotSize, dotSize);
+                    }
                 }
+                ctx.restore();
             }
-            ctx.restore();
 
-            // ═══ CARTOON SOLAR LIGHTING (warm top-left highlight) ═══
+            // ═══ SUBTLE SOLAR LIGHTING (very subtle directional) ═══
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.clip();
             const solarGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.4, cy - visibleRadius * 0.4, 0,
+                cx - visibleRadius * 0.5, cy - visibleRadius * 0.5, 0,
                 cx + visibleRadius * 0.2, cy + visibleRadius * 0.2, visibleRadius * 1.2
             );
-            solarGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-            solarGrad.addColorStop(0.2, 'rgba(200, 240, 255, 0.04)');
-            solarGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-            solarGrad.addColorStop(0.8, 'rgba(0, 0, 20, 0.08)');
-            solarGrad.addColorStop(1, 'rgba(0, 0, 20, 0.18)');
+            solarGrad.addColorStop(0, 'rgba(255, 255, 255, 0.02)');
+            solarGrad.addColorStop(0.3, 'rgba(0, 0, 0, 0)');
+            solarGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.04)');
+            solarGrad.addColorStop(1, 'rgba(0, 0, 10, 0.10)');
             ctx.fillStyle = solarGrad;
             ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
             ctx.restore();
 
-            // ═══ TINY CARTOON WORLD WONDERS (generated icons) ═══
-            const wonderDefs: { key: string; lat: number; lng: number; label: string }[] = [
-                { key: 'eiffel', lat: 48.8584, lng: 2.2945, label: 'Tour Eiffel' },
-                { key: 'colosseum', lat: 41.8902, lng: 12.4922, label: 'Colisée' },
-                { key: 'cristo', lat: -22.9519, lng: -43.2105, label: 'Cristo' },
-                { key: 'machupicchu', lat: -13.1631, lng: -72.5450, label: 'Machu Picchu' },
-                { key: 'tajmahal', lat: 27.1751, lng: 78.0421, label: 'Taj Mahal' },
-                { key: 'greatwall', lat: 40.4319, lng: 116.5704, label: 'Grande Muraille' },
-                { key: 'liberty', lat: 40.6892, lng: -74.0445, label: 'Liberté' },
-                { key: 'pyramids', lat: 29.9792, lng: 31.1342, label: 'Pyramides' },
-            ];
-            const wonderImages = wonderImagesRef.current;
-            const pinR = isMobile ? 22 : 28; // circle radius
-            const imgSize = pinR * 2.2; // image fills entire circle
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-            ctx.clip();
-            for (const w of wonderDefs) {
-                const img = wonderImages.get(w.key);
-                if (!img) continue;
-
-                // Hemisphere check — only show pins on the VISIBLE side of the globe
-                const rot = rotationRef.current;
-                const centerLng = -rot[0]; // projection center longitude
-                const centerLat = -rot[1]; // projection center latitude
-                const toRad = Math.PI / 180;
-                const dLng = (w.lng - centerLng) * toRad;
-                const lat1 = centerLat * toRad;
-                const lat2 = w.lat * toRad;
-                const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
-                if (cosAngle < Math.cos(80 * toRad)) continue; // behind the globe (>80°)
-
-                const proj = projection([w.lng, w.lat]);
-                if (!proj) continue;
-                const distFromCenter = Math.sqrt((proj[0] - cx) ** 2 + (proj[1] - cy) ** 2);
-                if (distFromCenter > visibleRadius * 0.88) continue;
-
-                const px = proj[0];
-                const py = proj[1] - 10; // float above surface
-
-                // Drop shadow
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 0.35;
-                ctx.beginPath();
-                ctx.ellipse(px + 2, py + pinR + 4, pinR * 0.6, 4, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.fill();
-
-                // White pin circle background
-                ctx.globalAlpha = 0.95;
-                ctx.beginPath();
-                ctx.arc(px, py, pinR, 0, Math.PI * 2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
-                // Colored border
-                ctx.strokeStyle = '#4A9A78';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-
-                // Pin pointer triangle
-                ctx.beginPath();
-                ctx.moveTo(px - 6, py + pinR - 2);
-                ctx.lineTo(px, py + pinR + 10);
-                ctx.lineTo(px + 6, py + pinR - 2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
-                ctx.strokeStyle = '#4A9A78';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(px - 6, py + pinR - 1);
-                ctx.lineTo(px, py + pinR + 10);
-                ctx.lineTo(px + 6, py + pinR - 1);
-                ctx.stroke();
-
-                // Icon image inside the circle (clipped)
-                ctx.save();
-                ctx.globalAlpha = 1.0;
-                ctx.beginPath();
-                ctx.arc(px, py, pinR - 2, 0, Math.PI * 2);
-                ctx.clip();
-                ctx.drawImage(img, px - imgSize / 2, py - imgSize / 2, imgSize, imgSize);
-                ctx.restore();
-
-                // Label below pin
-                ctx.globalAlpha = 0.85;
-                ctx.font = `700 ${isMobile ? 7 : 8}px 'Outfit', sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                ctx.fillText(w.label, px + 0.5, py + pinR + 13.5);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillText(w.label, px, py + pinR + 13);
-            }
-            ctx.restore();
-
-            // ═══ FLIGHT ARCS — only during holo fly-to (removed constant arcs/airplanes) ═══
+            // ═══ FLIGHT ARCS (solid glow lines) ═══
             const yulCoord: [number, number] = [-73.74, 45.47];
             const yulProjected = projection(yulCoord);
             const holoDim = holo.active ? holo.dimFactor : 1;
+
+            if (yulProjected) {
+                for (const deal of visibleDeals) {
+                    const coords = getCoords(deal);
+                    if (!coords) continue;
+                    const destProjected = projection([coords.lng, coords.lat]);
+                    if (!destProjected) continue;
+
+                    const discount = deal.discount || deal.disc || 0;
+                    const level = deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
+                    const arcColor = BADGE_COLORS[level] || '#00D4FF';
+
+                    const midX = (yulProjected[0] + destProjected[0]) / 2;
+                    const dist = Math.sqrt(
+                        (destProjected[0] - yulProjected[0]) ** 2 +
+                        (destProjected[1] - yulProjected[1]) ** 2
+                    );
+                    const midY = Math.min(yulProjected[1], destProjected[1]) - dist * 0.25;
+
+                    // Outer glow
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(yulProjected[0], yulProjected[1]);
+                    ctx.quadraticCurveTo(midX, midY, destProjected[0], destProjected[1]);
+                    ctx.strokeStyle = arcColor;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = 0.06 * holoDim;
+                    ctx.stroke();
+
+                    // Solid thin line (no dashes)
+                    ctx.beginPath();
+                    ctx.moveTo(yulProjected[0], yulProjected[1]);
+                    ctx.quadraticCurveTo(midX, midY, destProjected[0], destProjected[1]);
+                    ctx.strokeStyle = arcColor;
+                    ctx.lineWidth = 0.8;
+                    ctx.globalAlpha = 0.5 * holoDim;
+                    ctx.stroke();
+
+                    ctx.restore();
+                }
+            }
+
+            // ═══ ANIMATED AIRPLANES (smaller, cyan tint) ═══
+            if (yulProjected) {
+                visibleDeals.forEach((deal, dealIndex) => {
+                    const coords = getCoords(deal);
+                    if (!coords) return;
+                    const destProjected = projection([coords.lng, coords.lat]);
+                    if (!destProjected) return;
+                    const apMidX = (yulProjected[0] + destProjected[0]) / 2;
+                    const apDist = Math.sqrt(
+                        (destProjected[0] - yulProjected[0]) ** 2 +
+                        (destProjected[1] - yulProjected[1]) ** 2
+                    );
+                    const apMidY = Math.min(yulProjected[1], destProjected[1]) - apDist * 0.25;
+                    const phaseOffset = (dealIndex * 73) % AIRPLANE_CYCLE_FRAMES;
+                    const at = ((timeRef.current + phaseOffset) % AIRPLANE_CYCLE_FRAMES) / AIRPLANE_CYCLE_FRAMES;
+                    const omt = 1 - at;
+                    const px = omt * omt * yulProjected[0] + 2 * omt * at * apMidX + at * at * destProjected[0];
+                    const py = omt * omt * yulProjected[1] + 2 * omt * at * apMidY + at * at * destProjected[1];
+                    const tx = 2 * omt * (apMidX - yulProjected[0]) + 2 * at * (destProjected[0] - apMidX);
+                    const ty = 2 * omt * (apMidY - yulProjected[1]) + 2 * at * (destProjected[1] - apMidY);
+                    const angle = Math.atan2(ty, tx);
+                    const sz = isMobile ? 3 : 3.5;
+                    ctx.save();
+                    ctx.translate(px, py);
+                    ctx.rotate(angle);
+                    ctx.fillStyle = '#7DF9FF';
+                    ctx.globalAlpha = 0.6 * holoDim;
+                    ctx.beginPath();
+                    ctx.moveTo(sz * 1.5, 0);
+                    ctx.lineTo(-sz, -sz * 0.7);
+                    ctx.lineTo(-sz * 0.5, 0);
+                    ctx.lineTo(-sz, sz * 0.7);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
 
             // ═══ HOLOGRAPHIC ARC RENDERING ═══
             if (holo.active && yulProjected) {
@@ -1455,7 +1338,78 @@ export default function CartoonGlobe({
                 ctx.restore();
             }
 
-            // (Deal pins removed — countries colored in red instead)
+            // ═══ DEAL PINS (subtle glowing dots — no radar rings) ═══
+            for (let di = 0; di < visibleDeals.length; di++) {
+                const deal = visibleDeals[di];
+                const coords = getCoords(deal);
+                if (!coords) continue;
+                const projected = projection([coords.lng, coords.lat]);
+                if (!projected) continue;
+
+                const discount = deal.discount || deal.disc || 0;
+                const level = deal.dealLevel || (discount >= 40 ? 'incredible' : discount >= 25 ? 'great' : 'good');
+                const pinColor = BADGE_COLORS[level] || '#00D4FF';
+                const pulse = 0.7 + 0.3 * Math.sin(timeRef.current * 0.04 + di * 1.5);
+
+                // Soft radial glow
+                ctx.save();
+                const haloGrad = ctx.createRadialGradient(
+                    projected[0], projected[1], 0,
+                    projected[0], projected[1], 12
+                );
+                haloGrad.addColorStop(0, pinColor + '30');
+                haloGrad.addColorStop(1, pinColor + '00');
+                ctx.fillStyle = haloGrad;
+                ctx.globalAlpha = pulse;
+                ctx.beginPath();
+                ctx.arc(projected[0], projected[1], 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Small luminous dot
+                ctx.save();
+                ctx.shadowColor = pinColor;
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = pinColor;
+                ctx.globalAlpha = 0.9 * pulse;
+                ctx.beginPath();
+                ctx.arc(projected[0], projected[1], 3, 0, Math.PI * 2);
+                ctx.fill();
+                // Bright center
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.globalAlpha = pulse;
+                ctx.beginPath();
+                ctx.arc(projected[0], projected[1], 1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+
+                // Compact badge
+                if (discount > 0) {
+                    const badgeY = projected[1] - 14;
+                    const text = `-${Math.abs(Math.round(discount))}%`;
+                    ctx.save();
+                    ctx.font = `800 ${isMobile ? 8 : 9}px 'Outfit', sans-serif`;
+                    const textWidth = ctx.measureText(text).width;
+                    const badgeW = textWidth + 10;
+                    const badgeH = 14;
+                    const badgeX = projected[0] - badgeW / 2;
+
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                    ctx.beginPath();
+                    ctx.roundRect(badgeX, badgeY - badgeH / 2, badgeW, badgeH, 7);
+                    ctx.fill();
+                    ctx.strokeStyle = pinColor + '60';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, projected[0], badgeY);
+                    ctx.restore();
+                }
+            }
 
             // ═══ CITY LABELS (visible when zoomed in) ═══
             const currentZoom = zoomCurrentRef.current;
