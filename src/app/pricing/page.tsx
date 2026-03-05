@@ -117,47 +117,23 @@ function PricingContent() {
                         </button>
                     </div>
 
-                    {/* GUIDE */}
-                    <div className="pcard">
-                        <div className="p-tier">À la carte</div>
-                        <div className="p-name">Guide IA</div>
-                        <div className="p-desc">Plan jour par jour personnalisé, sans abonnement.</div>
-                        <div className="p-price"><span className="p-dollar">10 $</span><span className="p-period">/ guide</span></div>
-                        <div className="p-note">Achat unique par destination</div>
-                        <ul className="p-list">
-                            <li><span className="ck y">&#10003;</span>Itinéraire jour par jour optimisé</li>
-                            <li><span className="ck y">&#10003;</span>Activités incontournables classées</li>
-                            <li><span className="ck y">&#10003;</span>Réservations guidées (quoi, où, quand)</li>
-                            <li><span className="ck y">&#10003;</span>Conseils de vrais voyageurs</li>
-                            <li><span className="ck y">&#10003;</span>Adapté à vos préférences</li>
-                            <li><span className="ck n">&times;</span>Alertes personnalisées</li>
-                            <li><span className="ck n">&times;</span>Packs voyage</li>
-                        </ul>
-                        <button
-                            className="p-cta gld"
-                            disabled={checkoutLoading === 'guide'}
-                            onClick={() => handleCheckout('guide')}
-                        >
-                            {checkoutLoading === 'guide' ? 'Redirection…' : 'Acheter un guide — 10 $'}
-                        </button>
-                    </div>
                 </section>
 
                 {/* COMPARISON TABLE */}
                 <section className="cmp">
                     <h2>Comparaison détaillée</h2>
                     <table>
-                        <thead><tr><th></th><th>Gratuit</th><th>Premium 5$/m</th><th>Guide 10$</th></tr></thead>
+                        <thead><tr><th></th><th>Gratuit</th><th>Premium 5$/m</th></tr></thead>
                         <tbody>
-                            <tr><td>Carte des deals</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td></tr>
-                            <tr><td>Alertes email générales</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>Alertes personnalisées (budget)</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>Watchlist de destinations</td><td className="tn">&mdash;</td><td className="ta">Illimitée</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>"Meilleur moment pour acheter"</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>Notification drop de prix</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>Packs Vol + Hôtel + Guide</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td><td className="tn">&mdash;</td></tr>
-                            <tr><td>Guide IA personnalisé</td><td className="ta">10 $/guide</td><td className="ta">Gratuit</td><td className="ty">&#10003;</td></tr>
-                            <tr><td>Réservations guidées par IA</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Carte des deals</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Alertes email générales</td><td className="ty">&#10003;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Alertes personnalisées (budget)</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Watchlist de destinations</td><td className="tn">&mdash;</td><td className="ta">Illimitée</td></tr>
+                            <tr><td>"Meilleur moment pour acheter"</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Notification drop de prix</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Packs Vol + Hôtel + Guide</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td></tr>
+                            <tr><td>Guide IA personnalisé</td><td className="tn">&mdash;</td><td className="ta">Gratuit</td></tr>
+                            <tr><td>Réservations guidées par IA</td><td className="tn">&mdash;</td><td className="ty">&#10003;</td></tr>
                         </tbody>
                     </table>
                 </section>
@@ -217,44 +193,6 @@ function PricingContent() {
                     </div>
                 </section>
 
-                {/* GUIDE PREVIEW */}
-                <section className="guide">
-                    <div className="guide-head">
-                        <h2>Aperçu du <em>Guide IA</em></h2>
-                        <p>Un plan jour par jour créé par notre IA, adapté à vos goûts.</p>
-                    </div>
-                    <div className="guide-card">
-                        <div className="guide-day">
-                            <div className="guide-day-num">1</div>
-                            <div className="guide-day-body">
-                                <div className="guide-day-title">Arrivée + Alfama</div>
-                                <div className="guide-day-desc">Installation à l'hôtel. Balade dans le quartier d'Alfama, le plus ancien de Lisbonne. Dîner au Time Out Market.</div>
-                                <div className="guide-day-tip">Réservez le restaurant 2 jours avant sur TheFork</div>
-                            </div>
-                        </div>
-                        <div className="guide-day">
-                            <div className="guide-day-num">2</div>
-                            <div className="guide-day-body">
-                                <div className="guide-day-title">Belem + Pasteis de Nata</div>
-                                <div className="guide-day-desc">Tour de Belem le matin (arriver avant 10h). Monastère des Jerónimos. Pasteis de Belem pour le goûter.</div>
-                                <div className="guide-day-tip">Billets en ligne sur patrimoniocultural.gov.pt — 10€ combo</div>
-                            </div>
-                        </div>
-                        <div className="guide-day">
-                            <div className="guide-day-num">3</div>
-                            <div className="guide-day-body">
-                                <div className="guide-day-title">Sintra — Excursion journée</div>
-                                <div className="guide-day-desc">Train depuis Rossio (40 min). Palais de Pena + Quinta da Regaleira. Retour en fin d'après-midi.</div>
-                                <div className="guide-day-tip">Achetez les billets Sintra Green Card en ligne — économisez 30%</div>
-                            </div>
-                        </div>
-                        <div className="guide-blur">
-                            <div className="guide-blur-text">Jours 4 et 5 disponibles dans le guide complet...</div>
-                            <a href="#pricing" className="guide-blur-cta">Débloquer avec Premium — 5 $/mois</a>
-                        </div>
-                    </div>
-                </section>
-
                 {/* HOW IT WORKS */}
                 <section className="how">
                     <h2>Comment <em>ça marche</em></h2>
@@ -291,24 +229,16 @@ function PricingContent() {
                     <h2>Questions fréquentes</h2>
 
                     <div className={`faq-item ${openFaq === 0 ? 'open' : ''}`}>
-                        <div className="faq-q" onClick={() => toggleFaq(0)}>Le Guide IA est vraiment gratuit avec l'abonnement?</div>
-                        <div className="faq-a">Oui. Chaque fois que tu réserves un vol ou un hôtel via notre plateforme en étant abonné Premium, le Guide IA personnalisé est généré gratuitement. Sans abonnement, il coûte 10$ par destination.</div>
+                        <div className="faq-q" onClick={() => toggleFaq(0)}>Comment fonctionne le "Meilleur moment pour acheter"?</div>
+                        <div className="faq-a">On collecte les prix plusieurs fois par jour et on compare avec l'historique. Quand le prix actuel est significativement plus bas que la moyenne, on te le dit avec un score clair : &quot;Ce prix est plus bas que 85% des billets vendus cette semaine.&quot;</div>
                     </div>
                     <div className={`faq-item ${openFaq === 1 ? 'open' : ''}`}>
-                        <div className="faq-q" onClick={() => toggleFaq(1)}>Comment fonctionne le "Meilleur moment pour acheter"?</div>
-                        <div className="faq-a">On collecte les prix plusieurs fois par jour et on compare avec l'historique. Quand le prix actuel est significativement plus bas que la moyenne, on te le dit avec un score clair : "Ce prix est plus bas que 85% des billets vendus cette semaine."</div>
+                        <div className="faq-q" onClick={() => toggleFaq(1)}>Je peux annuler l'abonnement quand je veux?</div>
+                        <div className="faq-a">Oui, annulation en un clic, pas de questions. Tu gardes l'accès jusqu'à la fin de ton mois payé.</div>
                     </div>
                     <div className={`faq-item ${openFaq === 2 ? 'open' : ''}`}>
-                        <div className="faq-q" onClick={() => toggleFaq(2)}>Je peux annuler l'abonnement quand je veux?</div>
-                        <div className="faq-a">Oui, annulation en un clic, pas de questions. Tu gardes l'accès jusqu'à la fin de ton mois payé. Les guides déjà générés restent à toi pour toujours.</div>
-                    </div>
-                    <div className={`faq-item ${openFaq === 3 ? 'open' : ''}`}>
-                        <div className="faq-q" onClick={() => toggleFaq(3)}>Qu'est-ce que le Guide IA inclut exactement?</div>
-                        <div className="faq-a">Un itinéraire jour par jour optimisé, les activités incontournables classées par priorité, les liens de réservation pour chaque site qui le nécessite (avec le meilleur moment pour réserver), des conseils de locaux, et des astuces pour éviter les pièges à touristes.</div>
-                    </div>
-                    <div className={`faq-item ${openFaq === 4 ? 'open' : ''}`}>
-                        <div className="faq-q" onClick={() => toggleFaq(4)}>C'est quoi un pack voyage?</div>
-                        <div className="faq-a">Quand un prix chute sur une destination de ta watchlist, on génère automatiquement un pack complet : le vol au meilleur prix, l'hôtel recommandé dans ton budget, et le guide IA avec les activités. Tu reçois une notification avec le total et tu peux réserver en quelques clics.</div>
+                        <div className="faq-q" onClick={() => toggleFaq(2)}>C'est quoi un pack voyage?</div>
+                        <div className="faq-a">Quand un prix chute sur une destination de ta watchlist, on génère automatiquement un pack complet : le vol au meilleur prix et l'hôtel recommandé dans ton budget. Tu reçois une notification avec le total et tu peux réserver en quelques clics.</div>
                     </div>
                 </section>
 
