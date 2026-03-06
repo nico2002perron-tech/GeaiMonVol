@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
 import { useInView } from '@/lib/hooks/useInView';
 
@@ -24,12 +24,11 @@ const LEVEL_COLORS: Record<string, { bg: string; label: string; icon: string }> 
     good: { bg: '#2E7DDB', label: 'BON PRIX', icon: '👍' },
 };
 
-// Placeholder stories — will be replaced with Supabase data
 const PLACEHOLDER_STORIES = [
     {
         id: 1,
         author: 'Marie-Ève L.',
-        avatar: '🧑🦰',
+        avatar: '🧑\u200D🦰',
         destination: 'Paris',
         code: 'CDG',
         dates: '12–19 mars 2025',
@@ -63,7 +62,7 @@ const PLACEHOLDER_STORIES = [
     {
         id: 3,
         author: 'François G.',
-        avatar: '👨🦲',
+        avatar: '👨\u200D🦲',
         destination: 'Tokyo',
         code: 'NRT',
         dates: '1–14 avril 2025',
@@ -83,7 +82,7 @@ function StarRating({ rating, size = 12 }: { rating: number; size?: number }) {
     return (
         <div style={{ display: 'flex', gap: 1 }}>
             {[1, 2, 3, 4, 5].map(star => (
-                <span key={star} style={{ fontSize: size, color: star <= rating ? '#F59E0B' : '#D1D5DB' }}>
+                <span key={star} style={{ fontSize: size, color: star <= rating ? '#F59E0B' : 'rgba(255,255,255,0.15)' }}>
                     ★
                 </span>
             ))}
@@ -95,13 +94,10 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
     const col = LEVEL_COLORS[story.dealLevel] || LEVEL_COLORS.good;
     return (
         <div
-            className="deal-card"
+            className="glass-card"
             style={{
-                background: 'white',
-                borderRadius: 16,
                 overflow: 'hidden',
-                border: featured ? `2px solid ${col.bg}20` : '1px solid rgba(26,43,66,0.06)',
-                boxShadow: featured ? `0 8px 32px ${col.bg}10` : '0 2px 12px rgba(26,43,66,0.05)',
+                border: featured ? `1px solid rgba(0,212,255,0.15)` : '1px solid rgba(255,255,255,0.06)',
                 cursor: 'pointer',
                 minWidth: featured ? 310 : 270,
                 maxWidth: featured ? 340 : 290,
@@ -110,23 +106,23 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
         >
             {/* Header */}
             <div style={{
-                background: `linear-gradient(135deg, ${col.bg}12 0%, ${col.bg}04 100%)`,
+                background: 'rgba(255,255,255,0.02)',
                 padding: '14px 16px 10px',
-                borderBottom: '1px solid rgba(26,43,66,0.04)',
+                borderBottom: '1px solid rgba(255,255,255,0.04)',
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 22 }}>{story.avatar}</span>
                         <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#1A2B42', fontFamily: "'Outfit', sans-serif" }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#FFFFFF', fontFamily: "'Outfit', sans-serif" }}>
                                 {story.author}
                             </div>
-                            <div style={{ fontSize: 9, color: '#8FA3B8' }}>{story.date}</div>
+                            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{story.date}</div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         {story.verified && (
-                            <span style={{ fontSize: 8, background: '#ECFDF5', color: '#16A34A', padding: '2px 6px', borderRadius: 100, fontWeight: 700 }}>
+                            <span style={{ fontSize: 8, background: 'rgba(22,163,74,0.15)', color: '#4ADE80', padding: '2px 6px', borderRadius: 100, fontWeight: 700 }}>
                                 ✓ Vérifié
                             </span>
                         )}
@@ -136,10 +132,10 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
                     </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#1A2B42', fontFamily: "'Outfit', sans-serif" }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#FFFFFF', fontFamily: "'Outfit', sans-serif" }}>
                         YUL → {story.destination}
                     </span>
-                    <span style={{ fontSize: 9, color: '#8FA3B8' }}>{story.dates}</span>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)' }}>{story.dates}</span>
                 </div>
                 <div style={{ marginTop: 4 }}>
                     <StarRating rating={story.rating} />
@@ -149,13 +145,13 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
             {/* Body */}
             <div style={{ padding: '12px 16px 14px' }}>
                 <h3 style={{
-                    fontSize: 13, fontWeight: 700, color: '#1A2B42', margin: '0 0 6px',
+                    fontSize: 13, fontWeight: 700, color: '#FFFFFF', margin: '0 0 6px',
                     lineHeight: 1.3, fontFamily: "'Outfit', sans-serif",
                 }}>
                     {story.title}
                 </h3>
                 <p style={{
-                    fontSize: 11.5, color: '#5A7089', lineHeight: 1.5, margin: 0,
+                    fontSize: 11.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, margin: 0,
                     display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any,
                     overflow: 'hidden',
                 }}>
@@ -163,17 +159,10 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 10, color: '#8FA3B8' }}>❤️ {story.likes}</span>
-                        <span style={{ fontSize: 10, color: '#8FA3B8' }}>💬 {story.commentCount}</span>
-                        <span style={{
-                            fontSize: 8, fontWeight: 700, color: '#7C3AED',
-                            background: 'rgba(124,58,237,0.06)', padding: '2px 6px',
-                            borderRadius: 100,
-                        }}>
-                            🧠 Entraîne l'IA
-                        </span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>❤️ {story.likes}</span>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>💬 {story.commentCount}</span>
                     </div>
-                    <span style={{ fontSize: 10, color: '#2E7DDB', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                    <span style={{ fontSize: 10, color: '#00D4FF', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
                         Lire →
                     </span>
                 </div>
@@ -184,42 +173,59 @@ function StoryCard({ story, featured = false }: { story: any; featured?: boolean
 
 export default function RecitsSection() {
     return (
-        <div style={{ background: '#F8FAFC', padding: '60px 24px', overflow: 'hidden' }}>
+        <div className="glass-section" style={{
+            padding: '60px 24px',
+        }}>
+            {/* Interstellar nebula glows */}
+            <div style={{
+                position: 'absolute', top: '25%', left: '15%',
+                width: 450, height: 450, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(0,212,255,0.06), transparent 70%)',
+                filter: 'blur(70px)', pointerEvents: 'none',
+            }} />
+            <div style={{
+                position: 'absolute', bottom: '20%', right: '15%',
+                width: 350, height: 350, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(32,199,184,0.04), transparent 70%)',
+                filter: 'blur(60px)', pointerEvents: 'none',
+            }} />
+
             <AnimatedDiv>
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
                     <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '6px 16px', borderRadius: 100,
-                        background: 'rgba(46,125,219,0.08)', marginBottom: 12,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        marginBottom: 12,
                     }}>
-                        <span>📖</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#2E7DDB', fontFamily: "'Outfit', sans-serif" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>
                             Récits de voyageurs
                         </span>
                     </div>
                     <h2 style={{
                         fontFamily: "'Fredoka', sans-serif", fontSize: 28, fontWeight: 700,
-                        color: '#1A2B42', margin: '0 0 8px',
+                        margin: '0 0 8px', color: '#FFFFFF',
                     }}>
                         Ils sont partis grâce à GeaiMonVol.
                     </h2>
-                    <p style={{ fontSize: 14, color: '#5A7089', margin: '0 auto', maxWidth: 540, lineHeight: 1.6 }}>
+                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', margin: '0 auto', maxWidth: 540, lineHeight: 1.6 }}>
                         De vrais voyageurs, de vrais deals, de vraies aventures.
                     </p>
+
+                    {/* Social proof counter */}
                     <div style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '8px 18px', borderRadius: 100, marginTop: 12,
-                        background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(46,125,219,0.06))',
-                        border: '1px solid rgba(124,58,237,0.1)',
+                        padding: '6px 14px', borderRadius: 100, marginTop: 12,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
                     }}>
-                        <span style={{ fontSize: 14 }}>🧠</span>
                         <span style={{
-                            fontSize: 12, fontWeight: 700,
-                            background: 'linear-gradient(135deg, #7C3AED, #2E7DDB)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                        }}>
-                            Chaque récit entraîne notre IA à donner de meilleurs conseils voyage
+                            width: 6, height: 6, borderRadius: '50%', background: '#4ADE80',
+                            display: 'inline-block', animation: 'liveBlink 2s infinite',
+                        }} />
+                        <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+                            47 récits partagés ce mois
                         </span>
                     </div>
                 </div>
@@ -237,32 +243,30 @@ export default function RecitsSection() {
             {/* CTA */}
             <AnimatedDiv delay={0.4}>
                 <div style={{ textAlign: 'center', marginTop: 16 }}>
-                    <div style={{
+                    <div className="glass-card" style={{
                         display: 'inline-flex', alignItems: 'center', gap: 12,
-                        background: 'white', borderRadius: 100,
+                        borderRadius: 100,
                         padding: '6px 6px 6px 20px',
-                        border: '1px solid rgba(26,43,66,0.06)',
-                        boxShadow: '0 2px 12px rgba(26,43,66,0.06)',
                         flexWrap: 'wrap',
                     }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1A2B42', fontFamily: "'Outfit', sans-serif" }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#FFFFFF', fontFamily: "'Outfit', sans-serif" }}>
                                 T'as voyagé avec nos deals ?
                             </span>
-                            <span style={{ fontSize: 10, color: '#8FA3B8' }}>
-                                🎁 1 mois Premium offert pour chaque récit
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+                                1 mois Premium offert pour chaque récit
                             </span>
                         </div>
                         <Link href="/recits" style={{
                             padding: '10px 22px', borderRadius: 100, border: 'none',
-                            background: 'linear-gradient(135deg, #2E7DDB, #1B5BA0)',
+                            background: 'linear-gradient(135deg, #00A5CC, #00D4FF)',
                             color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                             fontFamily: "'Outfit', sans-serif",
-                            boxShadow: '0 4px 16px rgba(46,125,219,0.2)',
+                            boxShadow: '0 4px 16px rgba(0,212,255,0.25)',
                             textDecoration: 'none',
                             display: 'inline-block',
                         }}>
-                            Raconter mon voyage ✈️
+                            Raconter mon voyage
                         </Link>
                     </div>
                 </div>

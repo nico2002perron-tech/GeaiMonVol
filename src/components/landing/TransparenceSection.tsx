@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { useInView } from '@/lib/hooks/useInView';
 
 function AnimatedDiv({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
@@ -21,25 +21,21 @@ const STEPS = [
         icon: '📖',
         title: 'Tu racontes',
         desc: 'Tu partages ton récit de voyage — destination, budget, conseils, coups de cœur.',
-        color: '#2E7DDB',
     },
     {
         icon: '🔒',
         title: 'On anonymise',
         desc: 'Ton nom et tes infos personnelles sont séparés du contenu. L\'IA ne voit que les données de voyage.',
-        color: '#16A34A',
     },
     {
         icon: '🧠',
         title: 'L\'IA apprend',
         desc: 'Notre agent IA analyse les récits pour comprendre les vrais bons plans, pas juste les prix.',
-        color: '#7C3AED',
     },
     {
         icon: '🎯',
         title: 'Tout le monde en profite',
         desc: 'Les prochains voyageurs reçoivent des conseils personnalisés basés sur des expériences réelles.',
-        color: '#EA580C',
     },
 ];
 
@@ -52,27 +48,38 @@ const GUARANTEES = [
 
 export default function TransparenceSection() {
     return (
-        <div style={{ background: 'white', padding: '60px 24px' }}>
-            <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        <div className="glass-section" style={{
+            padding: '60px 24px',
+        }}>
+            {/* Interstellar glow */}
+            <div style={{
+                position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+                width: 400, height: 400, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(0,212,255,0.06), rgba(32,199,184,0.03), transparent 70%)',
+                filter: 'blur(70px)', pointerEvents: 'none',
+            }} />
+
+            <div style={{ maxWidth: 800, margin: '0 auto', position: 'relative', zIndex: 2 }}>
                 <AnimatedDiv>
                     <div style={{ textAlign: 'center', marginBottom: 40 }}>
                         <div style={{
                             display: 'inline-flex', alignItems: 'center', gap: 8,
                             padding: '6px 16px', borderRadius: 100,
-                            background: 'rgba(22,163,74,0.08)', marginBottom: 12,
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            marginBottom: 12,
                         }}>
-                            <span>🛡️</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', fontFamily: "'Outfit', sans-serif" }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>
                                 Transparence & Protection
                             </span>
                         </div>
                         <h2 style={{
                             fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700,
-                            color: '#1A2B42', margin: '0 0 8px',
+                            margin: '0 0 8px', color: '#FFFFFF',
                         }}>
                             Tes données, tes règles.
                         </h2>
-                        <p style={{ fontSize: 13, color: '#5A7089', margin: '0 auto', maxWidth: 520, lineHeight: 1.6 }}>
+                        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 auto', maxWidth: 520, lineHeight: 1.6 }}>
                             On utilise l'intelligence collective de la communauté pour améliorer les guides IA — mais jamais au détriment de ta vie privée.
                         </p>
                     </div>
@@ -85,41 +92,38 @@ export default function TransparenceSection() {
                         flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32,
                     }}>
                         {STEPS.map((step, i) => (
-                            <div key={i} className="step-card" style={{ flex: '1 1 170px', maxWidth: 200 }}>
+                            <div key={i} className="glass-card" style={{
+                                flex: '1 1 170px', maxWidth: 200,
+                                padding: '20px 16px', textAlign: 'center',
+                            }}>
+                                {i < STEPS.length - 1 && (
+                                    <div style={{
+                                        position: 'absolute', right: -12, top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        fontSize: 14, color: 'rgba(255,255,255,0.15)', zIndex: 5,
+                                    }}>→</div>
+                                )}
                                 <div style={{
-                                    background: '#F8FAFC', borderRadius: 16, padding: '20px 16px',
-                                    textAlign: 'center', border: '1px solid rgba(26,43,66,0.05)',
-                                    height: '100%', position: 'relative',
+                                    width: 44, height: 44, borderRadius: 12, margin: '0 auto 10px',
+                                    background: 'rgba(0,212,255,0.08)', border: '2px solid rgba(0,212,255,0.12)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 20,
+                                }}>{step.icon}</div>
+                                <div style={{
+                                    fontSize: 10, fontWeight: 800, color: '#00D4FF',
+                                    letterSpacing: 0.5, marginBottom: 4,
                                 }}>
-                                    {i < STEPS.length - 1 && (
-                                        <div style={{
-                                            position: 'absolute', right: -12, top: '50%',
-                                            transform: 'translateY(-50%)',
-                                            fontSize: 14, color: '#D1D5DB', zIndex: 5,
-                                        }}>→</div>
-                                    )}
-                                    <div style={{
-                                        width: 44, height: 44, borderRadius: 12, margin: '0 auto 10px',
-                                        background: `${step.color}10`, border: `2px solid ${step.color}20`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 20,
-                                    }}>{step.icon}</div>
-                                    <div style={{
-                                        fontSize: 10, fontWeight: 800, color: step.color,
-                                        letterSpacing: 0.5, marginBottom: 4,
-                                    }}>
-                                        ÉTAPE {i + 1}
-                                    </div>
-                                    <h4 style={{
-                                        fontSize: 14, fontWeight: 700, color: '#1A2B42',
-                                        margin: '0 0 4px', fontFamily: "'Outfit', sans-serif",
-                                    }}>
-                                        {step.title}
-                                    </h4>
-                                    <p style={{ fontSize: 11, color: '#5A7089', lineHeight: 1.4, margin: 0 }}>
-                                        {step.desc}
-                                    </p>
+                                    ÉTAPE {i + 1}
                                 </div>
+                                <h4 style={{
+                                    fontSize: 14, fontWeight: 700, color: '#FFFFFF',
+                                    margin: '0 0 4px', fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    {step.title}
+                                </h4>
+                                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, margin: 0 }}>
+                                    {step.desc}
+                                </p>
                             </div>
                         ))}
                     </div>
@@ -127,9 +131,8 @@ export default function TransparenceSection() {
 
                 {/* Guarantees */}
                 <AnimatedDiv delay={0.4}>
-                    <div style={{
-                        background: 'linear-gradient(135deg, #0F1A2A 0%, #1A2B42 100%)',
-                        borderRadius: 18, padding: '24px 28px',
+                    <div className="glass-card" style={{
+                        padding: '24px 28px',
                         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                         gap: 16,
                     }}>
@@ -138,12 +141,12 @@ export default function TransparenceSection() {
                                 <span style={{ fontSize: 20, flexShrink: 0 }}>{g.icon}</span>
                                 <div>
                                     <div style={{
-                                        fontSize: 12, fontWeight: 700, color: 'white', marginBottom: 2,
+                                        fontSize: 12, fontWeight: 700, color: '#00D4FF', marginBottom: 2,
                                         fontFamily: "'Outfit', sans-serif",
                                     }}>
                                         {g.title}
                                     </div>
-                                    <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, margin: 0 }}>
+                                    <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, margin: 0 }}>
                                         {g.desc}
                                     </p>
                                 </div>

@@ -42,11 +42,12 @@ export default function SocialTicker() {
                 alignItems: 'center',
                 gap: 10,
                 padding: '8px 16px 8px 10px',
-                background: 'rgba(255,255,255,0.95)',
-                backdropFilter: 'blur(12px)',
+                background: 'rgba(0,0,0,0.6)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
                 borderRadius: 12,
-                boxShadow: '0 4px 20px rgba(26,43,66,0.1)',
-                border: '1px solid rgba(46,125,219,0.08)',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4), 0 0 12px rgba(0,212,255,0.08)',
+                border: '1px solid rgba(0,212,255,0.12)',
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateY(0)' : 'translateY(6px)',
                 transition: 'all 0.4s cubic-bezier(.22, 1, .36, 1)',
@@ -54,12 +55,12 @@ export default function SocialTicker() {
             }}>
                 <span style={{ fontSize: 20 }}>{ev.emoji}</span>
                 <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-                    <span style={{ fontWeight: 700, color: '#1A2B42' }}>{ev.name}</span>
-                    <span style={{ color: '#8FA3B8' }}> de {ev.city} </span>
-                    <span style={{ color: '#5A7089' }}>{ev.action} </span>
-                    <span style={{ fontWeight: 700, color: '#2E7DDB' }}>{ev.dest}</span>
-                    <span style={{ color: '#16A34A', fontWeight: 700 }}> à {ev.price}</span>
-                    <div style={{ fontSize: 10, color: '#8FA3B8', marginTop: 1 }}>{ev.ago}</div>
+                    <span style={{ fontWeight: 700, color: '#FFFFFF' }}>{ev.name}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.4)' }}> de {ev.city} </span>
+                    <span style={{ color: 'rgba(255,255,255,0.6)' }}>{ev.action} </span>
+                    <span style={{ fontWeight: 700, color: '#00D4FF' }}>{ev.dest}</span>
+                    <span style={{ color: '#4ADE80', fontWeight: 700 }}> à {ev.price}</span>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{ev.ago}</div>
                 </div>
             </div>
         </div>

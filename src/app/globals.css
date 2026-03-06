@@ -1197,6 +1197,14 @@ nav {
   transition: transform .2s
 }
 
+/* ===== VISUAL PUNCH ANIMATIONS ===== */
+
+/* CTA Pulse — breathing glow on CTA buttons */
+@keyframes ctaPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,212,255,0.3), 0 4px 16px rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 0 24px rgba(0,212,255,0.5), 0 0 48px rgba(0,212,255,0.15), 0 4px 16px rgba(0,0,0,0.3); }
+}
+
 /* CTA box animated border */
 .cta-box {
   position: relative;
@@ -2332,19 +2340,18 @@ a {
 }
 
 /* ═══════════════════════════════
-   CAROUSEL — DARK GLASSMORPHISM
+   CAROUSEL — COMPACT GLASS
    ═══════════════════════════════ */
 .carousel-wrap {
   position: relative;
-  background: linear-gradient(180deg, transparent 0%, rgba(11, 22, 40, 0.4) 30%, rgba(11, 22, 40, 0.6) 100%);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.2) 50%, rgba(0, 0, 0, 0.35) 100%);
 }
 
 .carousel-fade-left,
 .carousel-fade-right {
   position: absolute;
   top: 0;
-  width: 100px;
+  width: 80px;
   height: 100%;
   z-index: 3;
   pointer-events: none;
@@ -2352,19 +2359,19 @@ a {
 
 .carousel-fade-left {
   left: 0;
-  background: linear-gradient(to right, rgba(11, 22, 40, 0.98) 0%, rgba(11, 22, 40, 0.7) 40%, rgba(11, 22, 40, 0.2) 70%, transparent 100%);
+  background: linear-gradient(to right, rgba(2, 4, 8, 0.95) 0%, rgba(2, 4, 8, 0.5) 50%, transparent 100%);
 }
 
 .carousel-fade-right {
   right: 0;
-  background: linear-gradient(to left, rgba(11, 22, 40, 0.98) 0%, rgba(11, 22, 40, 0.7) 40%, rgba(11, 22, 40, 0.2) 70%, transparent 100%);
+  background: linear-gradient(to left, rgba(2, 4, 8, 0.95) 0%, rgba(2, 4, 8, 0.5) 50%, transparent 100%);
 }
 
 .carousel-scroll {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   overflow-x: auto;
-  padding: 12px 24px 10px;
+  padding: 10px 20px 10px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   will-change: scroll-position;
@@ -2377,8 +2384,8 @@ a {
 @media (max-width: 768px) {
   .carousel-scroll {
     scroll-snap-type: x mandatory;
-    gap: 12px;
-    padding: 10px 16px 8px;
+    gap: 10px;
+    padding: 8px 12px 8px;
   }
 
   .carousel-card {
@@ -2387,7 +2394,7 @@ a {
 
   .carousel-fade-left,
   .carousel-fade-right {
-    width: 50px;
+    width: 40px;
   }
 }
 
@@ -2397,9 +2404,9 @@ a {
 }
 
 .carousel-pill:hover {
-  transform: translateY(-6px) scale(1.03);
-  border-color: rgba(96, 165, 250, 0.35) !important;
-  box-shadow: 0 12px 36px rgba(96, 165, 250, 0.25), 0 6px 16px rgba(0, 0, 0, 0.5);
+  transform: translateY(-3px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(56, 189, 248, 0.12);
   z-index: 2;
 }
 
@@ -4380,133 +4387,6 @@ a {
 }
 
 /* ═══════════════════════════════════════
-   PREMIUM SECTION KEYFRAMES
-   ═══════════════════════════════════════ */
-@keyframes premFloat {
-
-  0%,
-  100% {
-    transform: translateY(0) rotate(-1deg);
-  }
-
-  50% {
-    transform: translateY(-5px) rotate(0deg);
-  }
-}
-
-@keyframes premBlink {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: .3;
-  }
-}
-
-@keyframes premOrbDrift {
-
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-
-  33% {
-    transform: translate(30px, -20px);
-  }
-
-  66% {
-    transform: translate(-20px, 15px);
-  }
-}
-
-@keyframes premGlow {
-
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: .6;
-  }
-
-  50% {
-    transform: scale(1.12);
-    opacity: 1;
-  }
-}
-
-@keyframes premSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes premBorderShift {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes premMascotFloat {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-@keyframes premBadgePop {
-  to {
-    transform: scale(1);
-  }
-}
-
-@keyframes premShimmer {
-  0% {
-    left: -100%;
-  }
-
-  50%,
-  100% {
-    left: 200%;
-  }
-}
-
-@keyframes premGoldShift {
-  0% {
-    background-position: 0% center;
-  }
-
-  50% {
-    background-position: 100% center;
-  }
-
-  100% {
-    background-position: 0% center;
-  }
-}
-
-@keyframes premFadeUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ═══════════════════════════════════════
    RECITS SECTION — SCROLL SNAP (mobile)
    ═══════════════════════════════════════ */
 .recits-scroll {
@@ -4538,72 +4418,39 @@ a {
   }
 }
 
-/* ═══════════════════════════════════════════════════════
-   CARTOON GLOBE ANIMATIONS
-   ═══════════════════════════════════════════════════════ */
-
-@keyframes cartoon-bounce {
-  0% {
-    transform: scale(0) translateY(20px);
-    opacity: 0;
-  }
-
-  50% {
-    transform: scale(1.15) translateY(-5px);
-    opacity: 1;
-  }
-
-  70% {
-    transform: scale(0.92) translateY(2px);
-  }
-
-  100% {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-  }
+/* ═══════════════════════════════════════
+   GLASSMORPHISM SPATIAL — Glass Cards
+   Sea of Thieves tropical ocean palette
+   ═══════════════════════════════════════ */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-@keyframes sparkle-float {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 0.8;
-  }
-
-  50% {
-    transform: translateY(-12px) scale(1.2);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(-24px) scale(0.6);
-    opacity: 0;
-  }
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.15), 0 0 24px rgba(20, 184, 166, 0.08);
+  border-color: rgba(0, 212, 255, 0.22);
 }
 
-@keyframes cloud-drift {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(100vw);
-  }
+.glass-section {
+  background: linear-gradient(180deg, #062A3E 0%, #073350 40%, #083A58 65%, #073350 100%);
+  position: relative;
+  overflow: hidden;
 }
 
-/* Cartoon globe container — soft sky background */
-#cartoon-globe-canvas {
-  border-radius: 0;
-  image-rendering: auto;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.96);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+.glass-section::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(180deg, rgba(2,8,16,0.8) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
 }

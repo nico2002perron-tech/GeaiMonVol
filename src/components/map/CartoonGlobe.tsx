@@ -88,6 +88,18 @@ const BADGE_COLORS: Record<string, string> = {
     normal: '#00D4FF',
 };
 
+// Continent color palette — soft pastel cartoon
+const CONTINENT_COLORS: Record<string, { base: string; deal: string; stroke: string; dealStroke: string; hover: string; hoverDeal: string }> = {
+    amerique_nord: { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' },
+    amerique_sud:  { base: '#FFD3B6', deal: '#FFB088', stroke: '#E0B8A0', dealStroke: '#E8A078', hover: '#FFE4D0', hoverDeal: '#FFC4A0' },
+    caraibes:      { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' },
+    europe:        { base: '#C9B1FF', deal: '#A888F0', stroke: '#A898D8', dealStroke: '#9070E0', hover: '#DDD0FF', hoverDeal: '#BCA0F8' },
+    asie:          { base: '#FFEAA7', deal: '#FFD56B', stroke: '#E0D098', dealStroke: '#E0C060', hover: '#FFF2C8', hoverDeal: '#FFE088' },
+    afrique:       { base: '#FFB5A7', deal: '#FF9A8A', stroke: '#E0A098', dealStroke: '#E08878', hover: '#FFD0C8', hoverDeal: '#FFB0A0' },
+    oceanie:       { base: '#FFC2D1', deal: '#FF9AB5', stroke: '#E0A8B8', dealStroke: '#E088A0', hover: '#FFD8E0', hoverDeal: '#FFB0C8' },
+};
+const DEFAULT_CONTINENT = { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' };
+
 // Module-level cache for world atlas
 let worldAtlasCache: any = null;
 let worldAtlasPromise: Promise<any> | null = null;
@@ -137,13 +149,11 @@ const ZOOM_SMOOTHING = 0.12;
 const INERTIA_FRICTION = 0.95;
 const INERTIA_THRESHOLD = 0.01;
 const CITY_LABEL_ZOOM_THRESHOLD = 1.2;
-const AIRPLANE_CYCLE_FRAMES = 300;
-
 // ═══ HOLOGRAPHIC TRAJECTORY ═══
-const HOLO_ROTATE_FRAMES = 45;
-const HOLO_ARC_FRAMES = 55;
-const HOLO_SUSTAIN_FRAMES = 45;
-const HOLO_FADEOUT_FRAMES = 30;
+const HOLO_ROTATE_FRAMES = 90;
+const HOLO_ARC_FRAMES = 120;
+const HOLO_SUSTAIN_FRAMES = 180;
+const HOLO_FADEOUT_FRAMES = 50;
 const HOLO_PARTICLE_COUNT = 18;
 const HOLO_COLORS = {
     primary: '#00D4FF',
@@ -208,9 +218,10 @@ interface ShootingStar {
     maxLife: number;
 }
 
+
 function generateStars(width: number, height: number): Star[] {
     const stars: Star[] = [];
-    const starColors = ['#FFF8E7', '#FFE8C8', '#D4E8FF', '#C8D6FF', '#FFD4E8', '#E8D4FF', '#FFFFFF'];
+    const starColors = ['#E0F8FF', '#D4F0FF', '#FFE8F0', '#E8E0FF', '#D4FFE8', '#FFF0D4', '#FFFFFF'];
     for (let i = 0; i < 160; i++) {
         stars.push({
             x: Math.random() * width,
@@ -894,47 +905,45 @@ export default function CartoonGlobe({
                 .scale(visibleRadius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
             const path = d3.geoPath().projection(projection).context(ctx);
 
-            // ─── IMPRESSIVE CARTOON SPACE BACKGROUND ───
-            // Base: diagonal gradient from deep indigo to softer blue-purple
-            const bgBase = ctx.createLinearGradient(0, height, width, 0);
-            bgBase.addColorStop(0, '#05091A');    // deep dark indigo bottom-left
-            bgBase.addColorStop(0.3, '#0A1230');  // dark navy
-            bgBase.addColorStop(0.6, '#121840');  // medium navy-purple
-            bgBase.addColorStop(0.85, '#1A2252'); // softer purple-blue
-            bgBase.addColorStop(1, '#222860');    // lighter top-right
+            // ─── INTERSTELLAR DEEP SPACE ───
+            const bgBase = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(width, height) * 0.8);
+            bgBase.addColorStop(0, '#0a1628');     // deep space navy
+            bgBase.addColorStop(0.4, '#060d1a');   // darker void
+            bgBase.addColorStop(0.7, '#030810');   // near-black
+            bgBase.addColorStop(1, '#010204');      // absolute void
             ctx.fillStyle = bgBase;
             ctx.fillRect(0, 0, width, height);
 
-            // Nebula layer 1: warm pink/purple cloud (bottom-right)
+            // Nebula layer 1: warm amber accretion glow (top-right, Gargantua-style)
             ctx.globalCompositeOperation = 'screen';
             const nebula1 = ctx.createRadialGradient(
-                width * 0.75, height * 0.7, 0,
-                width * 0.75, height * 0.7, Math.max(width, height) * 0.5
+                width * 0.78, height * 0.25, 0,
+                width * 0.78, height * 0.25, Math.max(width, height) * 0.45
             );
-            nebula1.addColorStop(0, 'rgba(120, 40, 140, 0.12)');
-            nebula1.addColorStop(0.3, 'rgba(100, 30, 120, 0.08)');
-            nebula1.addColorStop(0.6, 'rgba(80, 20, 100, 0.04)');
-            nebula1.addColorStop(1, 'rgba(60, 10, 80, 0)');
+            nebula1.addColorStop(0, 'rgba(217, 149, 51, 0.07)');
+            nebula1.addColorStop(0.3, 'rgba(180, 100, 30, 0.04)');
+            nebula1.addColorStop(0.6, 'rgba(140, 70, 20, 0.02)');
+            nebula1.addColorStop(1, 'rgba(100, 50, 10, 0)');
             ctx.fillStyle = nebula1;
             ctx.fillRect(0, 0, width, height);
 
-            // Nebula layer 2: cool cyan/teal cloud (top-left)
+            // Nebula layer 2: deep violet dust (left)
             const nebula2 = ctx.createRadialGradient(
-                width * 0.2, height * 0.25, 0,
-                width * 0.2, height * 0.25, Math.max(width, height) * 0.45
+                width * 0.15, height * 0.55, 0,
+                width * 0.15, height * 0.55, Math.max(width, height) * 0.5
             );
-            nebula2.addColorStop(0, 'rgba(30, 100, 160, 0.10)');
-            nebula2.addColorStop(0.3, 'rgba(20, 80, 140, 0.06)');
-            nebula2.addColorStop(0.6, 'rgba(15, 60, 120, 0.03)');
-            nebula2.addColorStop(1, 'rgba(10, 40, 100, 0)');
+            nebula2.addColorStop(0, 'rgba(88, 40, 150, 0.05)');
+            nebula2.addColorStop(0.3, 'rgba(60, 25, 110, 0.03)');
+            nebula2.addColorStop(0.6, 'rgba(40, 15, 80, 0.015)');
+            nebula2.addColorStop(1, 'rgba(20, 8, 50, 0)');
             ctx.fillStyle = nebula2;
             ctx.fillRect(0, 0, width, height);
 
-            // Subtle warm accent (center, behind globe)
-            const nebula3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, visibleRadius * 2);
-            nebula3.addColorStop(0, 'rgba(60, 80, 160, 0.06)');
-            nebula3.addColorStop(0.5, 'rgba(40, 50, 120, 0.03)');
-            nebula3.addColorStop(1, 'rgba(20, 30, 80, 0)');
+            // Nebula layer 3: subtle cyan haze behind globe
+            const nebula3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, visibleRadius * 2.2);
+            nebula3.addColorStop(0, 'rgba(0, 180, 220, 0.04)');
+            nebula3.addColorStop(0.5, 'rgba(0, 120, 160, 0.02)');
+            nebula3.addColorStop(1, 'rgba(0, 80, 120, 0)');
             ctx.fillStyle = nebula3;
             ctx.fillRect(0, 0, width, height);
 
@@ -973,9 +982,9 @@ export default function CartoonGlobe({
                 const tailX = ss.x - Math.cos(ss.angle) * ss.length;
                 const tailY = ss.y - Math.sin(ss.angle) * ss.length;
                 const grad = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
-                grad.addColorStop(0, 'rgba(200,220,255,0)');
-                grad.addColorStop(0.7, `rgba(200,220,255,${alpha * 0.3})`);
-                grad.addColorStop(1, `rgba(200,220,255,${alpha})`);
+                grad.addColorStop(0, 'rgba(255,220,180,0)');
+                grad.addColorStop(0.7, `rgba(255,230,200,${alpha * 0.3})`);
+                grad.addColorStop(1, `rgba(255,240,220,${alpha})`);
                 ctx.strokeStyle = grad;
                 ctx.lineWidth = 1;
                 ctx.lineCap = 'round';
@@ -992,69 +1001,69 @@ export default function CartoonGlobe({
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
 
-            // Outer warm glow (wide, friendly)
-            const outerGlow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.9, cx, cy, visibleRadius * 1.6 * atmoPulse);
-            outerGlow.addColorStop(0, 'rgba(60, 160, 255, 0.0)');
-            outerGlow.addColorStop(0.3, 'rgba(60, 160, 255, 0.06)');
-            outerGlow.addColorStop(0.5, 'rgba(100, 180, 255, 0.10)');
-            outerGlow.addColorStop(0.7, 'rgba(80, 140, 255, 0.05)');
-            outerGlow.addColorStop(1, 'rgba(60, 120, 255, 0)');
+            // Outer glow — soft cyan atmosphere, dimmer for deep space
+            const outerGlow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.9, cx, cy, visibleRadius * 1.5 * atmoPulse);
+            outerGlow.addColorStop(0, 'rgba(0, 180, 220, 0.0)');
+            outerGlow.addColorStop(0.3, 'rgba(0, 180, 220, 0.05)');
+            outerGlow.addColorStop(0.5, 'rgba(0, 200, 240, 0.08)');
+            outerGlow.addColorStop(0.7, 'rgba(0, 180, 220, 0.04)');
+            outerGlow.addColorStop(1, 'rgba(0, 160, 200, 0)');
             ctx.fillStyle = outerGlow;
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.6, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Cyan rim (lit side — top-right)
+            // Cyan rim (lit side — top-right, like sunlight hitting atmosphere)
             const cyanGrad = ctx.createRadialGradient(
                 cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 0.88,
-                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 1.2 * atmoPulse
+                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 1.15 * atmoPulse
             );
-            cyanGrad.addColorStop(0, 'rgba(0, 200, 255, 0.0)');
-            cyanGrad.addColorStop(0.4, 'rgba(0, 200, 255, 0.12)');
-            cyanGrad.addColorStop(0.7, 'rgba(0, 200, 255, 0.06)');
-            cyanGrad.addColorStop(1, 'rgba(0, 200, 255, 0)');
+            cyanGrad.addColorStop(0, 'rgba(0, 200, 240, 0.0)');
+            cyanGrad.addColorStop(0.4, 'rgba(0, 200, 240, 0.10)');
+            cyanGrad.addColorStop(0.7, 'rgba(0, 180, 220, 0.05)');
+            cyanGrad.addColorStop(1, 'rgba(0, 180, 220, 0)');
             ctx.fillStyle = cyanGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Warm sunset rim (left side — shadow)
-            const warmGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 0.88,
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 1.15
-            );
-            warmGrad.addColorStop(0, 'rgba(180, 100, 255, 0.0)');
-            warmGrad.addColorStop(0.4, 'rgba(180, 100, 255, 0.06)');
-            warmGrad.addColorStop(0.7, 'rgba(140, 60, 220, 0.03)');
-            warmGrad.addColorStop(1, 'rgba(140, 60, 220, 0)');
-            ctx.fillStyle = warmGrad;
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius * 1.25, 0, Math.PI * 2);
             ctx.fill();
 
-            // Crisp edge rim (bright ring at globe edge)
-            const rimGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.93, cx, cy, visibleRadius * 1.08);
-            rimGrad.addColorStop(0, 'rgba(100, 200, 255, 0)');
-            rimGrad.addColorStop(0.5, 'rgba(100, 200, 255, 0.08)');
-            rimGrad.addColorStop(0.8, 'rgba(100, 200, 255, 0.18)');
-            rimGrad.addColorStop(0.95, 'rgba(100, 200, 255, 0.12)');
-            rimGrad.addColorStop(1, 'rgba(100, 200, 255, 0.04)');
+            // Warm amber rim (left side — like a distant star behind)
+            const warmGrad = ctx.createRadialGradient(
+                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 0.88,
+                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 1.12
+            );
+            warmGrad.addColorStop(0, 'rgba(217, 149, 51, 0.0)');
+            warmGrad.addColorStop(0.4, 'rgba(217, 149, 51, 0.04)');
+            warmGrad.addColorStop(0.7, 'rgba(180, 120, 40, 0.02)');
+            warmGrad.addColorStop(1, 'rgba(180, 120, 40, 0)');
+            ctx.fillStyle = warmGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Crisp edge rim — thin atmosphere line
+            const rimGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.95, cx, cy, visibleRadius * 1.06);
+            rimGrad.addColorStop(0, 'rgba(0, 200, 240, 0)');
+            rimGrad.addColorStop(0.5, 'rgba(0, 200, 240, 0.08)');
+            rimGrad.addColorStop(0.8, 'rgba(0, 200, 240, 0.16)');
+            rimGrad.addColorStop(0.95, 'rgba(0, 200, 240, 0.10)');
+            rimGrad.addColorStop(1, 'rgba(0, 200, 240, 0.03)');
             ctx.fillStyle = rimGrad;
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.08, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 1.06, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.restore();
 
-            // ─── OCEAN (rich cartoon blue) ───
+            // ─── OCEAN (deep cinematic blue) ───
             const oceanGrad = ctx.createRadialGradient(
                 cx - visibleRadius * 0.3, cy - visibleRadius * 0.3, 0, cx, cy, visibleRadius
             );
-            oceanGrad.addColorStop(0, '#1B3A6B');
-            oceanGrad.addColorStop(0.4, '#143058');
-            oceanGrad.addColorStop(0.7, '#0E2445');
-            oceanGrad.addColorStop(1, '#091A35');
+            oceanGrad.addColorStop(0, '#0E7A90');
+            oceanGrad.addColorStop(0.3, '#0A6880');
+            oceanGrad.addColorStop(0.6, '#085870');
+            oceanGrad.addColorStop(1, '#054560');
             ctx.fillStyle = oceanGrad;
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
@@ -1062,8 +1071,8 @@ export default function CartoonGlobe({
 
             // ─── GRATICULE (subtle cartoon grid) ───
             ctx.save();
-            ctx.globalAlpha = 0.06;
-            ctx.strokeStyle = '#2A5090';
+            ctx.globalAlpha = 0.08;
+            ctx.strokeStyle = '#40C0D0';
             ctx.lineWidth = 0.4;
             ctx.beginPath();
             path(graticule);
@@ -1082,29 +1091,32 @@ export default function CartoonGlobe({
                 const name = country.properties?.name || '';
                 const isHovered = name === hoveredName;
                 const hasDeal = activeCountries.has(name);
+                const regionKey = getRegionForCountry(name);
+                const cc = (regionKey && CONTINENT_COLORS[regionKey]) || DEFAULT_CONTINENT;
 
                 ctx.beginPath();
                 path(country);
 
-                // Cartoon land fill — deal countries in warm red/coral
+                // Region-colored cartoon fill
                 if (isHovered && hasDeal) {
-                    ctx.fillStyle = '#E85454'; // bright red on hover
+                    ctx.fillStyle = cc.hoverDeal;
                 } else if (hasDeal) {
-                    const dealPulse = 0.85 + 0.15 * Math.sin(timeRef.current * 0.02);
-                    const r = Math.round(180 * dealPulse);
-                    ctx.fillStyle = `rgb(${r}, 60, 60)`; // warm red for deal countries
+                    const dealPulse = 0.85 + 0.15 * Math.sin(timeRef.current * 0.03);
+                    ctx.globalAlpha = dealPulse;
+                    ctx.fillStyle = cc.deal;
                 } else if (isHovered) {
-                    ctx.fillStyle = '#7CC9A8'; // pastel mint hover
+                    ctx.fillStyle = cc.hover;
                 } else {
-                    ctx.fillStyle = '#5BAF8A'; // soft sage green — cartoon pastel
+                    ctx.fillStyle = cc.base;
                 }
                 ctx.fill();
+                ctx.globalAlpha = 1;
 
-                // Cartoon-style outline
+                // Cartoon-style outline matching region
                 if (hasDeal) {
-                    ctx.strokeStyle = isHovered ? '#FF8A8A' : '#C04040';
+                    ctx.strokeStyle = isHovered ? cc.hoverDeal : cc.dealStroke;
                 } else {
-                    ctx.strokeStyle = isHovered ? '#A0E8CC' : '#4A9A78';
+                    ctx.strokeStyle = isHovered ? cc.hover : cc.stroke;
                 }
                 ctx.lineWidth = isHovered ? 1.8 : 0.8;
                 ctx.stroke();
@@ -1112,8 +1124,8 @@ export default function CartoonGlobe({
                 // Glow effect on hovered deal countries
                 if (isHovered && hasDeal) {
                     ctx.save();
-                    ctx.globalAlpha = 0.25;
-                    ctx.shadowColor = '#FF5555';
+                    ctx.globalAlpha = 0.3;
+                    ctx.shadowColor = cc.deal;
                     ctx.shadowBlur = 24;
                     ctx.beginPath();
                     path(country);
@@ -1140,6 +1152,8 @@ export default function CartoonGlobe({
             ctx.fillStyle = solarGrad;
             ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
             ctx.restore();
+
+
 
             // ═══ TINY CARTOON WORLD WONDERS (generated icons) ═══
             const wonderDefs: { key: string; lat: number; lng: number; label: string }[] = [

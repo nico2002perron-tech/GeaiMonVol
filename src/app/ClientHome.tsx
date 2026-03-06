@@ -11,9 +11,11 @@ const MapInterface = dynamic(
 
 export default function ClientHome() {
   return (
-    <ErrorBoundary>
-      <MapInterface />
-      <MissionPopup />
-    </ErrorBoundary>
+    <div style={{ background: '#020408', minHeight: '100vh' }}>
+      <ErrorBoundary>
+        <MapInterface />
+        <MissionPopup />
+      </ErrorBoundary>
+    </div>
   );
 }
