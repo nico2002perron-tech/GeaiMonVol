@@ -49,7 +49,7 @@ export default function Hero() {
                         textDecoration: 'none',
                         boxShadow: 'var(--sh-blue)',
                         transition: 'all .2s',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: "'Outfit', sans-serif",
                     }}
                 >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -74,7 +74,7 @@ export default function Hero() {
                         fontSize: '15px',
                         textDecoration: 'none',
                         transition: 'all .2s',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: "'Outfit', sans-serif",
                     }}
                 >
                     Voir les deals
