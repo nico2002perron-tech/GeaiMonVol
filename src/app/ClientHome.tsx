@@ -164,11 +164,14 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
   return deals;
 }
 
+const EMPTY_DEALS: any[] = [];
+
 interface ClientHomeProps {
   initialDeals?: any[];
 }
 
-export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
+export default function ClientHome({ initialDeals }: ClientHomeProps) {
+  const stableInitial = initialDeals && initialDeals.length > 0 ? initialDeals : EMPTY_DEALS;
   const [activeFilter, setActiveFilter] = useState<FilterTab>('tous');
   const [sortMode, setSortMode] = useState<SortMode>('deal');
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,23 +182,30 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
 
-  // Favorites (localStorage)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  // Favorites (localStorage) — using Record instead of Set to avoid useMemo issues
+  const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   useEffect(() => {
     try {
       const stored = localStorage.getItem('geai_favorites');
-      if (stored) setFavorites(new Set(JSON.parse(stored)));
+      if (stored) {
+        const arr: string[] = JSON.parse(stored);
+        const obj: Record<string, boolean> = {};
+        for (const c of arr) obj[c] = true;
+        setFavorites(obj);
+      }
       if (localStorage.getItem('geai_alerts') === 'true') setAlertsEnabled(true);
     } catch {}
   }, []);
 
+  const favCount = useMemo(() => Object.keys(favorites).length, [favorites]);
+
   const toggleFavorite = useCallback((city: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites(prev => {
-      const next = new Set(prev);
-      if (next.has(city)) next.delete(city);
-      else next.add(city);
-      localStorage.setItem('geai_favorites', JSON.stringify([...next]));
+      const next = { ...prev };
+      if (next[city]) delete next[city];
+      else next[city] = true;
+      localStorage.setItem('geai_favorites', JSON.stringify(Object.keys(next)));
       return next;
     });
   }, []);
@@ -232,7 +242,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   }, []);
 
   // SSR deals mapped once — shown INSTANTLY on page load
-  const ssrDeals = useMemo(() => mapPricesToDeals(initialDeals), [initialDeals]);
+  const ssrDeals = useMemo(() => mapPricesToDeals(stableInitial), [stableInitial]);
 
   // Live prices from Skyscanner scans (refreshes in background)
   const { prices: livePrices, isLive, lastUpdated } = useLivePrices();
@@ -307,7 +317,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
 
     // Category filter
     if (activeFilter === 'favoris') {
-      result = result.filter(d => favorites.has(d.city));
+      result = result.filter(d => favorites[d.city]);
     } else if (activeFilter === 'top') {
       result = result.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel));
     } else if (activeFilter !== 'tous') {
@@ -659,7 +669,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                 {FILTER_TABS.map(tab => {
                   const isActive = activeFilter === tab.id;
                   const count = tab.id === 'tous' ? allDeals.length
-                    : tab.id === 'favoris' ? favorites.size
+                    : tab.id === 'favoris' ? favCount
                     : tab.id === 'top' ? allDeals.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel)).length
                     : allDeals.filter(d => d.category === tab.id).length;
                   return (
@@ -930,11 +940,11 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                   {/* Favorite */}
                   <button onClick={(e) => toggleFavorite(featured.city, e)} style={{
                     width: 34, height: 34, borderRadius: '50%', border: 'none',
-                    background: favorites.has(featured.city) ? 'rgba(239,68,68,0.08)' : '#F1F5F9',
+                    background: favorites[featured.city] ? 'rgba(239,68,68,0.08)' : '#F1F5F9',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.2s', fontSize: 16,
                   }}>
-                    {favorites.has(featured.city) ? '❤️' : '🤍'}
+                    {favorites[featured.city] ? '❤️' : '🤍'}
                   </button>
                   {/* Share */}
                   <button onClick={(e) => shareDeal(featured, e)} style={{
@@ -1054,14 +1064,14 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                           onClick={(e) => toggleFavorite(deal.city, e)}
                           style={{
                             width: 32, height: 32, borderRadius: '50%', border: 'none',
-                            background: favorites.has(deal.city) ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
+                            background: favorites[deal.city] ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
                             backdropFilter: 'blur(8px)',
                             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             transition: 'all 0.2s', fontSize: 14,
                             color: '#fff',
                           }}
                         >
-                          {favorites.has(deal.city) ? '❤️' : '🤍'}
+                          {favorites[deal.city] ? '❤️' : '🤍'}
                         </button>
                         <button
                           onClick={(e) => shareDeal(deal, e)}
