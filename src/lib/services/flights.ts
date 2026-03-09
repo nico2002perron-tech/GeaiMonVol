@@ -169,8 +169,8 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // Scanner les 6 prochains mois en détail
-    const datesToScan = dates.slice(0, 6);
+    // Scanner les 3 prochains mois (optimisé pour limiter les appels API)
+    const datesToScan = dates.slice(0, 3);
 
     for (const date of datesToScan) {
         try {
@@ -214,7 +214,7 @@ export async function scanDestinationDeep(
                 },
             });
 
-            await sleep(1500);
+            await sleep(600);
         } catch (error) {
             console.error(`[Deep] Error scanning ${destCity} ${date.month}:`, error);
         }
@@ -318,7 +318,7 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
                     },
                 });
 
-                await sleep(1500);
+                await sleep(600);
             } catch (error) {
                 console.error(`[Canada] Error scanning ${dest.city} ${date.month}:`, error);
             }
@@ -516,7 +516,7 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
                         },
                     });
 
-                    await sleep(1500);
+                    await sleep(600);
                 } catch (error) {
                     console.error(`[Canada] Error scanning ${dest.city} ${date.month}:`, error);
                 }

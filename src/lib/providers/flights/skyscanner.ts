@@ -18,19 +18,43 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ── Entity ID Resolution (IATA → Skyscanner skyId) ──────────────────────────
+// ── Hardcoded IATA → Skyscanner skyId mappings ──────────────────────────────
+// Eliminates all auto-complete API calls (saves ~50 requests per scan cycle)
 
-// Cache: IATA code → skyId (e.g. "YUL" → "YMQA", "CDG" → "PARI")
-const skyIdCache = new Map<string, string>();
+const SKYID_MAP: Record<string, string> = {
+    // Origin
+    'YUL': 'YMQA',
+    // Europe
+    'CDG': 'PARI', 'ORY': 'PARI', 'LHR': 'LOND', 'LGW': 'LOND', 'STN': 'LOND',
+    'BCN': 'BCN', 'MAD': 'MAD', 'LIS': 'LIS', 'OPO': 'OPO',
+    'FCO': 'ROME', 'ATH': 'ATH', 'DUB': 'DUB', 'AMS': 'AMS',
+    'BER': 'BERL', 'RAK': 'RAK', 'KEF': 'KEF',
+    // Americas
+    'CUN': 'CUN', 'PUJ': 'PUJ', 'VRA': 'VRA', 'HAV': 'HAV',
+    'FLL': 'FLL', 'MIA': 'MIA', 'JFK': 'NYCA', 'EWR': 'NYCA', 'LGA': 'NYCA',
+    'LAX': 'LAXA', 'BOG': 'BOG', 'CTG': 'CTG', 'LIM': 'LIM',
+    'GRU': 'SAOP', 'EZE': 'BUEA', 'MBJ': 'MBJ', 'SJO': 'SJO',
+    // Asia
+    'BKK': 'BKK', 'NRT': 'TYOA', 'HND': 'TYOA', 'DPS': 'DPS', 'SGN': 'SGN',
+    // Canada
+    'YYZ': 'YTOA', 'YOW': 'YOW', 'YVR': 'YVRA', 'YYC': 'YYC',
+    'YEG': 'YEG', 'YWG': 'YWG', 'YHZ': 'YHZ', 'YQB': 'YQB',
+};
+
+// Runtime cache for any codes resolved via API (fallback)
+const skyIdCache = new Map<string, string>(Object.entries(SKYID_MAP));
 
 /**
- * Resolve an IATA airport code to a Skyscanner skyId via auto-complete.
- * e.g. "YUL" → "YMQA", "CDG" → "PARI"
+ * Resolve an IATA airport code to a Skyscanner skyId.
+ * Uses hardcoded map first (0 API calls), falls back to auto-complete only if unknown.
  */
 export async function resolveEntityId(iataCode: string): Promise<string> {
+    // Check hardcoded + runtime cache first (no API call)
     if (skyIdCache.has(iataCode)) return skyIdCache.get(iataCode)!;
 
+    // Fallback: try API auto-complete for unknown codes
     try {
+        console.log(`[Skyscanner] Resolving unknown code via API: ${iataCode}`);
         const res = await fetch(
             `${BASE_URL}/flights/auto-complete?query=${encodeURIComponent(iataCode)}&locale=fr-FR`,
             { headers: getHeaders() }
@@ -38,13 +62,14 @@ export async function resolveEntityId(iataCode: string): Promise<string> {
 
         if (!res.ok) {
             console.error(`[Skyscanner] auto-complete failed for ${iataCode}: ${res.status}`);
-            return '';
+            // Last resort: use IATA code as skyId (works for many airports)
+            skyIdCache.set(iataCode, iataCode);
+            return iataCode;
         }
 
         const json = await res.json();
         const results = json?.data || [];
 
-        // Find the best match — prefer the first result with a skyId
         for (const item of results) {
             const skyId = item?.navigation?.relevantFlightParams?.skyId;
             if (skyId) {
@@ -53,23 +78,25 @@ export async function resolveEntityId(iataCode: string): Promise<string> {
             }
         }
 
-        console.warn(`[Skyscanner] No skyId found for ${iataCode}`);
-        return '';
+        // Not found via API — use IATA code as fallback
+        console.warn(`[Skyscanner] No skyId for ${iataCode}, using IATA code`);
+        skyIdCache.set(iataCode, iataCode);
+        return iataCode;
     } catch (error) {
         console.error(`[Skyscanner] Error resolving ${iataCode}:`, error);
-        return '';
+        skyIdCache.set(iataCode, iataCode);
+        return iataCode;
     }
 }
 
 /**
- * Batch-resolve skyIds for a list of IATA codes.
- * Resolves sequentially with a short delay to respect rate limits.
+ * Batch-resolve skyIds — only calls API for codes not in hardcoded map.
  */
 export async function resolveEntityIds(iataCodes: string[]): Promise<void> {
     const toResolve = iataCodes.filter((code) => !skyIdCache.has(code));
     if (toResolve.length === 0) return;
 
-    console.log(`[Skyscanner] Resolving ${toResolve.length} skyIds...`);
+    console.log(`[Skyscanner] ${iataCodes.length - toResolve.length} hardcoded, ${toResolve.length} to resolve via API`);
     for (const code of toResolve) {
         await resolveEntityId(code);
         await sleep(300);

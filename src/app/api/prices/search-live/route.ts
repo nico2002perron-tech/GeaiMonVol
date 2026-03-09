@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         const now = new Date();
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= 3; i++) {
             const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
             const ret = new Date(outbound);
             ret.setDate(outbound.getDate() + 7);
