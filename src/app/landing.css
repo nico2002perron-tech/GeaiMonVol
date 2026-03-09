@@ -2093,3 +2093,14 @@
     width: 40px;
   }
 }
+
+/* ── Featured deal responsive ── */
+@media (max-width: 768px) {
+  #deals [style*="grid-template-columns: minmax(0, 1.2fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  #deals [style*="grid-template-columns: repeat(auto-fill"] {
+    grid-template-columns: 1fr !important;
+  }
+}

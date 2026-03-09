@@ -35,7 +35,7 @@ export async function GET(request: Request) {
             origin: 'YUL',
             destination: d.city,
             destination_code: d.airportCode,
-            price: d.price,
+            price: Math.round(d.price),
             currency: d.currency,
             airline: d.airline,
             stops: d.stops >= 0 ? d.stops : null,
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
             raw_data: {
                 ...d.rawData,
                 trip_duration: d.tripDuration,
-                google_flights_link: d.googleFlightsLink,
+                booking_link: d.bookingLink,
                 airline_code: d.airlineCode,
                 duration_minutes: d.duration,
             },
@@ -86,9 +86,9 @@ export async function GET(request: Request) {
                     airline: d.airline,
                 })),
             sources: {
-                explore: deals.filter(d => d.source === 'google_explore').length,
-                deep: deals.filter(d => d.source === 'google_flights_deep').length,
-                canada: deals.filter(d => d.source === 'google_flights_canada').length,
+                explore: deals.filter(d => d.source === 'skyscanner_explore').length,
+                deep: deals.filter(d => d.source === 'skyscanner_deep').length,
+                canada: deals.filter(d => d.source === 'skyscanner_canada').length,
             },
         };
 

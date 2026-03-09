@@ -15,7 +15,7 @@ interface LivePrice {
     avgPrice?: number;
     dealLevel?: string;
     priceLevel?: string;
-    googleFlightsLink?: string;
+    bookingLink?: string;
     raw_data?: any;
 }
 
@@ -34,7 +34,7 @@ function getStaticFallback(): LivePrice[] {
         avgPrice: f.oldPrice,
         dealLevel: f.dealLevel || (f.disc >= 40 ? 'incredible' : f.disc >= 25 ? 'great' : 'normal'),
         priceLevel: f.priceLevel,
-        googleFlightsLink: '',
+        bookingLink: '',
         raw_data: { lat: f.lat, lon: f.lon, tags: f.tags, img: f.img, imgSmall: f.imgSmall },
     }));
 }
@@ -55,7 +55,7 @@ export function useLivePrices() {
                     const rawPrices = data.prices || (Array.isArray(data) ? data : []);
                     const mappedPrices = rawPrices.map((p: any) => ({
                         ...p,
-                        googleFlightsLink: p.raw_data?.google_flights_link || '',
+                        bookingLink: p.raw_data?.booking_link || p.raw_data?.google_flights_link || '',
                         departure_date: p.departure_date || '',
                         return_date: p.return_date || '',
                         airline: p.airline || p.raw_data?.flights?.[0]?.airline || '',

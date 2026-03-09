@@ -5,6 +5,7 @@ import CartoonGlobe from './CartoonGlobe';
 import BookingPanel from './BookingPanel';
 import HoverCard from './HoverCard';
 import GeaiAssistant from './GeaiAssistant';
+import DestinationPopup from './DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CANADA_CODES } from '@/lib/constants/deals';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
@@ -44,6 +45,10 @@ export default function MapInterface() {
     const [hoveredDeal, setHoveredDeal] = useState<any>(null);
     const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
     const [hoverVisible, setHoverVisible] = useState(false);
+
+    // Destination popup state
+    const [popupOpen, setPopupOpen] = useState(false);
+    const [popupDeal, setPopupDeal] = useState<any>(null);
 
     const { prices, loading: pricesLoading, lastUpdated, isLive } = useLivePrices();
 
@@ -266,7 +271,9 @@ export default function MapInterface() {
                             }}
                             onLeaveDeal={() => setHoverVisible(false)}
                             onSelectDeal={(deal: any) => {
-                                setFlyToDeal({ ...deal, _ts: Date.now() });
+                                setHoverVisible(false);
+                                setPopupDeal(deal);
+                                setPopupOpen(true);
                             }}
                             flyToDeal={flyToDeal}
                             onHoloComplete={handleHoloComplete}
@@ -288,6 +295,17 @@ export default function MapInterface() {
                     selectedFlight={selectedFlight}
                 />
                 <GeaiAssistant onOpen={() => setBookingOpen(true)} />
+
+                {/* Destination detail popup */}
+                <DestinationPopup
+                    isOpen={popupOpen}
+                    onClose={() => setPopupOpen(false)}
+                    destination={popupDeal?.destination || popupDeal?.city || ''}
+                    destinationCode={popupDeal?.destination_code || popupDeal?.code || popupDeal?.route?.split(' – ')[1] || ''}
+                    bestPrice={popupDeal?.price}
+                    dealLevel={popupDeal?.dealLevel}
+                    discount={popupDeal?.discount || popupDeal?.disc}
+                />
             </div>
         </>
     );

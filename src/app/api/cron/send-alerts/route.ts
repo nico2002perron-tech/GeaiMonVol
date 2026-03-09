@@ -77,7 +77,7 @@ export async function GET(request: Request) {
                     route: `YUL – ${(p as any).destination_code || ''}`,
                     departureDate: (p as any).departure_date,
                     returnDate: (p as any).return_date,
-                    googleFlightsLink: (p as any).raw_data?.google_flights_link
+                    bookingLink: (p as any).raw_data?.booking_link || (p as any).raw_data?.google_flights_link
                 });
             }
 

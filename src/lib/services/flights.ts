@@ -1,7 +1,14 @@
 // ============================================
-// GeaiMonVol — Moteur de scan de prix v2
-// Google Travel Explore + Deep Scan + 12 mois
+// GeaiMonVol — Moteur de scan de prix v3
+// Skyscanner via RapidAPI (Sky Scrapper)
 // ============================================
+
+import {
+    searchEverywhere,
+    searchRoundTrip,
+    buildBookingLink,
+    resolveEntityIds,
+} from '@/lib/providers/flights/skyscanner';
 
 interface FlightDeal {
     city: string;
@@ -18,33 +25,9 @@ interface FlightDeal {
     route: string;
     tripDuration: number; // nights
     source: string;
-    googleFlightsLink: string;
+    bookingLink: string;
     rawData: any;
 }
-
-interface ExploreResult {
-    title: string;
-    airport_code: string;
-    price: number;
-    currency: string;
-    image_url?: string;
-    country?: string;
-    flights?: any[];
-    start_date?: string;
-    end_date?: string;
-    google_flights_link?: string;
-}
-
-// Régions à scanner avec Google Travel Explore
-// On utilise les area_id de Google Knowledge Graph pour scanner par continent
-const EXPLORE_REGIONS = [
-    { name: 'Europe', arrival_area_id: '/m/02j9z' },
-    { name: 'Caraïbes & Mexique', arrival_area_id: '/m/0dg3n1' }, // Caribbean
-    { name: 'Amérique du Sud', arrival_area_id: '/m/0jhd' },
-    { name: 'Asie', arrival_area_id: '/m/0j0q5' },
-    { name: 'Afrique', arrival_area_id: '/m/0dg3n1' }, // Will use specific countries
-    { name: 'Amérique centrale', arrival_area_id: '/m/0105s2' },
-];
 
 // Destinations spécifiques à toujours scanner (les plus populaires depuis YUL)
 const PRIORITY_DESTINATIONS = [
@@ -78,6 +61,8 @@ const PRIORITY_DESTINATIONS = [
     { city: 'Cartagena', code: 'CTG', country: 'Colombie' },
     { city: 'Buenos Aires', code: 'EZE', country: 'Argentine' },
     { city: 'Ho Chi Minh', code: 'SGN', country: 'Vietnam' },
+    { city: 'Madrid', code: 'MAD', country: 'Espagne' },
+    { city: 'Berlin', code: 'BER', country: 'Allemagne' },
     { city: 'Toronto', code: 'YYZ', country: 'Canada' },
     { city: 'Ottawa', code: 'YOW', country: 'Canada' },
     { city: 'Vancouver', code: 'YVR', country: 'Canada' },
@@ -88,7 +73,6 @@ const PRIORITY_DESTINATIONS = [
     { city: 'Québec', code: 'YQB', country: 'Canada' },
 ];
 
-const API_KEY = process.env.SERPAPI_KEY;
 const ORIGIN = 'YUL';
 
 // Helper : pause entre les requêtes
@@ -106,14 +90,6 @@ function getMonthlyDates(): Array<{ outbound: string; return: string; month: str
         const returnDate = new Date(outbound);
         returnDate.setDate(outbound.getDate() + 7); // 7 nuits
 
-        // Aussi scanner un weekend (3 nuits) pour les city trips
-        const weekendOut = new Date(now.getFullYear(), now.getMonth() + i, 10);
-        const weekendDay = weekendOut.getDay();
-        // Ajuster au vendredi le plus proche
-        weekendOut.setDate(weekendOut.getDate() + (5 - weekendDay + 7) % 7);
-        const weekendReturn = new Date(weekendOut);
-        weekendReturn.setDate(weekendOut.getDate() + 3);
-
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
         dates.push({
@@ -127,76 +103,54 @@ function getMonthlyDates(): Array<{ outbound: string; return: string; month: str
 }
 
 // ============================================
-// STRATÉGIE 1 : Google Travel Explore
-// 1 requête = TOUTES les destinations pas chères
+// STRATÉGIE 1 : Skyscanner Explore (Everywhere)
+// 1 requête = destinations pas chères depuis YUL
 // ============================================
 
 export async function scanExplore(): Promise<FlightDeal[]> {
-    if (!API_KEY) {
-        console.error('SERPAPI_KEY not configured');
+    if (!process.env.RAPIDAPI_KEY) {
+        console.error('RAPIDAPI_KEY not configured');
         return [];
     }
 
     const results: FlightDeal[] = [];
-    const durations = ['one_week', 'weekend', 'two_weeks'];
 
-    for (const duration of durations) {
-        try {
-            const params = new URLSearchParams({
-                engine: 'google_travel_explore',
-                departure_id: ORIGIN,
+    try {
+        console.log('[Explore] Scanning Skyscanner everywhere...');
+        const destinations = await searchEverywhere(ORIGIN, { currency: 'CAD' });
+
+        for (const dest of destinations) {
+            if (!dest.price || !dest.skyCode) continue;
+
+            results.push({
+                city: dest.city,
+                country: dest.country,
+                airportCode: dest.skyCode,
+                price: dest.price,
                 currency: 'CAD',
-                hl: 'fr',
-                gl: 'ca',
-                travel_duration: duration,
-                api_key: API_KEY,
+                airline: '',
+                airlineCode: '',
+                stops: dest.direct ? 0 : -1,
+                duration: 0,
+                departureDate: '',
+                returnDate: '',
+                route: `YUL – ${dest.skyCode}`,
+                tripDuration: 7,
+                source: 'skyscanner_explore',
+                bookingLink: buildBookingLink(ORIGIN, dest.skyCode, '', ''),
+                rawData: {
+                    direct: dest.direct,
+                    imageUrl: dest.imageUrl,
+                    entityId: dest.entityId,
+                },
             });
-
-            console.log(`[Explore] Scanning ${duration}...`);
-            const response = await fetch(
-                `https://serpapi.com/search.json?${params.toString()}`
-            );
-
-            if (!response.ok) {
-                console.error(`[Explore] Error ${response.status} for ${duration}`);
-                continue;
-            }
-
-            const data = await response.json();
-            const destinations = data.destinations || data.results || [];
-
-            for (const dest of destinations) {
-                if (!dest.price) continue;
-
-                const deal: FlightDeal = {
-                    city: dest.title || dest.city || 'Unknown',
-                    country: dest.country || '',
-                    airportCode: dest.airport_code || dest.airports?.[0]?.code || '',
-                    price: typeof dest.price === 'number' ? dest.price : (parseInt(String(dest.price), 10) || 0),
-                    currency: 'CAD',
-                    airline: dest.flights?.[0]?.airline || '',
-                    airlineCode: dest.flights?.[0]?.airline_code || '',
-                    stops: dest.flights?.[0]?.number_of_stops ?? -1,
-                    duration: dest.flights?.[0]?.duration || 0,
-                    departureDate: dest.start_date || '',
-                    returnDate: dest.end_date || '',
-                    route: `YUL – ${dest.airport_code || ''}`,
-                    tripDuration: duration === 'weekend' ? 3 : duration === 'one_week' ? 7 : 14,
-                    source: 'google_explore',
-                    googleFlightsLink: dest.google_flights_link || '',
-                    rawData: dest,
-                };
-
-                results.push(deal);
-            }
-
-            await sleep(2000);
-        } catch (error) {
-            console.error(`[Explore] Error scanning ${duration}:`, error);
         }
+
+        console.log(`[Explore] Found ${results.length} deals from Skyscanner`);
+    } catch (error) {
+        console.error('[Explore] Error scanning Skyscanner:', error);
     }
 
-    console.log(`[Explore] Found ${results.length} deals total`);
     return results;
 }
 
@@ -210,7 +164,7 @@ export async function scanDestinationDeep(
     destCity: string,
     destCountry: string
 ): Promise<FlightDeal[]> {
-    if (!API_KEY) return [];
+    if (!process.env.RAPIDAPI_KEY) return [];
 
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
@@ -220,44 +174,22 @@ export async function scanDestinationDeep(
 
     for (const date of datesToScan) {
         try {
-            const params = new URLSearchParams({
-                engine: 'google_flights',
-                departure_id: ORIGIN,
-                arrival_id: destCode,
-                outbound_date: date.outbound,
-                return_date: date.return,
-                currency: 'CAD',
-                hl: 'fr',
-                gl: 'ca',
-                type: '1',
-                travel_class: '1',
-                sort_by: '2', // trier par prix
-                deep_search: 'true', // résultats identiques au navigateur
-                api_key: API_KEY,
-            });
-
             console.log(`[Deep] Scanning ${destCity} for ${date.month}...`);
-            const response = await fetch(
-                `https://serpapi.com/search.json?${params.toString()}`
+
+            const flights = await searchRoundTrip(
+                ORIGIN,
+                destCode,
+                date.outbound,
+                date.return,
+                { sortBy: 'price_low' }
             );
-
-            if (!response.ok) continue;
-
-            const data = await response.json();
-            const flights = [
-                ...(data.best_flights || []),
-                ...(data.other_flights || []),
-            ];
 
             if (flights.length === 0) continue;
 
             // Prendre le vol le moins cher
-            const cheapest = flights.reduce((min: any, f: any) =>
-                (f.price && (!min.price || f.price < min.price)) ? f : min
+            const cheapest = flights.reduce((min, f) =>
+                f.price < min.price ? f : min
                 , flights[0]);
-
-            const firstLeg = cheapest.flights?.[0];
-            if (!firstLeg || !cheapest.price) continue;
 
             results.push({
                 city: destCity,
@@ -265,21 +197,20 @@ export async function scanDestinationDeep(
                 airportCode: destCode,
                 price: cheapest.price,
                 currency: 'CAD',
-                airline: firstLeg.airline || '',
-                airlineCode: firstLeg.airline_logo ? '' : '',
-                stops: (cheapest.flights?.length || 1) - 1,
-                duration: cheapest.total_duration || 0,
+                airline: cheapest.airline,
+                airlineCode: '',
+                stops: cheapest.stops,
+                duration: cheapest.durationMinutes,
                 departureDate: date.outbound,
                 returnDate: date.return,
                 route: `YUL – ${destCode}`,
                 tripDuration: 7,
-                source: 'google_flights_deep',
-                googleFlightsLink: data.search_metadata?.google_flights_url || '',
+                source: 'skyscanner_deep',
+                bookingLink: buildBookingLink(ORIGIN, destCode, date.outbound, date.return),
                 rawData: {
-                    flights: cheapest.flights,
-                    layovers: cheapest.layovers,
-                    carbon_emissions: cheapest.carbon_emissions,
-                    price_insights: data.price_insights,
+                    airline_logo: cheapest.airlineLogo,
+                    tags: cheapest.tags,
+                    itinerary: cheapest.rawItinerary,
                 },
             });
 
@@ -299,13 +230,13 @@ export async function scanDestinationDeep(
 
 export async function fullDailyScan(): Promise<FlightDeal[]> {
     console.log('========================================');
-    console.log('[GeaiMonVol] Starting full daily scan...');
+    console.log('[GeaiMonVol] Starting full daily scan (Skyscanner)...');
     console.log('========================================');
 
     const allDeals: FlightDeal[] = [];
 
-    // PHASE 1 : Google Travel Explore (3 requêtes = weekend, 1 semaine, 2 semaines)
-    console.log('\n--- Phase 1: Google Travel Explore ---');
+    // PHASE 1 : Skyscanner Explore (1 requête)
+    console.log('\n--- Phase 1: Skyscanner Everywhere ---');
     const exploreDeals = await scanExplore();
     allDeals.push(...exploreDeals);
 
@@ -313,18 +244,19 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     console.log('\n--- Phase 2: Deep scan all international destinations ---');
     const topDestinations = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
 
+    // Pre-resolve entity IDs to minimize API calls
+    await resolveEntityIds([ORIGIN, ...topDestinations.map(d => d.code)]);
+
     for (const dest of topDestinations) {
         const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
         allDeals.push(...deepDeals);
     }
 
-    // PHASE 3 : Si Explore a trouvé des deals inattendus (pas dans la liste prioritaire),
-    // faire un deep scan de ceux-là aussi
+    // PHASE 3 : Deep scan des deals surprises trouvés par Explore
     console.log('\n--- Phase 3: Deep scan surprise deals ---');
     const priorityCodes = new Set(PRIORITY_DESTINATIONS.map(d => d.code));
     const surpriseDeals = exploreDeals.filter(d => !priorityCodes.has(d.airportCode));
 
-    // Scanner les 5 meilleurs deals surprises
     const topSurprises = surpriseDeals
         .sort((a, b) => a.price - b.price)
         .slice(0, 2);
@@ -345,42 +277,24 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     const CANADA_DESTINATIONS = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
     const canadaDates = getMonthlyDates().slice(0, 3);
 
+    await resolveEntityIds(CANADA_DESTINATIONS.map(d => d.code));
+
     for (const dest of CANADA_DESTINATIONS) {
         for (const date of canadaDates) {
             try {
-                const params = new URLSearchParams({
-                    engine: 'google_flights',
-                    departure_id: 'YUL',
-                    arrival_id: dest.code,
-                    outbound_date: date.outbound,
-                    return_date: date.return,
-                    currency: 'CAD',
-                    hl: 'fr',
-                    gl: 'ca',
-                    type: '1',
-                    travel_class: '1',
-                    sort_by: '2',
-                    api_key: API_KEY!,
-                });
-
                 console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
-                const response = await fetch(
-                    `https://serpapi.com/search.json?${params.toString()}`
+
+                const flights = await searchRoundTrip(
+                    ORIGIN,
+                    dest.code,
+                    date.outbound,
+                    date.return,
+                    { sortBy: 'price_low' }
                 );
-
-                if (!response.ok) continue;
-
-                const data = await response.json();
-                const flights = [
-                    ...(data.best_flights || []),
-                    ...(data.other_flights || []),
-                ];
 
                 if (flights.length === 0) continue;
 
                 const cheapest = flights[0];
-                const firstLeg = cheapest.flights?.[0];
-                if (!firstLeg || !cheapest.price) continue;
 
                 allDeals.push({
                     city: dest.city,
@@ -388,19 +302,19 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
                     airportCode: dest.code,
                     price: cheapest.price,
                     currency: 'CAD',
-                    airline: firstLeg.airline || '',
-                    airlineCode: firstLeg.airline_code || '',
-                    stops: (cheapest.flights?.length || 1) - 1,
-                    duration: cheapest.total_duration || 0,
+                    airline: cheapest.airline,
+                    airlineCode: '',
+                    stops: cheapest.stops,
+                    duration: cheapest.durationMinutes,
                     departureDate: date.outbound,
                     returnDate: date.return,
                     route: `YUL – ${dest.code}`,
                     tripDuration: 7,
-                    source: 'google_flights_canada',
-                    googleFlightsLink: data.search_metadata?.google_flights_url || '',
+                    source: 'skyscanner_canada',
+                    bookingLink: buildBookingLink(ORIGIN, dest.code, date.outbound, date.return),
                     rawData: {
-                        flights: cheapest.flights,
-                        price_insights: data.price_insights,
+                        airline_logo: cheapest.airlineLogo,
+                        itinerary: cheapest.rawItinerary,
                     },
                 });
 
@@ -453,7 +367,6 @@ export function calculateRealDiscount(
     const prices = priceHistory.map(p => p.price);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
     const lowestEver = Math.min(...prices);
-    const highestEver = Math.max(...prices);
 
     const discount = avgPrice > 0 ? Math.round(((avgPrice - currentPrice) / avgPrice) * 100) : 0;
 
@@ -462,22 +375,22 @@ export function calculateRealDiscount(
     let isGoodDeal = false;
 
     if (currentPrice <= lowestEver) {
-        dealLevel = 'lowest_ever'; // 🔥🔥🔥 Prix le plus bas JAMAIS vu
+        dealLevel = 'lowest_ever';
         isGoodDeal = true;
     } else if (discount >= 40) {
-        dealLevel = 'incredible'; // 🔥🔥 Deal incroyable
+        dealLevel = 'incredible';
         isGoodDeal = true;
     } else if (discount >= 25) {
-        dealLevel = 'great'; // 🔥 Très bon deal
+        dealLevel = 'great';
         isGoodDeal = true;
     } else if (discount >= 15) {
-        dealLevel = 'good'; // ✅ Bon deal
+        dealLevel = 'good';
         isGoodDeal = true;
     } else if (discount >= 5) {
-        dealLevel = 'slight'; // Légèrement sous la moyenne
+        dealLevel = 'slight';
         isGoodDeal = false;
     } else {
-        dealLevel = 'normal'; // Prix normal
+        dealLevel = 'normal';
         isGoodDeal = false;
     }
 
@@ -519,13 +432,13 @@ export function getPhaseForToday(): ScanPhase {
 export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
     const effectivePhase = phase ?? getPhaseForToday();
 
-    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase}`);
+    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase} (Skyscanner)`);
 
     const allDeals: FlightDeal[] = [];
 
     if (effectivePhase === 1) {
-        // Phase 1 : Google Travel Explore (3 requêtes, ~10s)
-        console.log('--- Phase 1: Google Travel Explore ---');
+        // Phase 1 : Skyscanner Explore (1 requête)
+        console.log('--- Phase 1: Skyscanner Everywhere ---');
         const exploreDeals = await scanExplore();
         allDeals.push(...exploreDeals);
 
@@ -534,6 +447,10 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         console.log('--- Phase 2: Deep scan international 1-15 ---');
         const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
         const batch = international.slice(0, 15);
+
+        // Pre-resolve all entity IDs for this batch
+        await resolveEntityIds([ORIGIN, ...batch.map(d => d.code)]);
+
         for (const dest of batch) {
             const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
             allDeals.push(...deepDeals);
@@ -543,7 +460,10 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         // Phase 3 : Deep scan destinations internationales 16-30 (~45s)
         console.log('--- Phase 3: Deep scan international 16-30 ---');
         const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
-        const batch = international.slice(15, 30);
+        const batch = international.slice(15, 32);
+
+        await resolveEntityIds([ORIGIN, ...batch.map(d => d.code)]);
+
         for (const dest of batch) {
             const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
             allDeals.push(...deepDeals);
@@ -555,42 +475,24 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         const canadaDests = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
         const canadaDates = getMonthlyDates().slice(0, 3);
 
+        await resolveEntityIds([ORIGIN, ...canadaDests.map(d => d.code)]);
+
         for (const dest of canadaDests) {
             for (const date of canadaDates) {
                 try {
-                    const params = new URLSearchParams({
-                        engine: 'google_flights',
-                        departure_id: 'YUL',
-                        arrival_id: dest.code,
-                        outbound_date: date.outbound,
-                        return_date: date.return,
-                        currency: 'CAD',
-                        hl: 'fr',
-                        gl: 'ca',
-                        type: '1',
-                        travel_class: '1',
-                        sort_by: '2',
-                        api_key: API_KEY!,
-                    });
-
                     console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
-                    const response = await fetch(
-                        `https://serpapi.com/search.json?${params.toString()}`
+
+                    const flights = await searchRoundTrip(
+                        ORIGIN,
+                        dest.code,
+                        date.outbound,
+                        date.return,
+                        { sortBy: 'price_low' }
                     );
-
-                    if (!response.ok) continue;
-
-                    const data = await response.json();
-                    const flights = [
-                        ...(data.best_flights || []),
-                        ...(data.other_flights || []),
-                    ];
 
                     if (flights.length === 0) continue;
 
                     const cheapest = flights[0];
-                    const firstLeg = cheapest.flights?.[0];
-                    if (!firstLeg || !cheapest.price) continue;
 
                     allDeals.push({
                         city: dest.city,
@@ -598,19 +500,19 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
                         airportCode: dest.code,
                         price: cheapest.price,
                         currency: 'CAD',
-                        airline: firstLeg.airline || '',
-                        airlineCode: firstLeg.airline_code || '',
-                        stops: (cheapest.flights?.length || 1) - 1,
-                        duration: cheapest.total_duration || 0,
+                        airline: cheapest.airline,
+                        airlineCode: '',
+                        stops: cheapest.stops,
+                        duration: cheapest.durationMinutes,
                         departureDate: date.outbound,
                         returnDate: date.return,
                         route: `YUL – ${dest.code}`,
                         tripDuration: 7,
-                        source: 'google_flights_canada',
-                        googleFlightsLink: data.search_metadata?.google_flights_url || '',
+                        source: 'skyscanner_canada',
+                        bookingLink: buildBookingLink(ORIGIN, dest.code, date.outbound, date.return),
                         rawData: {
-                            flights: cheapest.flights,
-                            price_insights: data.price_insights,
+                            airline_logo: cheapest.airlineLogo,
+                            itinerary: cheapest.rawItinerary,
                         },
                     });
 
