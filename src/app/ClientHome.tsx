@@ -79,11 +79,12 @@ function formatDateRange(dep: string, ret: string): string {
   return r ? `${d} - ${r}` : d;
 }
 
-type FilterTab = 'tous' | 'top' | 'canada' | 'monde' | 'tout-inclus';
+type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
 type SortMode = 'deal' | 'price' | 'discount';
 
 const FILTER_TABS: { id: FilterTab; label: string; icon: string }[] = [
   { id: 'tous', label: 'Tous', icon: '🌎' },
+  { id: 'favoris', label: 'Favoris', icon: '❤️' },
   { id: 'top', label: 'Top deals', icon: '🔥' },
   { id: 'canada', label: 'Canada', icon: '🍁' },
   { id: 'monde', label: 'International', icon: '✈️' },
@@ -160,7 +161,62 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [stickyFilters, setStickyFilters] = useState(false);
   const [visibleCount, setVisibleCount] = useState(9);
+  const [maxBudget, setMaxBudget] = useState(0);
+  const [shareToast, setShareToast] = useState('');
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
   const filtersRef = useRef<HTMLDivElement>(null);
+
+  // Favorites (localStorage)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('geai_favorites');
+      if (stored) setFavorites(new Set(JSON.parse(stored)));
+      if (localStorage.getItem('geai_alerts') === 'true') setAlertsEnabled(true);
+    } catch {}
+  }, []);
+
+  const toggleFavorite = useCallback((city: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(city)) next.delete(city);
+      else next.add(city);
+      localStorage.setItem('geai_favorites', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const enableAlerts = useCallback(async () => {
+    if (!('Notification' in window)) {
+      setShareToast('Notifications non supportees par ce navigateur');
+      setTimeout(() => setShareToast(''), 3000);
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      setAlertsEnabled(true);
+      localStorage.setItem('geai_alerts', 'true');
+      new Notification('GeaiMonVol', {
+        body: 'Tu recevras les alertes de baisses de prix!',
+        icon: '/logo_geai.png',
+      });
+    }
+  }, []);
+
+  const shareDeal = useCallback((deal: DealItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `Vol Montreal → ${deal.city} a ${Math.round(deal.price)}$ A/R${deal.discount > 0 ? ` (-${deal.discount}%)` : ''}`;
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: `Deal GeaiMonVol - ${deal.city}`, text, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+        setShareToast('Lien copie!');
+        setTimeout(() => setShareToast(''), 2000);
+      }).catch(() => {});
+    }
+  }, []);
 
   // SSR deals mapped once — shown INSTANTLY on page load
   const ssrDeals = useMemo(() => mapPricesToDeals(initialDeals), [initialDeals]);
@@ -211,8 +267,15 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
       );
     }
 
+    // Budget filter
+    if (maxBudget > 0) {
+      result = result.filter(d => d.price <= maxBudget);
+    }
+
     // Category filter
-    if (activeFilter === 'top') {
+    if (activeFilter === 'favoris') {
+      result = result.filter(d => favorites.has(d.city));
+    } else if (activeFilter === 'top') {
       result = result.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel));
     } else if (activeFilter !== 'tous') {
       result = result.filter(d => d.category === activeFilter);
@@ -236,10 +299,10 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
     }
 
     return result;
-  }, [allDeals, activeFilter, sortMode, searchQuery]);
+  }, [allDeals, activeFilter, sortMode, searchQuery, maxBudget, favorites]);
 
   // Reset visible count when filters change
-  useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode]);
+  useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode, maxBudget]);
 
   const featured = filteredDeals[0];
   const rest = filteredDeals.slice(1);
@@ -466,10 +529,30 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
             </h2>
             <p style={{
               fontFamily: "'Outfit', sans-serif",
-              fontSize: 16, color: '#64748B', margin: 0,
+              fontSize: 16, color: '#64748B', margin: '0 0 16px',
             }}>
               {allDeals.length} destination{allDeals.length > 1 ? 's' : ''} scannee{allDeals.length > 1 ? 's' : ''} · Prix via Skyscanner
             </p>
+            <button
+              onClick={enableAlerts}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 100,
+                border: alertsEnabled ? '2px solid #10B981' : '2px solid #E2E8F0',
+                background: alertsEnabled ? 'rgba(16,185,129,0.06)' : 'white',
+                color: alertsEnabled ? '#059669' : '#334155',
+                fontSize: 13, fontWeight: 600,
+                fontFamily: "'Outfit', sans-serif",
+                cursor: alertsEnabled ? 'default' : 'pointer',
+                transition: 'all 0.3s',
+              }}
+            >
+              <span style={{ fontSize: 16 }}>{alertsEnabled ? '🔔' : '🔕'}</span>
+              {alertsEnabled ? 'Alertes activees' : 'Activer les alertes prix'}
+              {alertsEnabled && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+              )}
+            </button>
           </div>
 
           {/* ── Search + Filter + Sort — unified bar ── */}
@@ -543,6 +626,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                 {FILTER_TABS.map(tab => {
                   const isActive = activeFilter === tab.id;
                   const count = tab.id === 'tous' ? allDeals.length
+                    : tab.id === 'favoris' ? favorites.size
                     : tab.id === 'top' ? allDeals.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel)).length
                     : allDeals.filter(d => d.category === tab.id).length;
                   return (
@@ -595,10 +679,53 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
+
+              {/* Budget max input */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 0,
+                border: maxBudget > 0 ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
+                borderRadius: 12, overflow: 'hidden',
+                background: 'white', flexShrink: 0,
+                transition: 'border-color 0.2s',
+              }}>
+                <span style={{
+                  padding: '8px 8px 8px 10px', fontSize: 12, color: '#94A3B8',
+                  fontFamily: "'Outfit', sans-serif", fontWeight: 600,
+                  whiteSpace: 'nowrap', background: maxBudget > 0 ? 'rgba(14,165,233,0.04)' : 'transparent',
+                }}>
+                  Max
+                </span>
+                <input
+                  type="number"
+                  value={maxBudget > 0 ? maxBudget : ''}
+                  onChange={(e) => setMaxBudget(parseInt(e.target.value) || 0)}
+                  placeholder="--"
+                  style={{
+                    width: 56, padding: '8px 4px', border: 'none',
+                    fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+                    color: '#0F172A', textAlign: 'center', outline: 'none',
+                    background: 'transparent',
+                  }}
+                />
+                <span style={{
+                  padding: '8px 10px 8px 0', fontSize: 13, color: '#94A3B8',
+                  fontFamily: "'Fredoka', sans-serif", fontWeight: 600,
+                }}>$</span>
+                {maxBudget > 0 && (
+                  <button
+                    onClick={() => setMaxBudget(0)}
+                    style={{
+                      border: 'none', background: 'none', color: '#94A3B8',
+                      cursor: 'pointer', padding: '0 8px 0 0', fontSize: 14,
+                      display: 'flex', alignItems: 'center',
+                    }}
+                  >&times;</button>
+                )}
+              </div>
             </div>
 
             {/* Active filters summary */}
-            {(searchQuery || activeFilter !== 'tous') && (
+            {(searchQuery || activeFilter !== 'tous' || maxBudget > 0) && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
                 fontFamily: "'Outfit', sans-serif", fontSize: 12, color: '#64748B',
@@ -630,7 +757,20 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                     }}>&times;</button>
                   </span>
                 )}
-                <button onClick={() => { setSearchQuery(''); setActiveFilter('tous'); }} style={{
+                {maxBudget > 0 && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 10px', borderRadius: 8,
+                    background: 'rgba(14,165,233,0.08)', color: '#0284C7', fontWeight: 600,
+                  }}>
+                    Max {maxBudget} $
+                    <button onClick={() => setMaxBudget(0)} style={{
+                      border: 'none', background: 'none', color: '#0284C7',
+                      cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1,
+                    }}>&times;</button>
+                  </span>
+                )}
+                <button onClick={() => { setSearchQuery(''); setActiveFilter('tous'); setMaxBudget(0); }} style={{
                   border: 'none', background: 'none', color: '#94A3B8',
                   cursor: 'pointer', fontSize: 11, fontWeight: 600, textDecoration: 'underline',
                   fontFamily: "'Outfit', sans-serif",
@@ -754,6 +894,24 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                   )}
                   {featured.airline && <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', padding: '4px 12px', borderRadius: 8, background: '#F1F5F9', fontFamily: "'Outfit', sans-serif" }}>{featured.airline}</span>}
                   {featured.stops >= 0 && <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8, background: featured.stops === 0 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: featured.stops === 0 ? '#059669' : '#D97706', fontFamily: "'Outfit', sans-serif" }}>{featured.stops === 0 ? 'Direct' : `${featured.stops} escale${featured.stops > 1 ? 's' : ''}`}</span>}
+                  {/* Favorite */}
+                  <button onClick={(e) => toggleFavorite(featured.city, e)} style={{
+                    width: 34, height: 34, borderRadius: '50%', border: 'none',
+                    background: favorites.has(featured.city) ? 'rgba(239,68,68,0.08)' : '#F1F5F9',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s', fontSize: 16,
+                  }}>
+                    {favorites.has(featured.city) ? '❤️' : '🤍'}
+                  </button>
+                  {/* Share */}
+                  <button onClick={(e) => shareDeal(featured, e)} style={{
+                    width: 34, height: 34, borderRadius: '50%', border: 'none',
+                    background: '#F1F5F9', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  </button>
                 </div>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 14, background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'Outfit', sans-serif", boxShadow: '0 4px 16px rgba(14,165,233,0.25)' }}>
                   Voir les dates et prix
@@ -853,6 +1011,37 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                           -{deal.discount}%
                         </div>
                       )}
+
+                      {/* Favorite + Share */}
+                      <div style={{
+                        position: 'absolute', bottom: 12, left: 12,
+                        display: 'flex', gap: 6,
+                      }}>
+                        <button
+                          onClick={(e) => toggleFavorite(deal.city, e)}
+                          style={{
+                            width: 32, height: 32, borderRadius: '50%', border: 'none',
+                            background: favorites.has(deal.city) ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
+                            backdropFilter: 'blur(8px)',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s', fontSize: 14,
+                            color: '#fff',
+                          }}
+                        >
+                          {favorites.has(deal.city) ? '❤️' : '🤍'}
+                        </button>
+                        <button
+                          onClick={(e) => shareDeal(deal, e)}
+                          style={{
+                            width: 32, height: 32, borderRadius: '50%', border: 'none',
+                            background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Body */}
@@ -1013,7 +1202,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                 {searchQuery ? `Aucun resultat pour "${searchQuery}"` : 'Essaie une autre categorie'}
               </div>
               <button
-                onClick={() => { setSearchQuery(''); setActiveFilter('tous'); }}
+                onClick={() => { setSearchQuery(''); setActiveFilter('tous'); setMaxBudget(0); }}
                 style={{
                   padding: '10px 24px', borderRadius: 12, border: 'none',
                   background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
@@ -1226,6 +1415,22 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
           </div>
         </div>
       </footer>
+
+      {/* Share toast */}
+      {shareToast && (
+        <div style={{
+          position: 'fixed', bottom: 28, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 1000, padding: '12px 28px', borderRadius: 100,
+          background: '#0F172A', color: '#fff', fontSize: 14, fontWeight: 600,
+          fontFamily: "'Outfit', sans-serif",
+          boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+          animation: 'dealFadeIn 0.3s ease-out',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+          {shareToast}
+        </div>
+      )}
 
       {/* Destination popup */}
       <DestinationPopup

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 import type { SubDestination } from '@/lib/constants/deals';
 
@@ -82,6 +82,7 @@ export default function DestinationPopup({
     const [error, setError] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('date');
     const [avgPrice, setAvgPrice] = useState(0);
+    const [popupToast, setPopupToast] = useState('');
     const overlayRef = useRef<HTMLDivElement>(null);
 
     // Country-level detection
@@ -198,6 +199,41 @@ export default function DestinationPopup({
     });
 
     const cheapestPrice = deals.length > 0 ? Math.min(...deals.map(d => d.price)) : 0;
+
+    // Month comparator — group deals by month, find cheapest per month
+    const monthGroups = useMemo(() => {
+        const MONTH_NAMES = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+        const groups: Record<string, { label: string; sortKey: string; cheapest: number; count: number }> = {};
+
+        for (const deal of deals) {
+            if (!deal.departureDate) continue;
+            const d = new Date(deal.departureDate + 'T00:00:00');
+            const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+            const label = `${MONTH_NAMES[d.getMonth()]}`;
+
+            if (!groups[key]) {
+                groups[key] = { label, sortKey: key, cheapest: deal.price, count: 1 };
+            } else {
+                groups[key].count++;
+                if (deal.price < groups[key].cheapest) groups[key].cheapest = deal.price;
+            }
+        }
+
+        return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    }, [deals]);
+
+    const shareDestination = () => {
+        const text = `Vol Montreal → ${destination} des ${cheapestPrice}$ A/R sur GeaiMonVol`;
+        const url = window.location.href;
+        if (navigator.share) {
+            navigator.share({ title: `Deal GeaiMonVol - ${destination}`, text, url }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(`${text}\n${url}`).then(() => {
+                setPopupToast('Lien copie!');
+                setTimeout(() => setPopupToast(''), 2000);
+            }).catch(() => {});
+        }
+    };
 
     return (
         <>
@@ -823,21 +859,120 @@ export default function DestinationPopup({
                             </div>
                         )}
 
-                        {/* ── Tip ── */}
-                        <div style={{
-                            marginTop: 12, padding: '10px 14px', borderRadius: 12,
-                            background: 'rgba(14,165,233,0.04)',
-                            border: '1px solid rgba(14,165,233,0.08)',
-                            display: 'flex', alignItems: 'center', gap: 8,
-                        }}>
-                            <span style={{ fontSize: 14, flexShrink: 0 }}>&#128161;</span>
-                            <span style={{
-                                fontSize: 11, color: '#64748B', lineHeight: 1.4,
-                                fontFamily: "'Outfit', sans-serif",
+                        {/* ── MONTH COMPARATOR ── */}
+                        {monthGroups.length > 1 && (
+                            <div style={{
+                                marginTop: 16, padding: '14px 16px', borderRadius: 16,
+                                background: '#F8FAFC', border: '1px solid #E2E8F0',
                             }}>
-                                Clique sur une date pour reserver directement sur Skyscanner. Les prix sont scannes automatiquement.
-                            </span>
+                                <div style={{
+                                    fontSize: 12, fontWeight: 700, color: '#0F172A',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                                    Quel mois est le moins cher?
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    {(() => {
+                                        const cheapestMonth = Math.min(...monthGroups.map(g => g.cheapest));
+                                        const maxMonth = Math.max(...monthGroups.map(g => g.cheapest));
+                                        return monthGroups.map((g, i) => {
+                                            const isCheap = g.cheapest === cheapestMonth;
+                                            const barW = Math.max(20, (g.cheapest / maxMonth) * 100);
+                                            return (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <span style={{
+                                                        width: 50, fontSize: 11, fontWeight: 600,
+                                                        color: isCheap ? '#059669' : '#64748B',
+                                                        fontFamily: "'Outfit', sans-serif", textAlign: 'right',
+                                                        flexShrink: 0,
+                                                    }}>
+                                                        {g.label.slice(0, 4)}.
+                                                    </span>
+                                                    <div style={{
+                                                        flex: 1, height: 22, position: 'relative',
+                                                        background: '#E2E8F0', borderRadius: 6, overflow: 'hidden',
+                                                    }}>
+                                                        <div style={{
+                                                            height: '100%', borderRadius: 6,
+                                                            width: `${barW}%`,
+                                                            background: isCheap
+                                                                ? 'linear-gradient(90deg, #10B981, #34D399)'
+                                                                : 'linear-gradient(90deg, #94A3B8, #CBD5E1)',
+                                                            transition: 'width 0.5s ease',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                                            paddingRight: 8,
+                                                        }}>
+                                                            <span style={{
+                                                                fontSize: 10, fontWeight: 700, color: '#fff',
+                                                                fontFamily: "'Fredoka', sans-serif",
+                                                            }}>
+                                                                {Math.round(g.cheapest)}$
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span style={{
+                                                        fontSize: 9, color: '#94A3B8', fontWeight: 600,
+                                                        fontFamily: "'Outfit', sans-serif", width: 40, flexShrink: 0,
+                                                    }}>
+                                                        {g.count} vol{g.count > 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Share + Tip row ── */}
+                        <div style={{
+                            marginTop: 12, display: 'flex', gap: 8,
+                        }}>
+                            <button
+                                onClick={shareDestination}
+                                style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                    padding: '10px 14px', borderRadius: 12,
+                                    border: '1px solid #E2E8F0', background: '#fff',
+                                    cursor: 'pointer', transition: 'all 0.2s',
+                                    fontSize: 12, fontWeight: 600, color: '#334155',
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                                Partager ce deal
+                            </button>
+                            <div style={{
+                                flex: 1, padding: '10px 14px', borderRadius: 12,
+                                background: 'rgba(14,165,233,0.04)',
+                                border: '1px solid rgba(14,165,233,0.08)',
+                                display: 'flex', alignItems: 'center', gap: 6,
+                            }}>
+                                <span style={{ fontSize: 13, flexShrink: 0 }}>&#128161;</span>
+                                <span style={{
+                                    fontSize: 10, color: '#64748B', lineHeight: 1.3,
+                                    fontFamily: "'Outfit', sans-serif",
+                                }}>
+                                    Clique sur une date pour reserver sur Skyscanner
+                                </span>
+                            </div>
                         </div>
+
+                        {/* Share toast */}
+                        {popupToast && (
+                            <div style={{
+                                marginTop: 8, padding: '8px 16px', borderRadius: 10,
+                                background: '#0F172A', color: '#fff',
+                                fontSize: 12, fontWeight: 600,
+                                fontFamily: "'Outfit', sans-serif",
+                                textAlign: 'center',
+                                animation: 'destFadeIn 0.25s ease-out',
+                            }}>
+                                {popupToast}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
