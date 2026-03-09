@@ -80,23 +80,28 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Helper : générer les dates pour les 12 prochains mois
-function getMonthlyDates(): Array<{ outbound: string; return: string; month: string }> {
-    const dates: Array<{ outbound: string; return: string; month: string }> = [];
+// Durées de séjour à scanner
+const TRIP_DURATIONS = [7, 14]; // 7 nuits et 14 nuits
+
+// Helper : générer les dates pour les 12 prochains mois × toutes les durées
+function getMonthlyDates(): Array<{ outbound: string; return: string; month: string; tripDuration: number }> {
+    const dates: Array<{ outbound: string; return: string; month: string; tripDuration: number }> = [];
     const now = new Date();
+    const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
 
     for (let i = 1; i <= 12; i++) {
-        const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15); // 15 du mois
-        const returnDate = new Date(outbound);
-        returnDate.setDate(outbound.getDate() + 7); // 7 nuits
+        for (const nights of TRIP_DURATIONS) {
+            const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
+            const returnDate = new Date(outbound);
+            returnDate.setDate(outbound.getDate() + nights);
 
-        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-
-        dates.push({
-            outbound: outbound.toISOString().split('T')[0],
-            return: returnDate.toISOString().split('T')[0],
-            month: monthNames[outbound.getMonth()],
-        });
+            dates.push({
+                outbound: outbound.toISOString().split('T')[0],
+                return: returnDate.toISOString().split('T')[0],
+                month: monthNames[outbound.getMonth()],
+                tripDuration: nights,
+            });
+        }
     }
 
     return dates;
@@ -174,7 +179,7 @@ export async function scanDestinationDeep(
 
     for (const date of datesToScan) {
         try {
-            console.log(`[Deep] Scanning ${destCity} for ${date.month}...`);
+            console.log(`[Deep] Scanning ${destCity} for ${date.month} (${date.tripDuration}n)...`);
 
             const flights = await searchRoundTrip(
                 ORIGIN,
@@ -204,13 +209,17 @@ export async function scanDestinationDeep(
                 departureDate: date.outbound,
                 returnDate: date.return,
                 route: `YUL – ${destCode}`,
-                tripDuration: 7,
+                tripDuration: date.tripDuration,
                 source: 'skyscanner_deep',
                 bookingLink: buildBookingLink(ORIGIN, destCode, date.outbound, date.return),
                 rawData: {
                     airline_logo: cheapest.airlineLogo,
                     tags: cheapest.tags,
                     itinerary: cheapest.rawItinerary,
+                    return_duration_minutes: cheapest.returnDurationMinutes,
+                    return_stops: cheapest.returnStops,
+                    seats_remaining: cheapest.seatsRemaining,
+                    total_options: flights.length,
                 },
             });
 
@@ -282,7 +291,7 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
     for (const dest of CANADA_DESTINATIONS) {
         for (const date of canadaDates) {
             try {
-                console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
+                console.log(`[Canada] Scanning ${dest.city} for ${date.month} (${date.tripDuration}n)...`);
 
                 const flights = await searchRoundTrip(
                     ORIGIN,
@@ -309,12 +318,16 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
                     departureDate: date.outbound,
                     returnDate: date.return,
                     route: `YUL – ${dest.code}`,
-                    tripDuration: 7,
+                    tripDuration: date.tripDuration,
                     source: 'skyscanner_canada',
                     bookingLink: buildBookingLink(ORIGIN, dest.code, date.outbound, date.return),
                     rawData: {
                         airline_logo: cheapest.airlineLogo,
                         itinerary: cheapest.rawItinerary,
+                        return_duration_minutes: cheapest.returnDurationMinutes,
+                        return_stops: cheapest.returnStops,
+                        seats_remaining: cheapest.seatsRemaining,
+                        total_options: flights.length,
                     },
                 });
 
@@ -410,7 +423,7 @@ export function calculateRealDiscount(
 // Rotation automatique basée sur le jour de l'année
 // ============================================
 
-const BATCH_SIZE = 3; // 3 destinations × 12 mois = 36 appels ≈ 50s
+const BATCH_SIZE = 2; // 2 destinations × 12 mois × 2 durées = 48 appels ≈ 55s
 const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE); // 14
 const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1; // +1 pour la phase Explore
 

@@ -41,21 +41,24 @@ export async function GET(request: Request) {
             });
         }
 
-        // Generate date pairs for the next 6 months (7-night trips)
-        const datePairs: { outbound: string; returnDate: string; label: string }[] = [];
+        // Generate date pairs for the next 4 months × 2 durations (7 & 14 nights)
+        const datePairs: { outbound: string; returnDate: string; label: string; tripDuration: number }[] = [];
         const now = new Date();
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
         for (let i = 1; i <= 4; i++) {
-            const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
-            const ret = new Date(outbound);
-            ret.setDate(outbound.getDate() + 7);
+            for (const nights of [7, 14]) {
+                const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
+                const ret = new Date(outbound);
+                ret.setDate(outbound.getDate() + nights);
 
-            datePairs.push({
-                outbound: outbound.toISOString().split('T')[0],
-                returnDate: ret.toISOString().split('T')[0],
-                label: `${monthNames[outbound.getMonth()]} ${outbound.getFullYear()}`,
-            });
+                datePairs.push({
+                    outbound: outbound.toISOString().split('T')[0],
+                    returnDate: ret.toISOString().split('T')[0],
+                    label: `${monthNames[outbound.getMonth()]} ${outbound.getFullYear()} (${nights}n)`,
+                    tripDuration: nights,
+                });
+            }
         }
 
         const deals: any[] = [];
@@ -129,7 +132,7 @@ export async function GET(request: Request) {
                         duration_minutes: cheapest.durationMinutes,
                         return_duration_minutes: cheapest.returnDurationMinutes,
                         return_stops: cheapest.returnStops,
-                        trip_duration: 7,
+                        trip_duration: dp.tripDuration,
                         tags: cheapest.tags,
                         seats_remaining: estimatedSeats,
                         total_options: flights.length,
