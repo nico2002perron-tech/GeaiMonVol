@@ -61,6 +61,10 @@ export async function GET(request: Request) {
             destinationCode: data?.[0]?.destination_code || '',
             deals,
             count: deals.length,
+        }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+            },
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

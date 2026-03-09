@@ -3,8 +3,22 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { calculateRealDiscount } from '@/lib/services/flights';
 import { COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 
+// ── In-memory cache (persists across requests on the same Vercel instance) ──
+let dealsCache: { data: any; timestamp: number } | null = null;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function GET() {
     try {
+        // Serve from memory cache if fresh (instant — 0ms)
+        if (dealsCache && Date.now() - dealsCache.timestamp < CACHE_TTL) {
+            return NextResponse.json(dealsCache.data, {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+                    'X-Cache': 'HIT',
+                },
+            });
+        }
+
         const supabase = await createServerSupabase();
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
@@ -13,7 +27,7 @@ export async function GET() {
         const [latestResult, historyResult] = await Promise.all([
             supabase
                 .from('price_history')
-                .select('*')
+                .select('destination, destination_code, price, currency, airline, stops, departure_date, return_date, source, scanned_at, raw_data')
                 .gte('scanned_at', thirtyDaysAgo)
                 .neq('source', 'historical_seed')
                 .order('price', { ascending: true }),
@@ -36,7 +50,6 @@ export async function GET() {
             if (!existing) {
                 bestByDest[row.destination] = row;
             } else {
-                // Prefer row with dates
                 const existingHasDates = !!existing.departure_date;
                 const rowHasDates = !!row.departure_date;
                 if (rowHasDates && !existingHasDates) {
@@ -48,14 +61,11 @@ export async function GET() {
         }
 
         // Filter out country-level explore deals that have no city picker
-        // (2-letter codes like UK, JO, ZA without COUNTRY_SUBDESTINATIONS = useless)
         for (const [dest, price] of Object.entries(bestByDest)) {
             const code = price.destination_code || '';
             const isCountryCode = code.length === 2 && code === code.toUpperCase();
             const hasCityPicker = isCountryCode && COUNTRY_SUBDESTINATIONS[code]?.length > 0;
             const hasDates = !!price.departure_date;
-
-            // Remove country-level deals with no city picker AND no dates
             if (isCountryCode && !hasCityPicker && !hasDates) {
                 delete bestByDest[dest];
             }
@@ -73,7 +83,7 @@ export async function GET() {
             });
         }
 
-        // Enrich prices with discount info — no additional DB queries
+        // Enrich prices with discount info
         const enrichedPrices = [];
         for (const [dest, price] of Object.entries(bestByDest)) {
             const history = historyByDest[dest] || [];
@@ -83,10 +93,8 @@ export async function GET() {
             if (discountInfo.discount === 0 && price.raw_data?.price_insights) {
                 const insights = price.raw_data.price_insights;
                 const typicalRange = insights.typical_price_range;
-
                 if (typicalRange?.length >= 2) {
                     const typicalAvg = Math.round((typicalRange[0] + typicalRange[1]) / 2);
-
                     if (typicalAvg > price.price) {
                         const googleDiscount = Math.round(((typicalAvg - price.price) / typicalAvg) * 100);
                         enrichedPrices.push({
@@ -115,12 +123,7 @@ export async function GET() {
 
         // Sort: best deals first
         const levelOrder: Record<string, number> = {
-            lowest_ever: 0,
-            incredible: 1,
-            great: 2,
-            good: 3,
-            slight: 4,
-            normal: 5,
+            lowest_ever: 0, incredible: 1, great: 2, good: 3, slight: 4, normal: 5,
         };
 
         enrichedPrices.sort((a, b) => {
@@ -129,10 +132,20 @@ export async function GET() {
             return b.discount - a.discount;
         });
 
-        return NextResponse.json({
+        const result = {
             prices: enrichedPrices,
             count: enrichedPrices.length,
             updatedAt: new Date().toISOString(),
+        };
+
+        // Store in memory cache
+        dealsCache = { data: result, timestamp: Date.now() };
+
+        return NextResponse.json(result, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+                'X-Cache': 'MISS',
+            },
         });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

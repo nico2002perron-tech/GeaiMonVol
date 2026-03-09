@@ -43,7 +43,11 @@ export async function GET(req: NextRequest) {
         const min = prices.length > 0 ? Math.min(...prices) : 0;
         const max = prices.length > 0 ? Math.max(...prices) : 0;
 
-        return NextResponse.json({ destination, days, points, avg, min, max });
+        return NextResponse.json({ destination, days, points, avg, min, max }, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+            },
+        });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
