@@ -169,8 +169,8 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // Scanner les 3 prochains mois (optimisé pour limiter les appels API)
-    const datesToScan = dates.slice(0, 3);
+    // Scanner les 12 prochains mois (20k req/mois permet un scan complet)
+    const datesToScan = dates;
 
     for (const date of datesToScan) {
         try {
@@ -272,10 +272,10 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
         }
     }
 
-    // PHASE 4 : Scan des vols intra-Canada (3 prochains mois)
+    // PHASE 4 : Scan des vols intra-Canada (12 prochains mois)
     console.log('\n--- Phase 4: Canada domestic flights ---');
     const CANADA_DESTINATIONS = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
-    const canadaDates = getMonthlyDates().slice(0, 3);
+    const canadaDates = getMonthlyDates();
 
     await resolveEntityIds(CANADA_DESTINATIONS.map(d => d.code));
 
@@ -405,122 +405,68 @@ export function calculateRealDiscount(
 
 // ============================================
 // STRATÉGIE 4 : Scan par phase (chunked)
-// Chaque phase tient dans ~60s (Vercel limit)
-// Phase choisie par jour de la semaine
+// Chaque phase tient dans ~55s (Vercel 60s limit)
+// 3 destinations × 12 mois = 36 appels par phase
+// Rotation automatique basée sur le jour de l'année
 // ============================================
 
-export type ScanPhase = 1 | 2 | 3 | 4;
+const BATCH_SIZE = 3; // 3 destinations × 12 mois = 36 appels ≈ 50s
+const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE); // 14
+const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1; // +1 pour la phase Explore
+
+export type ScanPhase = number;
 
 /**
- * Retourne la phase à exécuter selon le jour de la semaine.
- * Lundi/Jeudi = Phase 1 (Explore, ~10s)
- * Mardi/Vendredi = Phase 2 (Deep scan destinations 1-15, ~45s)
- * Mercredi/Samedi = Phase 3 (Deep scan destinations 16-30, ~45s)
- * Dimanche = Phase 4 (Canada domestique, ~30s)
+ * Retourne la phase à exécuter aujourd'hui.
+ * Phase 0 = Explore (1 appel, rapide)
+ * Phase 1-14 = Deep scan par batch de 3 destinations × 12 mois
+ * Cycle complet en 15 jours avec cron quotidien.
  */
 export function getPhaseForToday(): ScanPhase {
-    const day = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    switch (day) {
-        case 1: case 4: return 1; // Lundi, Jeudi
-        case 2: case 5: return 2; // Mardi, Vendredi
-        case 3: case 6: return 3; // Mercredi, Samedi
-        case 0: return 4;         // Dimanche
-        default: return 1;
-    }
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+    return dayOfYear % TOTAL_PHASES;
 }
 
 export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
     const effectivePhase = phase ?? getPhaseForToday();
 
-    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase} (Skyscanner)`);
+    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase}/${TOTAL_PHASES - 1} (Skyscanner)`);
 
     const allDeals: FlightDeal[] = [];
 
-    if (effectivePhase === 1) {
-        // Phase 1 : Skyscanner Explore (1 requête)
-        console.log('--- Phase 1: Skyscanner Everywhere ---');
+    if (effectivePhase === 0) {
+        // Phase 0 : Skyscanner Explore (1 requête)
+        console.log('--- Phase 0: Skyscanner Everywhere ---');
         const exploreDeals = await scanExplore();
         allDeals.push(...exploreDeals);
 
-    } else if (effectivePhase === 2) {
-        // Phase 2 : Deep scan destinations internationales 1-15 (~45s)
-        console.log('--- Phase 2: Deep scan international 1-15 ---');
-        const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
-        const batch = international.slice(0, 15);
+    } else {
+        // Phase 1-14 : Deep scan d'un batch de 3 destinations × 12 mois
+        const batchIndex = effectivePhase - 1;
+        const startIdx = batchIndex * BATCH_SIZE;
+        const batch = PRIORITY_DESTINATIONS.slice(startIdx, startIdx + BATCH_SIZE);
 
-        // Pre-resolve all entity IDs for this batch
+        if (batch.length === 0) {
+            console.log(`[GeaiMonVol] Phase ${effectivePhase}: no destinations in this batch`);
+            return [];
+        }
+
+        const isCanada = batch.every(d => d.country === 'Canada');
+        const source = isCanada ? 'skyscanner_canada' : 'skyscanner_deep';
+
+        console.log(`--- Phase ${effectivePhase}: Deep scan [${batch.map(d => d.city).join(', ')}] × 12 mois ---`);
+
         await resolveEntityIds([ORIGIN, ...batch.map(d => d.code)]);
 
         for (const dest of batch) {
             const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
-            allDeals.push(...deepDeals);
-        }
-
-    } else if (effectivePhase === 3) {
-        // Phase 3 : Deep scan destinations internationales 16-30 (~45s)
-        console.log('--- Phase 3: Deep scan international 16-30 ---');
-        const international = PRIORITY_DESTINATIONS.filter(d => d.country !== 'Canada');
-        const batch = international.slice(15, 32);
-
-        await resolveEntityIds([ORIGIN, ...batch.map(d => d.code)]);
-
-        for (const dest of batch) {
-            const deepDeals = await scanDestinationDeep(dest.code, dest.city, dest.country);
-            allDeals.push(...deepDeals);
-        }
-
-    } else if (effectivePhase === 4) {
-        // Phase 4 : Canada domestique (~30s)
-        console.log('--- Phase 4: Canada domestic ---');
-        const canadaDests = PRIORITY_DESTINATIONS.filter(d => d.country === 'Canada');
-        const canadaDates = getMonthlyDates().slice(0, 3);
-
-        await resolveEntityIds([ORIGIN, ...canadaDests.map(d => d.code)]);
-
-        for (const dest of canadaDests) {
-            for (const date of canadaDates) {
-                try {
-                    console.log(`[Canada] Scanning ${dest.city} for ${date.month}...`);
-
-                    const flights = await searchRoundTrip(
-                        ORIGIN,
-                        dest.code,
-                        date.outbound,
-                        date.return,
-                        { sortBy: 'price_low' }
-                    );
-
-                    if (flights.length === 0) continue;
-
-                    const cheapest = flights[0];
-
-                    allDeals.push({
-                        city: dest.city,
-                        country: 'Canada',
-                        airportCode: dest.code,
-                        price: cheapest.price,
-                        currency: 'CAD',
-                        airline: cheapest.airline,
-                        airlineCode: '',
-                        stops: cheapest.stops,
-                        duration: cheapest.durationMinutes,
-                        departureDate: date.outbound,
-                        returnDate: date.return,
-                        route: `YUL – ${dest.code}`,
-                        tripDuration: 7,
-                        source: 'skyscanner_canada',
-                        bookingLink: buildBookingLink(ORIGIN, dest.code, date.outbound, date.return),
-                        rawData: {
-                            airline_logo: cheapest.airlineLogo,
-                            itinerary: cheapest.rawItinerary,
-                        },
-                    });
-
-                    await sleep(600);
-                } catch (error) {
-                    console.error(`[Canada] Error scanning ${dest.city} ${date.month}:`, error);
-                }
+            // Override source for Canada destinations
+            if (dest.country === 'Canada') {
+                deepDeals.forEach(d => d.source = 'skyscanner_canada');
             }
+            allDeals.push(...deepDeals);
         }
     }
 
