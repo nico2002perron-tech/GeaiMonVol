@@ -3,12 +3,11 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as d3 from 'd3';
 import * as topojson from 'topojson-client';
-import { getRegionForCountry } from '@/lib/data/regions';
+const getRegionForCountry = (name: string) => name || null;
 import { PRIORITY_DESTINATIONS } from '@/lib/services/flights';
 
 /* ═══════════════════════════════════════════════════════════════
-   GLOBE 3D TRADE — Dot-Matrix Premium Trading Terminal
-   Dark space, cyan dot-matrix continents, cyan+violet atmosphere
+   GLOBE 3D — Cartoon Globe (light theme, pale blue gradient)
    ═══════════════════════════════════════════════════════════════ */
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -83,22 +82,22 @@ const BADGE_COLORS: Record<string, string> = {
     lowest_ever: '#7C3AED',
     incredible: '#DC2626',
     great: '#EA580C',
-    good: '#00D4FF',
-    slight: '#00D4FF',
-    normal: '#00D4FF',
+    good: '#0EA5E9',
+    slight: '#0EA5E9',
+    normal: '#0EA5E9',
 };
 
-// Continent color palette — soft pastel cartoon
+// Continent color palette — vibrant cartoon for light theme
 const CONTINENT_COLORS: Record<string, { base: string; deal: string; stroke: string; dealStroke: string; hover: string; hoverDeal: string }> = {
-    amerique_nord: { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' },
-    amerique_sud:  { base: '#FFD3B6', deal: '#FFB088', stroke: '#E0B8A0', dealStroke: '#E8A078', hover: '#FFE4D0', hoverDeal: '#FFC4A0' },
-    caraibes:      { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' },
-    europe:        { base: '#C9B1FF', deal: '#A888F0', stroke: '#A898D8', dealStroke: '#9070E0', hover: '#DDD0FF', hoverDeal: '#BCA0F8' },
-    asie:          { base: '#FFEAA7', deal: '#FFD56B', stroke: '#E0D098', dealStroke: '#E0C060', hover: '#FFF2C8', hoverDeal: '#FFE088' },
-    afrique:       { base: '#FFB5A7', deal: '#FF9A8A', stroke: '#E0A098', dealStroke: '#E08878', hover: '#FFD0C8', hoverDeal: '#FFB0A0' },
-    oceanie:       { base: '#FFC2D1', deal: '#FF9AB5', stroke: '#E0A8B8', dealStroke: '#E088A0', hover: '#FFD8E0', hoverDeal: '#FFB0C8' },
+    amerique_nord: { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' },
+    amerique_sud:  { base: '#FADCB8', deal: '#F5C898', stroke: '#E8C8A8', dealStroke: '#E0B890', hover: '#FDE8D0', hoverDeal: '#F8D4A8' },
+    caraibes:      { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' },
+    europe:        { base: '#CCBAFF', deal: '#B0A0F0', stroke: '#B8A8E0', dealStroke: '#9888D8', hover: '#DDD0FF', hoverDeal: '#C0B0F8' },
+    asie:          { base: '#FAE898', deal: '#F5DC78', stroke: '#E8D890', dealStroke: '#E0CC70', hover: '#FDF0B8', hoverDeal: '#F8E488' },
+    afrique:       { base: '#F8C4B8', deal: '#F0ACA0', stroke: '#E0B8B0', dealStroke: '#D8A098', hover: '#FAD8D0', hoverDeal: '#F5BCA8' },
+    oceanie:       { base: '#F8C0D0', deal: '#F0A8C0', stroke: '#E0B0C0', dealStroke: '#D8A0B0', hover: '#FAD4E0', hoverDeal: '#F5B8D0' },
 };
-const DEFAULT_CONTINENT = { base: '#A8E6CF', deal: '#6DD8A0', stroke: '#7EC8A8', dealStroke: '#55C88E', hover: '#C2F0DD', hoverDeal: '#88E8B5' };
+const DEFAULT_CONTINENT = { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' };
 
 // Module-level cache for world atlas
 let worldAtlasCache: any = null;
@@ -156,10 +155,10 @@ const HOLO_SUSTAIN_FRAMES = 180;
 const HOLO_FADEOUT_FRAMES = 50;
 const HOLO_PARTICLE_COUNT = 18;
 const HOLO_COLORS = {
-    primary: '#00D4FF',
-    secondary: '#A78BFA',
-    glow: 'rgba(0, 212, 255, 0.6)',
-    particle: ['#00D4FF', '#A78BFA', '#FFFFFF', '#7DF9FF'],
+    primary: '#0EA5E9',
+    secondary: '#7C3AED',
+    glow: 'rgba(14, 165, 233, 0.6)',
+    particle: ['#0EA5E9', '#7C3AED', '#FFFFFF', '#38BDF8'],
 };
 
 interface HoloParticle {
@@ -395,27 +394,6 @@ export default function CartoonGlobe({
         loadWorldAtlas().then(setWorldData).catch(() => { });
     }, []);
 
-    // Preload wonder icon images
-    const wonderImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
-    useEffect(() => {
-        const wonderFiles: { key: string; src: string }[] = [
-            { key: 'eiffel', src: '/wonders/eiffel.png' },
-            { key: 'colosseum', src: '/wonders/colosseum.png' },
-            { key: 'cristo', src: '/wonders/cristo.png' },
-            { key: 'tajmahal', src: '/wonders/tajmahal.png' },
-            { key: 'greatwall', src: '/wonders/greatwall.png' },
-            { key: 'liberty', src: '/wonders/liberty.png' },
-            { key: 'pyramids', src: '/wonders/pyramids.png' },
-            { key: 'machupicchu', src: '/wonders/machupicchu.png' },
-        ];
-        for (const { key, src } of wonderFiles) {
-            const img = new Image();
-            img.src = src;
-            img.onload = () => {
-                wonderImagesRef.current.set(key, img);
-            };
-        }
-    }, []);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -569,80 +547,18 @@ export default function CartoonGlobe({
 
         const graticule = d3.geoGraticule10();
 
-        // ═══ EVENT HANDLERS ═══
-        const onMouseDown = (e: MouseEvent) => {
-            isDraggingRef.current = true;
-            lastMouseRef.current = [e.clientX, e.clientY];
-        };
-        const onMouseMove = (e: MouseEvent) => {
-            if (!isDraggingRef.current) return;
-            const dx = e.clientX - lastMouseRef.current[0];
-            const dy = e.clientY - lastMouseRef.current[1];
-            lastMouseRef.current = [e.clientX, e.clientY];
-            const rotDx = dx * 0.3;
-            const rotDy = -dy * 0.3;
-            rotationRef.current = [
-                rotationRef.current[0] + rotDx,
-                Math.max(-80, Math.min(80, rotationRef.current[1] + rotDy)),
-                0,
-            ];
-            velocityRef.current = [rotDx, rotDy];
-            lastDragTimeRef.current = performance.now();
-        };
-        const onMouseUp = () => {
-            isDraggingRef.current = false;
-            if (performance.now() - lastDragTimeRef.current > 100) {
-                velocityRef.current = [0, 0];
-            }
-        };
-
-        const onTouchStart = (e: TouchEvent) => {
-            if (e.touches.length === 1) {
-                isDraggingRef.current = true;
-                lastMouseRef.current = [e.touches[0].clientX, e.touches[0].clientY];
-            }
-        };
-        const onTouchMove = (e: TouchEvent) => {
-            if (!isDraggingRef.current || e.touches.length !== 1) return;
-            e.preventDefault();
-            const dx = e.touches[0].clientX - lastMouseRef.current[0];
-            const dy = e.touches[0].clientY - lastMouseRef.current[1];
-            lastMouseRef.current = [e.touches[0].clientX, e.touches[0].clientY];
-            const rotDx = dx * 0.3;
-            const rotDy = -dy * 0.3;
-            rotationRef.current = [
-                rotationRef.current[0] + rotDx,
-                Math.max(-80, Math.min(80, rotationRef.current[1] + rotDy)),
-                0,
-            ];
-            velocityRef.current = [rotDx, rotDy];
-            lastDragTimeRef.current = performance.now();
-        };
-        const onTouchEnd = () => {
-            isDraggingRef.current = false;
-            if (performance.now() - lastDragTimeRef.current > 100) {
-                velocityRef.current = [0, 0];
-            }
-        };
-
-        const onWheel = (e: WheelEvent) => {
-            e.preventDefault();
-            const delta = -Math.sign(e.deltaY) * ZOOM_STEP;
-            zoomTargetRef.current = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoomTargetRef.current + delta));
-        };
-        const onDblClick = (e: MouseEvent) => {
-            e.preventDefault();
-            zoomTargetRef.current = ZOOM_DEFAULT;
-        };
+        // ═══ EVENT HANDLERS (controls only — no drag/wheel) ═══
+        const onMouseDown = () => {};
+        const onMouseMove = () => {};
+        const onMouseUp = () => {};
+        const onTouchStart = () => {};
+        const onTouchMove = () => {};
+        const onTouchEnd = () => {};
+        const onWheel = (e: WheelEvent) => { e.preventDefault(); };
+        const onDblClick = (e: MouseEvent) => { e.preventDefault(); };
 
         canvas.addEventListener('wheel', onWheel, { passive: false });
         canvas.addEventListener('dblclick', onDblClick);
-        canvas.addEventListener('mousedown', onMouseDown);
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('mouseup', onMouseUp);
-        canvas.addEventListener('touchstart', onTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-        canvas.addEventListener('touchend', onTouchEnd);
 
         // Click
         const onClick = (e: MouseEvent) => {
@@ -740,7 +656,7 @@ export default function CartoonGlobe({
                     }
                 }
                 if (!countryFound) {
-                    canvas.style.cursor = 'grab';
+                    canvas.style.cursor = 'default';
                     hoveredCountryRef.current = null;
                     setTooltip(prev => ({ ...prev, visible: false }));
                 }
@@ -905,174 +821,54 @@ export default function CartoonGlobe({
                 .scale(visibleRadius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
             const path = d3.geoPath().projection(projection).context(ctx);
 
-            // ─── INTERSTELLAR DEEP SPACE ───
-            const bgBase = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(width, height) * 0.8);
-            bgBase.addColorStop(0, '#0a1628');     // deep space navy
-            bgBase.addColorStop(0.4, '#060d1a');   // darker void
-            bgBase.addColorStop(0.7, '#030810');   // near-black
-            bgBase.addColorStop(1, '#010204');      // absolute void
-            ctx.fillStyle = bgBase;
-            ctx.fillRect(0, 0, width, height);
+            // ─── CLEAR CANVAS (transparent — shows page gradient behind) ───
+            ctx.clearRect(0, 0, width, height);
 
-            // Nebula layer 1: warm amber accretion glow (top-right, Gargantua-style)
-            ctx.globalCompositeOperation = 'screen';
-            const nebula1 = ctx.createRadialGradient(
-                width * 0.78, height * 0.25, 0,
-                width * 0.78, height * 0.25, Math.max(width, height) * 0.45
-            );
-            nebula1.addColorStop(0, 'rgba(217, 149, 51, 0.07)');
-            nebula1.addColorStop(0.3, 'rgba(180, 100, 30, 0.04)');
-            nebula1.addColorStop(0.6, 'rgba(140, 70, 20, 0.02)');
-            nebula1.addColorStop(1, 'rgba(100, 50, 10, 0)');
-            ctx.fillStyle = nebula1;
-            ctx.fillRect(0, 0, width, height);
-
-            // Nebula layer 2: deep violet dust (left)
-            const nebula2 = ctx.createRadialGradient(
-                width * 0.15, height * 0.55, 0,
-                width * 0.15, height * 0.55, Math.max(width, height) * 0.5
-            );
-            nebula2.addColorStop(0, 'rgba(88, 40, 150, 0.05)');
-            nebula2.addColorStop(0.3, 'rgba(60, 25, 110, 0.03)');
-            nebula2.addColorStop(0.6, 'rgba(40, 15, 80, 0.015)');
-            nebula2.addColorStop(1, 'rgba(20, 8, 50, 0)');
-            ctx.fillStyle = nebula2;
-            ctx.fillRect(0, 0, width, height);
-
-            // Nebula layer 3: subtle cyan haze behind globe
-            const nebula3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, visibleRadius * 2.2);
-            nebula3.addColorStop(0, 'rgba(0, 180, 220, 0.04)');
-            nebula3.addColorStop(0.5, 'rgba(0, 120, 160, 0.02)');
-            nebula3.addColorStop(1, 'rgba(0, 80, 120, 0)');
-            ctx.fillStyle = nebula3;
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.globalCompositeOperation = 'source-over';
-
-            // ─── STARS (cool tones, subtle) ───
-            const stars = starsRef.current;
-            for (const star of stars) {
-                const twinkle = (Math.sin(timeRef.current * star.twinkleSpeed + star.phase) + 1) / 2;
-                const opacity = star.baseOpacity * (0.3 + twinkle * 0.7);
-                ctx.globalAlpha = opacity;
-                ctx.fillStyle = star.color;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1;
-
-            // ─── SHOOTING STARS ───
-            const shootingStars = shootingStarsRef.current;
-            if (Math.random() < 0.012 && shootingStars.length < 5) {
-                shootingStars.push(createShootingStar(width, height));
-            }
-            for (let i = shootingStars.length - 1; i >= 0; i--) {
-                const ss = shootingStars[i];
-                ss.life++;
-                ss.x += Math.cos(ss.angle) * ss.speed;
-                ss.y += Math.sin(ss.angle) * ss.speed;
-                const progress = ss.life / ss.maxLife;
-                const alpha = ss.opacity * (1 - progress);
-                if (alpha <= 0 || ss.life >= ss.maxLife) {
-                    shootingStars.splice(i, 1);
-                    continue;
-                }
-                ctx.save();
-                const tailX = ss.x - Math.cos(ss.angle) * ss.length;
-                const tailY = ss.y - Math.sin(ss.angle) * ss.length;
-                const grad = ctx.createLinearGradient(tailX, tailY, ss.x, ss.y);
-                grad.addColorStop(0, 'rgba(255,220,180,0)');
-                grad.addColorStop(0.7, `rgba(255,230,200,${alpha * 0.3})`);
-                grad.addColorStop(1, `rgba(255,240,220,${alpha})`);
-                ctx.strokeStyle = grad;
-                ctx.lineWidth = 1;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.moveTo(tailX, tailY);
-                ctx.lineTo(ss.x, ss.y);
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // ═══ ATMOSPHERE — THICK CARTOON GLOW ═══
-            const atmoPulse = 1.0 + Math.sin(timeRef.current * 0.012) * 0.06;
-
+            // ─── DROP SHADOW (floating effect) ───
             ctx.save();
-            ctx.globalCompositeOperation = 'screen';
-
-            // Outer glow — soft cyan atmosphere, dimmer for deep space
-            const outerGlow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.9, cx, cy, visibleRadius * 1.5 * atmoPulse);
-            outerGlow.addColorStop(0, 'rgba(0, 180, 220, 0.0)');
-            outerGlow.addColorStop(0.3, 'rgba(0, 180, 220, 0.05)');
-            outerGlow.addColorStop(0.5, 'rgba(0, 200, 240, 0.08)');
-            outerGlow.addColorStop(0.7, 'rgba(0, 180, 220, 0.04)');
-            outerGlow.addColorStop(1, 'rgba(0, 160, 200, 0)');
-            ctx.fillStyle = outerGlow;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
+            ctx.shadowBlur = 50;
+            ctx.shadowOffsetY = 16;
+            ctx.fillStyle = 'rgba(0,0,0,0)';
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.5, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
-
-            // Cyan rim (lit side — top-right, like sunlight hitting atmosphere)
-            const cyanGrad = ctx.createRadialGradient(
-                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 0.88,
-                cx + visibleRadius * 0.25, cy - visibleRadius * 0.2, visibleRadius * 1.15 * atmoPulse
-            );
-            cyanGrad.addColorStop(0, 'rgba(0, 200, 240, 0.0)');
-            cyanGrad.addColorStop(0.4, 'rgba(0, 200, 240, 0.10)');
-            cyanGrad.addColorStop(0.7, 'rgba(0, 180, 220, 0.05)');
-            cyanGrad.addColorStop(1, 'rgba(0, 180, 220, 0)');
-            ctx.fillStyle = cyanGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.25, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Warm amber rim (left side — like a distant star behind)
-            const warmGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 0.88,
-                cx - visibleRadius * 0.35, cy + visibleRadius * 0.1, visibleRadius * 1.12
-            );
-            warmGrad.addColorStop(0, 'rgba(217, 149, 51, 0.0)');
-            warmGrad.addColorStop(0.4, 'rgba(217, 149, 51, 0.04)');
-            warmGrad.addColorStop(0.7, 'rgba(180, 120, 40, 0.02)');
-            warmGrad.addColorStop(1, 'rgba(180, 120, 40, 0)');
-            ctx.fillStyle = warmGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Crisp edge rim — thin atmosphere line
-            const rimGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.95, cx, cy, visibleRadius * 1.06);
-            rimGrad.addColorStop(0, 'rgba(0, 200, 240, 0)');
-            rimGrad.addColorStop(0.5, 'rgba(0, 200, 240, 0.08)');
-            rimGrad.addColorStop(0.8, 'rgba(0, 200, 240, 0.16)');
-            rimGrad.addColorStop(0.95, 'rgba(0, 200, 240, 0.10)');
-            rimGrad.addColorStop(1, 'rgba(0, 200, 240, 0.03)');
-            ctx.fillStyle = rimGrad;
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 1.06, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
             ctx.restore();
 
-            // ─── OCEAN (deep cinematic blue) ───
-            const oceanGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.3, cy - visibleRadius * 0.3, 0, cx, cy, visibleRadius
-            );
-            oceanGrad.addColorStop(0, '#0E7A90');
-            oceanGrad.addColorStop(0.3, '#0A6880');
-            oceanGrad.addColorStop(0.6, '#085870');
-            oceanGrad.addColorStop(1, '#054560');
-            ctx.fillStyle = oceanGrad;
+            // ─── OCEAN (flat pale blue) ───
+            ctx.fillStyle = '#8AD0F5';
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
 
+            // ─── OCEAN WAVE SHIMMER ───
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.globalAlpha = 0.06;
+            const waveTime = timeRef.current * 0.008;
+            for (let wy = -visibleRadius; wy < visibleRadius; wy += 18) {
+                ctx.beginPath();
+                for (let wx = -visibleRadius; wx < visibleRadius; wx += 3) {
+                    const dx = wx, dy = wy;
+                    if (dx * dx + dy * dy > visibleRadius * visibleRadius) continue;
+                    const waveY = cy + dy + Math.sin(wx * 0.02 + waveTime + wy * 0.01) * 3;
+                    if (wx === -visibleRadius) ctx.moveTo(cx + dx, waveY);
+                    else ctx.lineTo(cx + dx, waveY);
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+            }
+            ctx.restore();
+
             // ─── GRATICULE (subtle cartoon grid) ───
             ctx.save();
-            ctx.globalAlpha = 0.08;
-            ctx.strokeStyle = '#40C0D0';
+            ctx.globalAlpha = 0.1;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
             ctx.lineWidth = 0.4;
             ctx.beginPath();
             path(graticule);
@@ -1135,126 +931,138 @@ export default function CartoonGlobe({
             }
             ctx.restore();
 
-            // ═══ CARTOON SOLAR LIGHTING (warm top-left highlight) ═══
+            // ─── INNER EDGE SHADOW (spherical depth) ───
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.clip();
-            const solarGrad = ctx.createRadialGradient(
-                cx - visibleRadius * 0.4, cy - visibleRadius * 0.4, 0,
-                cx + visibleRadius * 0.2, cy + visibleRadius * 0.2, visibleRadius * 1.2
-            );
-            solarGrad.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
-            solarGrad.addColorStop(0.2, 'rgba(200, 240, 255, 0.04)');
-            solarGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0)');
-            solarGrad.addColorStop(0.8, 'rgba(0, 0, 20, 0.08)');
-            solarGrad.addColorStop(1, 'rgba(0, 0, 20, 0.18)');
-            ctx.fillStyle = solarGrad;
-            ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
+            const innerShadow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.7, cx, cy, visibleRadius);
+            innerShadow.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            innerShadow.addColorStop(0.85, 'rgba(0, 40, 80, 0)');
+            innerShadow.addColorStop(1, 'rgba(0, 40, 80, 0.12)');
+            ctx.fillStyle = innerShadow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
 
-
-
-            // ═══ TINY CARTOON WORLD WONDERS (generated icons) ═══
-            const wonderDefs: { key: string; lat: number; lng: number; label: string }[] = [
-                { key: 'eiffel', lat: 48.8584, lng: 2.2945, label: 'Tour Eiffel' },
-                { key: 'colosseum', lat: 41.8902, lng: 12.4922, label: 'Colisée' },
-                { key: 'cristo', lat: -22.9519, lng: -43.2105, label: 'Cristo' },
-                { key: 'machupicchu', lat: -13.1631, lng: -72.5450, label: 'Machu Picchu' },
-                { key: 'tajmahal', lat: 27.1751, lng: 78.0421, label: 'Taj Mahal' },
-                { key: 'greatwall', lat: 40.4319, lng: 116.5704, label: 'Grande Muraille' },
-                { key: 'liberty', lat: 40.6892, lng: -74.0445, label: 'Liberté' },
-                { key: 'pyramids', lat: 29.9792, lng: 31.1342, label: 'Pyramides' },
-            ];
-            const wonderImages = wonderImagesRef.current;
-            const pinR = isMobile ? 22 : 28; // circle radius
-            const imgSize = pinR * 2.2; // image fills entire circle
+            // ─── CLOUD WISPS (animated semi-transparent) ───
             ctx.save();
             ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.arc(cx, cy, visibleRadius * 0.98, 0, Math.PI * 2);
             ctx.clip();
-            for (const w of wonderDefs) {
-                const img = wonderImages.get(w.key);
-                if (!img) continue;
-
-                // Hemisphere check — only show pins on the VISIBLE side of the globe
-                const rot = rotationRef.current;
-                const centerLng = -rot[0]; // projection center longitude
-                const centerLat = -rot[1]; // projection center latitude
-                const toRad = Math.PI / 180;
-                const dLng = (w.lng - centerLng) * toRad;
-                const lat1 = centerLat * toRad;
-                const lat2 = w.lat * toRad;
-                const cosAngle = Math.sin(lat1) * Math.sin(lat2) + Math.cos(lat1) * Math.cos(lat2) * Math.cos(dLng);
-                if (cosAngle < Math.cos(80 * toRad)) continue; // behind the globe (>80°)
-
-                const proj = projection([w.lng, w.lat]);
-                if (!proj) continue;
-                const distFromCenter = Math.sqrt((proj[0] - cx) ** 2 + (proj[1] - cy) ** 2);
-                if (distFromCenter > visibleRadius * 0.88) continue;
-
-                const px = proj[0];
-                const py = proj[1] - 10; // float above surface
-
-                // Drop shadow
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 0.35;
+            ctx.globalAlpha = 0.18;
+            const cloudRotation = timeRef.current * 0.002;
+            const cloudPatches = [
+                { lat: 35, lng: 20, size: 50 },
+                { lat: -15, lng: -60, size: 40 },
+                { lat: 50, lng: -110, size: 55 },
+                { lat: 10, lng: 80, size: 45 },
+                { lat: -40, lng: 140, size: 35 },
+                { lat: 60, lng: 60, size: 42 },
+                { lat: -25, lng: 30, size: 38 },
+                { lat: 25, lng: -30, size: 48 },
+            ];
+            for (const cloud of cloudPatches) {
+                const cloudLng = cloud.lng + cloudRotation * (180 / Math.PI);
+                const projected = projection([cloudLng, cloud.lat]);
+                if (!projected) continue;
+                const [px, py] = projected;
+                const cloudGrad = ctx.createRadialGradient(px, py, 0, px, py, cloud.size);
+                cloudGrad.addColorStop(0, 'rgba(255,255,255,0.7)');
+                cloudGrad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+                cloudGrad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.fillStyle = cloudGrad;
                 ctx.beginPath();
-                ctx.ellipse(px + 2, py + pinR + 4, pinR * 0.6, 4, 0, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.ellipse(px, py, cloud.size, cloud.size * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
-
-                // White pin circle background
-                ctx.globalAlpha = 0.95;
-                ctx.beginPath();
-                ctx.arc(px, py, pinR, 0, Math.PI * 2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
-                // Colored border
-                ctx.strokeStyle = '#4A9A78';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-
-                // Pin pointer triangle
-                ctx.beginPath();
-                ctx.moveTo(px - 6, py + pinR - 2);
-                ctx.lineTo(px, py + pinR + 10);
-                ctx.lineTo(px + 6, py + pinR - 2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fill();
-                ctx.strokeStyle = '#4A9A78';
-                ctx.lineWidth = 1.5;
-                ctx.beginPath();
-                ctx.moveTo(px - 6, py + pinR - 1);
-                ctx.lineTo(px, py + pinR + 10);
-                ctx.lineTo(px + 6, py + pinR - 1);
-                ctx.stroke();
-
-                // Icon image inside the circle (clipped)
-                ctx.save();
-                ctx.globalAlpha = 1.0;
-                ctx.beginPath();
-                ctx.arc(px, py, pinR - 2, 0, Math.PI * 2);
-                ctx.clip();
-                ctx.drawImage(img, px - imgSize / 2, py - imgSize / 2, imgSize, imgSize);
-                ctx.restore();
-
-                // Label below pin
-                ctx.globalAlpha = 0.85;
-                ctx.font = `700 ${isMobile ? 7 : 8}px 'Outfit', sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'top';
-                ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                ctx.fillText(w.label, px + 0.5, py + pinR + 13.5);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.fillText(w.label, px, py + pinR + 13);
             }
             ctx.restore();
 
-            // ═══ FLIGHT ARCS — only during holo fly-to (removed constant arcs/airplanes) ═══
+            // ─── SPECULAR HIGHLIGHT (subtle 3D shine, top-left) ───
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.clip();
+            const specular = ctx.createRadialGradient(
+                cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, 0,
+                cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, visibleRadius * 0.55
+            );
+            specular.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+            specular.addColorStop(0.3, 'rgba(255, 255, 255, 0.12)');
+            specular.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = specular;
+            ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
+            ctx.restore();
+
+            // ─── THIN BORDER (crisp edge) ───
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 50, 100, 0.1)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+            // ═══ FLIGHT ARCS — live routes from YUL to all deals ═══
             const yulCoord: [number, number] = [-73.74, 45.47];
             const yulProjected = projection(yulCoord);
             const holoDim = holo.active ? holo.dimFactor : 1;
+
+            // ─── ALWAYS-VISIBLE ARCS from YUL to deal destinations ───
+            if (yulProjected && !holo.active) {
+                for (const deal of visibleDeals) {
+                    const coords = getCoords(deal);
+                    if (!coords) continue;
+                    const destP = projection([coords.lng, coords.lat]);
+                    if (!destP) continue;
+
+                    const midX = (yulProjected[0] + destP[0]) / 2;
+                    const dist = Math.sqrt(
+                        (destP[0] - yulProjected[0]) ** 2 + (destP[1] - yulProjected[1]) ** 2
+                    );
+                    if (dist < 20) continue;
+                    const midY = Math.min(yulProjected[1], destP[1]) - dist * 0.25;
+
+                    // Curved arc line
+                    ctx.save();
+                    ctx.globalAlpha = 0.2;
+                    ctx.strokeStyle = '#0EA5E9';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 6]);
+                    ctx.beginPath();
+                    ctx.moveTo(yulProjected[0], yulProjected[1]);
+                    ctx.quadraticCurveTo(midX, midY, destP[0], destP[1]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+
+                    // Destination pulse marker
+                    const pulse = 0.5 + 0.5 * Math.sin(timeRef.current * 0.04 + coords.lat);
+                    ctx.save();
+                    // Outer ring
+                    ctx.globalAlpha = 0.15 + pulse * 0.1;
+                    ctx.strokeStyle = '#0EA5E9';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(destP[0], destP[1], 6 + pulse * 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                    // Inner dot
+                    ctx.globalAlpha = 0.7;
+                    ctx.fillStyle = '#0EA5E9';
+                    ctx.shadowColor = 'rgba(14, 165, 233, 0.4)';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(destP[0], destP[1], 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath();
+                    ctx.arc(destP[0], destP[1], 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
 
             // ═══ HOLOGRAPHIC ARC RENDERING ═══
             if (holo.active && yulProjected) {
@@ -1416,37 +1224,37 @@ export default function CartoonGlobe({
                 }
             }
 
-            // ═══ YUL PIN (simplified cyan) ═══
+            // ═══ YUL PIN ═══
             if (yulProjected) {
                 const pulse = Math.sin(timeRef.current * 0.06);
 
-                // Single subtle pulse ring
+                // Pulse ring
                 const pulseRadius = 12 + pulse * 4;
                 ctx.save();
-                ctx.globalAlpha = 0.12 + pulse * 0.06;
-                ctx.strokeStyle = '#00D4FF';
-                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.15 + pulse * 0.08;
+                ctx.strokeStyle = '#0EA5E9';
+                ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.arc(yulProjected[0], yulProjected[1], pulseRadius, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
 
-                // Main dot (smaller, cyan)
+                // Main dot
                 ctx.save();
-                ctx.shadowColor = 'rgba(0, 212, 255, 0.7)';
+                ctx.shadowColor = 'rgba(14, 165, 233, 0.5)';
                 ctx.shadowBlur = 10;
-                ctx.fillStyle = '#00D4FF';
+                ctx.fillStyle = '#0EA5E9';
                 ctx.beginPath();
                 ctx.arc(yulProjected[0], yulProjected[1], 6, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillStyle = 'rgba(255,255,255,0.9)';
                 ctx.beginPath();
                 ctx.arc(yulProjected[0], yulProjected[1], 2.5, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 ctx.restore();
 
-                // Pill label (more discreet)
+                // White glass pill label
                 ctx.save();
                 const yulLabel = 'YUL Montr\u00e9al';
                 ctx.font = `700 ${isMobile ? 8 : 9}px 'Outfit', sans-serif`;
@@ -1455,14 +1263,14 @@ export default function CartoonGlobe({
                 const pillH = isMobile ? 14 : 16;
                 const pillX = yulProjected[0] - pillW / 2;
                 const pillY = yulProjected[1] - 20;
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
                 ctx.beginPath();
                 ctx.roundRect(pillX, pillY - pillH / 2, pillW, pillH, pillH / 2);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
+                ctx.strokeStyle = 'rgba(14, 165, 233, 0.25)';
                 ctx.lineWidth = 0.5;
                 ctx.stroke();
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillStyle = '#0F172A';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(yulLabel, yulProjected[0], pillY);
@@ -1488,11 +1296,11 @@ export default function CartoonGlobe({
                     const cityName = deal.destination || deal.city || '';
                     if (!cityName) continue;
                     const labelY = projected[1] + 10;
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
                     for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
                         ctx.fillText(cityName, projected[0] + ox, labelY + oy);
                     }
-                    ctx.fillStyle = 'rgba(200, 230, 255, 0.9)';
+                    ctx.fillStyle = '#0F172A';
                     ctx.fillText(cityName, projected[0], labelY);
                 }
                 ctx.restore();
@@ -1505,12 +1313,6 @@ export default function CartoonGlobe({
 
         return () => {
             cancelAnimationFrame(animFrameRef.current);
-            canvas.removeEventListener('mousedown', onMouseDown);
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-            canvas.removeEventListener('touchstart', onTouchStart);
-            canvas.removeEventListener('touchmove', onTouchMove);
-            canvas.removeEventListener('touchend', onTouchEnd);
             canvas.removeEventListener('click', onClick);
             canvas.removeEventListener('mousemove', onCanvasMouseMove);
             canvas.removeEventListener('mouseenter', onCanvasEnter);
@@ -1531,7 +1333,7 @@ export default function CartoonGlobe({
                 padding: 0,
                 touchAction: 'none',
                 overflow: 'hidden',
-                cursor: 'grab',
+                cursor: 'default',
                 position: 'relative',
             }}
         >
@@ -1540,6 +1342,94 @@ export default function CartoonGlobe({
                 id="cartoon-globe-canvas"
                 style={{ display: 'block', width: '100%', height: '100%' }}
             />
+            {/* ─── GLOBE CONTROLS ─── */}
+            <div style={{
+                position: 'absolute',
+                bottom: isMobile ? 16 : 28,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                zIndex: 20,
+                background: 'rgba(255,255,255,0.82)',
+                backdropFilter: 'blur(16px) saturate(1.5)',
+                WebkitBackdropFilter: 'blur(16px) saturate(1.5)',
+                borderRadius: 100,
+                padding: 5,
+                border: '1px solid rgba(255,255,255,0.6)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.07), 0 0 0 1px rgba(14,165,233,0.04)',
+            }}>
+                {/* Rotate left */}
+                <button
+                    onClick={() => { rotationRef.current = [rotationRef.current[0] + 45, rotationRef.current[1], 0]; }}
+                    className="globe-ctrl-btn"
+                    aria-label="Tourner à gauche"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+
+                {/* Zoom out */}
+                <button
+                    onClick={() => { zoomTargetRef.current = Math.max(ZOOM_MIN, zoomTargetRef.current - 0.4); }}
+                    className="globe-ctrl-btn"
+                    aria-label="Zoom out"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+
+                {/* Reset */}
+                <button
+                    onClick={() => { rotationRef.current = [-73, -35, 0]; zoomTargetRef.current = 1; }}
+                    className="globe-ctrl-btn globe-ctrl-reset"
+                    aria-label="Recentrer"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M9.76 14.24l-2.83 2.83m0-10.14l2.83 2.83m4.48 4.48l2.83 2.83"/></svg>
+                </button>
+
+                {/* Zoom in */}
+                <button
+                    onClick={() => { zoomTargetRef.current = Math.min(ZOOM_MAX, zoomTargetRef.current + 0.4); }}
+                    className="globe-ctrl-btn"
+                    aria-label="Zoom in"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </button>
+
+                {/* Rotate right */}
+                <button
+                    onClick={() => { rotationRef.current = [rotationRef.current[0] - 45, rotationRef.current[1], 0]; }}
+                    className="globe-ctrl-btn"
+                    aria-label="Tourner à droite"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+
+            <style>{`
+                .globe-ctrl-btn {
+                    width: 36px; height: 36px; border-radius: 50%; border: none;
+                    background: transparent; cursor: pointer;
+                    display: flex; align-items: center; justify-content: center;
+                    color: #334155; transition: all 0.2s ease;
+                }
+                .globe-ctrl-btn:hover {
+                    background: rgba(14,165,233,0.1);
+                    color: #0EA5E9;
+                }
+                .globe-ctrl-btn:active {
+                    transform: scale(0.9);
+                }
+                .globe-ctrl-reset {
+                    width: 40px; height: 40px;
+                    background: rgba(14,165,233,0.08);
+                    color: #0EA5E9;
+                }
+                .globe-ctrl-reset:hover {
+                    background: rgba(14,165,233,0.18) !important;
+                }
+            `}</style>
+
             {/* ─── TOOLTIP OVERLAY ─── */}
             {tooltip.visible && (
                 <div
@@ -1549,12 +1439,13 @@ export default function CartoonGlobe({
                         top: tooltip.y - 10,
                         zIndex: 100,
                         pointerEvents: 'none',
-                        background: 'rgba(2, 2, 5, 0.92)',
-                        backdropFilter: 'blur(16px)',
+                        background: 'rgba(255, 255, 255, 0.92)',
+                        backdropFilter: 'blur(20px) saturate(1.6)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
                         borderRadius: 14,
                         padding: '12px 16px',
-                        border: '1px solid rgba(0, 212, 255, 0.2)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 20px rgba(0,212,255,0.08)',
+                        border: '1px solid rgba(255, 255, 255, 0.5)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
                         minWidth: 160,
                         maxWidth: 240,
                         fontFamily: "'Outfit', sans-serif",
@@ -1564,7 +1455,7 @@ export default function CartoonGlobe({
                     <div style={{
                         fontSize: 13,
                         fontWeight: 800,
-                        color: '#FFFFFF',
+                        color: '#0F172A',
                         marginBottom: 6,
                         display: 'flex',
                         alignItems: 'center',
@@ -1583,14 +1474,14 @@ export default function CartoonGlobe({
                             }}>
                                 <span style={{
                                     fontSize: 11,
-                                    color: 'rgba(255,255,255,0.6)',
+                                    color: '#64748B',
                                 }}>
                                     ✈️ {tooltip.bestDeal.destination || tooltip.bestDeal.city}
                                 </span>
                                 <span style={{
                                     fontSize: 14,
                                     fontWeight: 800,
-                                    color: '#4ADE80',
+                                    color: '#10B981',
                                     fontFamily: "'Fredoka', sans-serif",
                                 }}>
                                     {tooltip.bestDeal.price}$
@@ -1599,7 +1490,7 @@ export default function CartoonGlobe({
                             {(tooltip.bestDeal.discount || 0) > 0 && (
                                 <div style={{
                                     display: 'inline-block',
-                                    background: BADGE_COLORS[tooltip.bestDeal.dealLevel || 'good'] || '#00D4FF',
+                                    background: BADGE_COLORS[tooltip.bestDeal.dealLevel || 'good'] || '#0EA5E9',
                                     color: 'white',
                                     fontSize: 10,
                                     fontWeight: 800,
@@ -1612,14 +1503,14 @@ export default function CartoonGlobe({
                             )}
                         </>
                     ) : (
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                        <div style={{ fontSize: 11, color: '#94A3B8' }}>
                             Deals disponibles
                         </div>
                     )}
                     <div style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        color: '#00D4FF',
+                        color: '#0EA5E9',
                         marginTop: 4,
                     }}>
                         Cliquer pour explorer →

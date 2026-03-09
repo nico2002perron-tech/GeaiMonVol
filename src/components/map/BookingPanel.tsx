@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { HOTELS } from '@/lib/data/hotels'; // Assuming HOTELS is exported from here
+const HOTELS: { city: string; name: string; stars: number; price: number; img: string }[] = [];
 // import { Flight } from '../data/flights'; // Need Flight interface
 
 // Activity preference categories

@@ -76,23 +76,12 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const isPremium = profile?.plan === 'premium';
-    const isAdmin = (profile as any)?.role === 'admin';
-
     const { count } = await supabase
       .from('ai_guides')
       .select('id', { count: 'exact' })
       .eq('user_id', user.id);
 
     const guideCount = count || 0;
-
-    if (!isPremium && !isAdmin && guideCount >= 1) {
-      return NextResponse.json({
-        error: 'limit_reached',
-        message: 'Tu as déjà utilisé ton guide gratuit. Passe à Premium pour des guides illimités!',
-        guide_count: guideCount,
-      }, { status: 403 });
-    }
 
     // ── Parse body ──
     const body = await req.json();
@@ -162,7 +151,7 @@ export async function POST(req: NextRequest) {
           guide: cached.guide_data,
           guide_id: savedGuide?.id || null,
           guide_count: guideCount + 1,
-          is_premium: isPremium,
+          is_premium: true,
           tokens_used: 0,
           cached: true,
         });
@@ -535,7 +524,7 @@ IMPORTANT :
       guide,
       guide_id: savedGuide?.id || null,
       guide_count: guideCount + 1,
-      is_premium: isPremium,
+      is_premium: true,
       tokens_used: (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0),
       cached: false,
     });

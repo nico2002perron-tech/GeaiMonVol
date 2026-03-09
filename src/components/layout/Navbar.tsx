@@ -29,9 +29,8 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                         Comment ca marche
                     </button>
                 </li>
-                <li><Link href="#explore">Activites</Link></li>
-                <li><Link href="/pricing">Forfaits</Link></li>
-                <li><Link href="#signup" className="nav-cta">S&apos;inscrire</Link></li>
+                <li><Link href="/explore">Globe</Link></li>
+                <li><Link href="/auth" className="nav-cta">Se connecter</Link></li>
             </ul>
 
             {/* Mobile hamburger */}
@@ -53,10 +52,9 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                     <button onClick={() => { onOpenHowItWorks?.(); setMenuOpen(false); }} className="nav-link-btn">
                         Comment ca marche
                     </button>
-                    <Link href="#explore" onClick={() => setMenuOpen(false)}>Activites</Link>
-                    <Link href="/pricing" onClick={() => setMenuOpen(false)}>Forfaits</Link>
-                    <Link href="#signup" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
-                        S&apos;inscrire
+                    <Link href="/explore" onClick={() => setMenuOpen(false)}>Globe</Link>
+                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
+                        Se connecter
                     </Link>
                 </div>
             )}
