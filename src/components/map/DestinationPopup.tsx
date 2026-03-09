@@ -483,6 +483,109 @@ export default function DestinationPopup({
                             </div>
                         )}
 
+                        {/* ═══ PRICE VS AVERAGE CHART ═══ */}
+                        {avgPrice > 0 && sortedDeals.length > 1 && (
+                            <div style={{
+                                marginBottom: 16, padding: '14px 16px', borderRadius: 16,
+                                background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
+                                border: '1px solid #E0F2FE',
+                            }}>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    marginBottom: 10,
+                                }}>
+                                    <span style={{
+                                        fontSize: 12, fontWeight: 700, color: '#0F172A',
+                                        fontFamily: "'Outfit', sans-serif",
+                                        display: 'flex', alignItems: 'center', gap: 5,
+                                    }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
+                                        Prix vs moyenne 90 jours
+                                    </span>
+                                    <span style={{
+                                        fontSize: 11, fontWeight: 600, color: '#94A3B8',
+                                        fontFamily: "'Fredoka', sans-serif",
+                                    }}>
+                                        Moy. {avgPrice} $
+                                    </span>
+                                </div>
+                                {/* Mini bar chart */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {sortedDeals.slice(0, 8).map((deal, i) => {
+                                        const maxPrice = Math.max(avgPrice, ...sortedDeals.map(d => d.price));
+                                        const barWidth = Math.max(15, (deal.price / maxPrice) * 100);
+                                        const avgLinePos = (avgPrice / maxPrice) * 100;
+                                        const isBelow = deal.price < avgPrice;
+                                        const isCheap = deal.price === cheapestPrice;
+
+                                        return (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <span style={{
+                                                    fontSize: 9, fontWeight: 600, color: '#94A3B8',
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    width: 36, textAlign: 'right', flexShrink: 0,
+                                                }}>
+                                                    {formatDateFr(deal.departureDate).split(' ')[0]}{' '}
+                                                    {['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
+                                                </span>
+                                                <div style={{
+                                                    flex: 1, height: 18, position: 'relative',
+                                                    background: '#E2E8F0', borderRadius: 4, overflow: 'hidden',
+                                                }}>
+                                                    {/* Price bar */}
+                                                    <div style={{
+                                                        height: '100%', borderRadius: 4,
+                                                        width: `${barWidth}%`,
+                                                        background: isCheap
+                                                            ? 'linear-gradient(90deg, #10B981, #34D399)'
+                                                            : isBelow
+                                                                ? 'linear-gradient(90deg, #0EA5E9, #38BDF8)'
+                                                                : 'linear-gradient(90deg, #F59E0B, #FBBF24)',
+                                                        transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                                        paddingRight: 6,
+                                                    }}>
+                                                        <span style={{
+                                                            fontSize: 9, fontWeight: 700, color: '#fff',
+                                                            fontFamily: "'Fredoka', sans-serif",
+                                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                                        }}>
+                                                            {Math.round(deal.price)}$
+                                                        </span>
+                                                    </div>
+                                                    {/* Average price line */}
+                                                    <div style={{
+                                                        position: 'absolute', top: 0, bottom: 0,
+                                                        left: `${avgLinePos}%`,
+                                                        width: 2, background: '#DC2626',
+                                                        opacity: 0.6,
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {/* Legend */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
+                                    justifyContent: 'center',
+                                }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} />
+                                        Meilleur prix
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#0EA5E9' }} />
+                                        Sous la moyenne
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                        <span style={{ width: 2, height: 10, background: '#DC2626', opacity: 0.6 }} />
+                                        Moyenne
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
                         {/* ═══ DEAL DATE CARDS ═══ */}
                         {sortedDeals.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -492,6 +595,7 @@ export default function DestinationPopup({
                                     const dealDiscount = deal.discount || (avgPrice > deal.price
                                         ? Math.round(((avgPrice - deal.price) / avgPrice) * 100)
                                         : 0);
+                                    const isBelow = avgPrice > 0 && deal.price < avgPrice;
 
                                     return (
                                         <a
@@ -503,8 +607,16 @@ export default function DestinationPopup({
                                                 display: 'flex', alignItems: 'center', gap: 12,
                                                 padding: '14px 16px',
                                                 borderRadius: 14,
-                                                background: isCheapest ? 'linear-gradient(135deg, rgba(14,165,233,0.05), rgba(6,182,212,0.03))' : '#F8FAFC',
-                                                border: isCheapest ? '2px solid rgba(14,165,233,0.2)' : '1px solid #E2E8F0',
+                                                background: isCheapest
+                                                    ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.03))'
+                                                    : isBelow
+                                                        ? 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(14,165,233,0.01))'
+                                                        : '#F8FAFC',
+                                                border: isCheapest
+                                                    ? '2px solid rgba(16,185,129,0.25)'
+                                                    : isBelow
+                                                        ? '1px solid rgba(14,165,233,0.15)'
+                                                        : '1px solid #E2E8F0',
                                                 textDecoration: 'none', color: 'inherit',
                                                 transition: 'all 0.2s',
                                                 cursor: 'pointer',
@@ -521,21 +633,21 @@ export default function DestinationPopup({
                                             {/* Date column */}
                                             <div style={{
                                                 width: 56, height: 56, borderRadius: 12, flexShrink: 0,
-                                                background: isCheapest ? '#0EA5E9' : '#E0F2FE',
+                                                background: isCheapest ? '#10B981' : isBelow ? '#0EA5E9' : '#E0F2FE',
                                                 display: 'flex', flexDirection: 'column',
                                                 alignItems: 'center', justifyContent: 'center',
                                             }}>
                                                 <span style={{
                                                     fontSize: 18, fontWeight: 700, lineHeight: 1,
                                                     fontFamily: "'Fredoka', sans-serif",
-                                                    color: isCheapest ? '#fff' : '#0284C7',
+                                                    color: (isCheapest || isBelow) ? '#fff' : '#0284C7',
                                                 }}>
                                                     {new Date(deal.departureDate + 'T00:00:00').getDate()}
                                                 </span>
                                                 <span style={{
                                                     fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
                                                     fontFamily: "'Outfit', sans-serif",
-                                                    color: isCheapest ? 'rgba(255,255,255,0.85)' : '#0284C7',
+                                                    color: (isCheapest || isBelow) ? 'rgba(255,255,255,0.85)' : '#0284C7',
                                                 }}>
                                                     {['jan','fev','mar','avr','mai','juin','juil','aout','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
                                                 </span>
@@ -594,7 +706,7 @@ export default function DestinationPopup({
                                                 <div style={{
                                                     fontSize: 20, fontWeight: 700, lineHeight: 1,
                                                     fontFamily: "'Fredoka', sans-serif",
-                                                    color: isCheapest ? '#0284C7' : '#0F172A',
+                                                    color: isCheapest ? '#059669' : isBelow ? '#0284C7' : '#0F172A',
                                                 }}>
                                                     {Math.round(deal.price)} $
                                                 </div>
@@ -611,7 +723,7 @@ export default function DestinationPopup({
                                                 )}
                                                 {isCheapest && (
                                                     <div style={{
-                                                        fontSize: 9, fontWeight: 700, color: '#0EA5E9',
+                                                        fontSize: 9, fontWeight: 700, color: '#059669',
                                                         fontFamily: "'Outfit', sans-serif", marginTop: 2,
                                                     }}>
                                                         MEILLEUR PRIX

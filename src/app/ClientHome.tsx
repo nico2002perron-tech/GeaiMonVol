@@ -159,6 +159,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [sortMode, setSortMode] = useState<SortMode>('deal');
   const [searchQuery, setSearchQuery] = useState('');
   const [stickyFilters, setStickyFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(9);
   const filtersRef = useRef<HTMLDivElement>(null);
 
   // SSR deals mapped once — shown INSTANTLY on page load
@@ -237,8 +238,14 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
     return result;
   }, [allDeals, activeFilter, sortMode, searchQuery]);
 
+  // Reset visible count when filters change
+  useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode]);
+
   const featured = filteredDeals[0];
   const rest = filteredDeals.slice(1);
+  const visibleRest = rest.slice(0, visibleCount);
+  const hasMore = rest.length > visibleCount;
+  const remainingCount = rest.length - visibleCount;
 
   // Time ago string
   const timeAgo = useMemo(() => {
@@ -763,7 +770,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: 20,
             }}>
-              {rest.map((deal, idx) => {
+              {visibleRest.map((deal, idx) => {
                 const rank = idx + 2; // #1 is featured
                 const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
@@ -914,6 +921,50 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* ── VOIR PLUS BUTTON ── */}
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 32 }}>
+              <button
+                onClick={() => setVisibleCount(prev => prev + 9)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 10,
+                  padding: '14px 36px', borderRadius: 100,
+                  border: '2px solid #E2E8F0',
+                  background: 'white', color: '#0F172A',
+                  fontSize: 15, fontWeight: 700,
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer',
+                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#0EA5E9';
+                  e.currentTarget.style.color = '#0EA5E9';
+                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(14,165,233,0.15)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#E2E8F0';
+                  e.currentTarget.style.color = '#0F172A';
+                  e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.04)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                Voir plus de deals
+                <span style={{
+                  fontSize: 12, fontWeight: 700,
+                  padding: '3px 10px', borderRadius: 100,
+                  background: 'rgba(14,165,233,0.08)', color: '#0EA5E9',
+                }}>
+                  +{remainingCount}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
             </div>
           )}
 
