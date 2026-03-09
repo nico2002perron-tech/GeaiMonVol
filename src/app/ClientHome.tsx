@@ -303,45 +303,37 @@ export default function ClientHome() {
           </div>
 
           <div className="lp-hero-visual">
-            <div className="lp-hero-card lp-hero-card-float-1">
-              <div className="lp-hero-card-img">
-                <Image src="https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=400&h=200&fit=crop" alt="Lisbonne" fill style={{ objectFit: 'cover' }} />
-                <span className="lp-hero-card-badge">🔥 -32%</span>
-              </div>
-              <div className="lp-hero-card-body">
-                <div className="lp-hero-card-route"><strong>YUL</strong> → <strong>LIS</strong></div>
-                <div className="lp-hero-card-city">Lisbonne</div>
-                <div className="lp-hero-card-price">
-                  <span className="old">780 $</span><span className="current">529 $</span>
+            {(() => {
+              // Pick top 3 deals with highest discount for hero cards
+              const heroDeals = allDeals
+                .filter(d => d.discount >= 20 && d.image)
+                .sort((a, b) => b.discount - a.discount)
+                .slice(0, 3);
+              // Fallback if no live data yet
+              const cards = heroDeals.length >= 3 ? heroDeals : [
+                { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, image: 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=400&h=200&fit=crop' },
+                { city: 'Tokyo', code: 'TYO', price: 689, oldPrice: 1050, discount: 34, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop' },
+                { city: 'Punta Cana', code: 'PUJ', price: 899, oldPrice: 1350, discount: 33, image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=400&h=200&fit=crop' },
+              ];
+              const floatClasses = ['lp-hero-card-float-1', 'lp-hero-card-float-2', 'lp-hero-card-float-3'];
+              const icons = ['🔥', '✈️', '🏖️'];
+              return cards.map((c, i) => (
+                <div key={i} className={`lp-hero-card ${floatClasses[i]}`}>
+                  <div className="lp-hero-card-img">
+                    <Image src={c.image} alt={c.city} fill style={{ objectFit: 'cover' }} />
+                    <span className="lp-hero-card-badge">{icons[i]} -{c.discount}%</span>
+                  </div>
+                  <div className="lp-hero-card-body">
+                    <div className="lp-hero-card-route"><strong>YUL</strong> &rarr; <strong>{c.code}</strong></div>
+                    <div className="lp-hero-card-city">{c.city}</div>
+                    <div className="lp-hero-card-price">
+                      {c.oldPrice > c.price && <span className="old">{Math.round(c.oldPrice)} $</span>}
+                      <span className="current">{Math.round(c.price)} $</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="lp-hero-card lp-hero-card-float-2">
-              <div className="lp-hero-card-img">
-                <Image src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop" alt="Tokyo" fill style={{ objectFit: 'cover' }} />
-                <span className="lp-hero-card-badge">✈️ -34%</span>
-              </div>
-              <div className="lp-hero-card-body">
-                <div className="lp-hero-card-route"><strong>YUL</strong> → <strong>TYO</strong></div>
-                <div className="lp-hero-card-city">Tokyo</div>
-                <div className="lp-hero-card-price">
-                  <span className="old">1 050 $</span><span className="current">689 $</span>
-                </div>
-              </div>
-            </div>
-            <div className="lp-hero-card lp-hero-card-float-3">
-              <div className="lp-hero-card-img">
-                <Image src="https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=400&h=200&fit=crop" alt="Punta Cana" fill style={{ objectFit: 'cover' }} />
-                <span className="lp-hero-card-badge">🏖️ -33%</span>
-              </div>
-              <div className="lp-hero-card-body">
-                <div className="lp-hero-card-route"><strong>YUL</strong> → <strong>PUJ</strong></div>
-                <div className="lp-hero-card-city">Punta Cana</div>
-                <div className="lp-hero-card-price">
-                  <span className="old">1 350 $</span><span className="current">899 $</span>
-                </div>
-              </div>
-            </div>
+              ));
+            })()}
           </div>
         </div>
         <div className="lp-wave-divider">
@@ -354,64 +346,67 @@ export default function ClientHome() {
       </section>
 
       {/* ─── TICKER BAR ─── */}
-      <section className="lp-ticker">
-        <div className="lp-ticker-row">
-          <div className="lp-ticker-track lp-ticker-left">
-            {[...Array(2)].map((_, i) => (
-              <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
-                {STATIC_DEALS.map((d) => {
-                  const pct = Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100);
-                  return (
-                    <button type="button" onClick={() => openDealPopup({
-                      city: d.city, code: d.code, country: CITY_COUNTRY[d.city] || '',
-                      price: d.price, oldPrice: d.oldPrice, discount: pct,
-                      dealLevel: 'normal', airline: '', stops: -1,
-                      image: d.image, category: d.category, isLive: false,
-                      departureDate: '', returnDate: '', bookingLink: '', duration: 0,
-                    })} className="lp-ticker-card" key={`${i}-${d.code}`}>
-                      <span className="lp-ticker-emoji">{d.tagIcon}</span>
-                      <span className="lp-ticker-city">{d.city}</span>
-                      <span className="lp-ticker-dates">{d.dates}</span>
-                      <span className="lp-ticker-arrow">✈</span>
-                      <span className="lp-ticker-old">{d.oldPrice}$</span>
-                      <span className="lp-ticker-price">{d.price}$</span>
-                      <span className="lp-ticker-pct">-{pct}%</span>
-                    </button>
-                  );
-                })}
+      {(() => {
+        // Use live deals for ticker when available, otherwise static
+        const tickerDeals = allDeals.length >= 6
+          ? allDeals.filter(d => d.discount >= 15).slice(0, 12).map(d => ({
+              city: d.city, code: d.code, price: d.price, oldPrice: d.oldPrice,
+              discount: d.discount, image: d.image, category: d.category,
+              country: d.country, dealLevel: d.dealLevel, airline: d.airline,
+              stops: d.stops, isLive: d.isLive, departureDate: d.departureDate,
+              returnDate: d.returnDate, bookingLink: d.bookingLink, duration: d.duration,
+            }))
+          : STATIC_DEALS.map(d => ({
+              city: d.city, code: d.code, price: d.price,
+              oldPrice: d.oldPrice, discount: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100),
+              image: d.image, category: d.category as 'canada' | 'monde' | 'tout-inclus',
+              country: CITY_COUNTRY[d.city] || '', dealLevel: 'normal', airline: '',
+              stops: -1, isLive: false, departureDate: '', returnDate: '', bookingLink: '', duration: 0,
+            }));
+        const half = Math.ceil(tickerDeals.length / 2);
+        const row1 = tickerDeals.slice(0, half);
+        const row2 = tickerDeals.slice(half);
+        return (
+          <section className="lp-ticker">
+            <div className="lp-ticker-row">
+              <div className="lp-ticker-track lp-ticker-left">
+                {[...Array(2)].map((_, i) => (
+                  <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
+                    {row1.map((d) => (
+                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
+                        <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
+                        <span className="lp-ticker-city">{d.city}</span>
+                        <span className="lp-ticker-arrow">✈</span>
+                        {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
+                        <span className="lp-ticker-price">{Math.round(d.price)}$</span>
+                        <span className="lp-ticker-pct">-{d.discount}%</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-        <div className="lp-ticker-row">
-          <div className="lp-ticker-track lp-ticker-right">
-            {[...Array(2)].map((_, i) => (
-              <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
-                {[...STATIC_DEALS].reverse().map((d) => {
-                  const pct = Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100);
-                  return (
-                    <button type="button" onClick={() => openDealPopup({
-                      city: d.city, code: d.code, country: CITY_COUNTRY[d.city] || '',
-                      price: d.price, oldPrice: d.oldPrice, discount: pct,
-                      dealLevel: 'normal', airline: '', stops: -1,
-                      image: d.image, category: d.category, isLive: false,
-                      departureDate: '', returnDate: '', bookingLink: '', duration: 0,
-                    })} className="lp-ticker-card" key={`${i}-${d.code}`}>
-                      <span className="lp-ticker-emoji">{d.tagIcon}</span>
-                      <span className="lp-ticker-city">{d.city}</span>
-                      <span className="lp-ticker-dates">{d.dates}</span>
-                      <span className="lp-ticker-arrow">✈</span>
-                      <span className="lp-ticker-old">{d.oldPrice}$</span>
-                      <span className="lp-ticker-price">{d.price}$</span>
-                      <span className="lp-ticker-pct">-{pct}%</span>
-                    </button>
-                  );
-                })}
+            </div>
+            <div className="lp-ticker-row">
+              <div className="lp-ticker-track lp-ticker-right">
+                {[...Array(2)].map((_, i) => (
+                  <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
+                    {row2.map((d) => (
+                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
+                        <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
+                        <span className="lp-ticker-city">{d.city}</span>
+                        <span className="lp-ticker-arrow">✈</span>
+                        {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
+                        <span className="lp-ticker-price">{Math.round(d.price)}$</span>
+                        <span className="lp-ticker-pct">-{d.discount}%</span>
+                      </button>
+                    ))}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ─── HOW IT WORKS ─── */}
       <section className="lp-how" id="how">
