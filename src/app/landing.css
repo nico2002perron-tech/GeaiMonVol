@@ -1016,14 +1016,15 @@
 .lp-ticker-track {
   display: flex;
   width: max-content;
+  will-change: transform;
 }
 
 .lp-ticker-left {
-  animation: tickerLeft 65s linear infinite;
+  animation: tickerLeft 45s linear infinite;
 }
 
 .lp-ticker-right {
-  animation: tickerRight 70s linear infinite;
+  animation: tickerRight 50s linear infinite;
 }
 
 .lp-ticker-track:hover {

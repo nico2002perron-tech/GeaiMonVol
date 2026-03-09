@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -96,26 +96,6 @@ const SORT_OPTIONS: { id: SortMode; label: string }[] = [
   { id: 'discount', label: 'Plus gros rabais %' },
 ];
 
-const DISCOUNT_STEPS = [0, 20, 25, 30, 35, 40] as const;
-
-const DISCOUNT_COLORS: Record<number, string> = {
-  0: '#94A3B8',
-  20: '#0EA5E9',
-  25: '#0284C7',
-  30: '#059669',
-  35: '#D97706',
-  40: '#DC2626',
-};
-
-const DISCOUNT_LABELS: Record<number, string> = {
-  0: 'Tous',
-  20: '20%+',
-  25: '25%+',
-  30: '30%+',
-  35: '35%+',
-  40: '40%+',
-};
-
 const RANK_COLORS = ['#F59E0B', '#94A3B8', '#D97706'];
 
 const CheckIcon = () => (
@@ -177,7 +157,9 @@ interface ClientHomeProps {
 export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('tous');
   const [sortMode, setSortMode] = useState<SortMode>('deal');
-  const [minDiscount, setMinDiscount] = useState(20);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [stickyFilters, setStickyFilters] = useState(false);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   // SSR deals mapped once — shown INSTANTLY on page load
   const ssrDeals = useMemo(() => mapPricesToDeals(initialDeals), [initialDeals]);
@@ -189,26 +171,46 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupDeal, setPopupDeal] = useState<DealItem | null>(null);
 
-  const openDealPopup = (deal: DealItem) => {
+  const openDealPopup = useCallback((deal: DealItem) => {
     setPopupDeal(deal);
     setPopupOpen(true);
-  };
+  }, []);
+
+  // Sticky filters on scroll
+  useEffect(() => {
+    const el = filtersRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setStickyFilters(!entry.isIntersecting),
+      { threshold: 0, rootMargin: '-60px 0px 0px 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // ── Deals: use live data when available, otherwise SSR pre-fetched data ──
   const allDeals: DealItem[] = useMemo(() => {
-    // If live API data is loaded, use it (freshest)
     if (isLive && livePrices && livePrices.length > 0) {
       return mapPricesToDeals(livePrices);
     }
-    // Otherwise use SSR pre-fetched deals (instant on page load)
     return ssrDeals;
   }, [livePrices, isLive, ssrDeals]);
 
-  // ── Filter ──
+  // ── Filter + Search ──
   const filteredDeals = useMemo(() => {
-    // Apply minimum discount filter
-    let result = allDeals.filter(d => d.discount >= minDiscount);
+    let result = [...allDeals];
 
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(d =>
+        d.city.toLowerCase().includes(q) ||
+        d.country.toLowerCase().includes(q) ||
+        d.code.toLowerCase().includes(q)
+      );
+    }
+
+    // Category filter
     if (activeFilter === 'top') {
       result = result.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel));
     } else if (activeFilter !== 'tous') {
@@ -233,7 +235,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
     }
 
     return result;
-  }, [allDeals, activeFilter, sortMode, minDiscount]);
+  }, [allDeals, activeFilter, sortMode, searchQuery]);
 
   const featured = filteredDeals[0];
   const rest = filteredDeals.slice(1);
@@ -334,7 +336,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
               return cards.map((c, i) => (
                 <div key={i} className={`lp-hero-card ${floatClasses[i]}`}>
                   <div className="lp-hero-card-img">
-                    <Image src={c.image} alt={c.city} fill style={{ objectFit: 'cover' }} />
+                    <Image src={c.image} alt={`Deal vol ${c.city}`} fill sizes="(max-width: 768px) 160px, 220px" priority={i === 0} style={{ objectFit: 'cover' }} />
                     <span className="lp-hero-card-badge">{icons[i]} -{c.discount}%</span>
                   </div>
                   <div className="lp-hero-card-body">
@@ -476,7 +478,7 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
           {/* ── Header ── */}
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div ref={filtersRef} style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '6px 16px', borderRadius: 100,
@@ -510,199 +512,203 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
             </p>
           </div>
 
-          {/* ── Filter + Discount + Sort bar ── */}
+          {/* ── Search + Filter + Sort — unified bar ── */}
           <div style={{
-            display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32,
+            position: stickyFilters ? 'sticky' : 'relative',
+            top: stickyFilters ? 0 : 'auto',
+            zIndex: stickyFilters ? 50 : 'auto',
+            background: stickyFilters ? 'rgba(248,250,252,0.95)' : 'transparent',
+            backdropFilter: stickyFilters ? 'blur(12px)' : 'none',
+            WebkitBackdropFilter: stickyFilters ? 'blur(12px)' : 'none',
+            padding: stickyFilters ? '12px 0' : '0',
+            marginBottom: 28,
+            transition: 'padding 0.3s, background 0.3s',
+            borderBottom: stickyFilters ? '1px solid #E2E8F0' : 'none',
           }}>
-            {/* Row 1: Category pills + Sort */}
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              flexWrap: 'wrap', gap: 12,
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
             }}>
-              {/* Filter pills */}
+              {/* Search input */}
               <div style={{
-                display: 'flex', gap: 6,
-                background: 'white', padding: 5, borderRadius: 100,
+                position: 'relative', flex: '1 1 200px', minWidth: 180, maxWidth: 280,
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
+                  <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Chercher une destination..."
+                  style={{
+                    width: '100%', padding: '10px 14px 10px 38px',
+                    borderRadius: 14, border: '1.5px solid #E2E8F0',
+                    background: 'white', color: '#0F172A',
+                    fontSize: 13, fontWeight: 500,
+                    fontFamily: "'Outfit', sans-serif",
+                    outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#0EA5E9';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(14,165,233,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    style={{
+                      position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                      width: 20, height: 20, borderRadius: '50%', border: 'none',
+                      background: '#E2E8F0', color: '#64748B', fontSize: 11,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              {/* Category pills */}
+              <div style={{
+                display: 'flex', gap: 4,
+                background: 'white', padding: 4, borderRadius: 100,
                 border: '1px solid #E2E8F0',
-                overflowX: 'auto',
-                flexShrink: 0,
+                overflowX: 'auto', flex: '1 1 auto',
               }}>
                 {FILTER_TABS.map(tab => {
-                  const base = allDeals.filter(d => d.discount >= minDiscount);
                   const isActive = activeFilter === tab.id;
-                  const count = tab.id === 'tous' ? base.length
-                    : tab.id === 'top' ? base.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel)).length
-                    : base.filter(d => d.category === tab.id).length;
+                  const count = tab.id === 'tous' ? allDeals.length
+                    : tab.id === 'top' ? allDeals.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel)).length
+                    : allDeals.filter(d => d.category === tab.id).length;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveFilter(tab.id)}
                       style={{
-                        padding: '9px 18px',
-                        borderRadius: 100,
-                        border: 'none',
+                        padding: '8px 14px', borderRadius: 100, border: 'none',
                         background: isActive ? '#0EA5E9' : 'transparent',
                         color: isActive ? '#fff' : '#334155',
-                        fontSize: 13,
-                        fontWeight: 600,
+                        fontSize: 12.5, fontWeight: 600,
                         fontFamily: "'Outfit', sans-serif",
-                        cursor: 'pointer',
-                        transition: 'all 0.25s',
-                        display: 'flex', alignItems: 'center', gap: 6,
+                        cursor: 'pointer', transition: 'all 0.2s',
+                        display: 'flex', alignItems: 'center', gap: 5,
                         whiteSpace: 'nowrap',
-                        boxShadow: isActive ? '0 2px 8px rgba(14,165,233,0.3)' : 'none',
+                        boxShadow: isActive ? '0 2px 8px rgba(14,165,233,0.25)' : 'none',
                       }}
                     >
-                      <span style={{ fontSize: 15 }}>{tab.icon}</span>
+                      <span style={{ fontSize: 13 }}>{tab.icon}</span>
                       {tab.label}
-                      {count > 0 && (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700,
-                          padding: '1px 7px', borderRadius: 100,
-                          background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(14,165,233,0.08)',
-                          color: isActive ? '#fff' : '#0284C7',
-                        }}>
-                          {count}
-                        </span>
-                      )}
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        padding: '1px 6px', borderRadius: 100,
+                        background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(14,165,233,0.06)',
+                        color: isActive ? '#fff' : '#94A3B8',
+                      }}>
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Sort dropdown */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                fontFamily: "'Outfit', sans-serif",
-              }}>
-                <span style={{ fontSize: 13, color: '#94A3B8', fontWeight: 500 }}>Trier :</span>
-                <select
-                  value={sortMode}
-                  onChange={(e) => setSortMode(e.target.value as SortMode)}
-                  style={{
-                    padding: '8px 32px 8px 14px',
-                    borderRadius: 12, border: '1px solid #E2E8F0',
-                    background: 'white', color: '#0F172A',
-                    fontSize: 13, fontWeight: 600,
-                    fontFamily: "'Outfit', sans-serif",
-                    cursor: 'pointer',
-                    appearance: 'none',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 12px center',
-                  }}
-                >
-                  {SORT_OPTIONS.map(s => (
-                    <option key={s.id} value={s.id}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Sort */}
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                style={{
+                  padding: '9px 30px 9px 12px', borderRadius: 12,
+                  border: '1px solid #E2E8F0', background: 'white', color: '#0F172A',
+                  fontSize: 12.5, fontWeight: 600,
+                  fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+                  flexShrink: 0,
+                }}
+              >
+                {SORT_OPTIONS.map(s => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Row 2: Discount filter — prominent */}
-            <div style={{
-              background: 'white',
-              border: '1px solid #E2E8F0',
-              borderRadius: 20,
-              padding: '14px 20px',
-              display: 'flex', alignItems: 'center', gap: 16,
-              flexWrap: 'wrap',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            }}>
-              {/* Label */}
+            {/* Active filters summary */}
+            {(searchQuery || activeFilter !== 'tous') && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                fontFamily: "'Outfit', sans-serif",
-                flexShrink: 0,
+                display: 'flex', alignItems: 'center', gap: 8, marginTop: 10,
+                fontFamily: "'Outfit', sans-serif", fontSize: 12, color: '#64748B',
               }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: `linear-gradient(135deg, ${DISCOUNT_COLORS[minDiscount] || '#0EA5E9'}15, ${DISCOUNT_COLORS[minDiscount] || '#0EA5E9'}08)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.3s',
+                <span>{filteredDeals.length} resultat{filteredDeals.length !== 1 ? 's' : ''}</span>
+                {searchQuery && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 10px', borderRadius: 8,
+                    background: 'rgba(14,165,233,0.08)', color: '#0284C7', fontWeight: 600,
+                  }}>
+                    &ldquo;{searchQuery}&rdquo;
+                    <button onClick={() => setSearchQuery('')} style={{
+                      border: 'none', background: 'none', color: '#0284C7',
+                      cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1,
+                    }}>&times;</button>
+                  </span>
+                )}
+                {activeFilter !== 'tous' && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 10px', borderRadius: 8,
+                    background: 'rgba(14,165,233,0.08)', color: '#0284C7', fontWeight: 600,
+                  }}>
+                    {FILTER_TABS.find(t => t.id === activeFilter)?.icon} {FILTER_TABS.find(t => t.id === activeFilter)?.label}
+                    <button onClick={() => setActiveFilter('tous')} style={{
+                      border: 'none', background: 'none', color: '#0284C7',
+                      cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1,
+                    }}>&times;</button>
+                  </span>
+                )}
+                <button onClick={() => { setSearchQuery(''); setActiveFilter('tous'); }} style={{
+                  border: 'none', background: 'none', color: '#94A3B8',
+                  cursor: 'pointer', fontSize: 11, fontWeight: 600, textDecoration: 'underline',
+                  fontFamily: "'Outfit', sans-serif",
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={DISCOUNT_COLORS[minDiscount] || '#0EA5E9'} strokeWidth="2.5" strokeLinecap="round">
-                    <line x1="19" y1="5" x2="5" y2="19" />
-                    <circle cx="6.5" cy="6.5" r="2.5" />
-                    <circle cx="17.5" cy="17.5" r="2.5" />
-                  </svg>
-                </div>
-                <div>
-                  <div style={{
-                    fontSize: 13, fontWeight: 700, color: '#0F172A',
-                    lineHeight: 1.2,
-                  }}>
-                    Rabais minimum
-                  </div>
-                  <div style={{
-                    fontSize: 11, color: '#94A3B8', fontWeight: 500,
-                  }}>
-                    vs prix moyen des 90 derniers jours
-                  </div>
-                </div>
+                  Reinitialiser
+                </button>
               </div>
-
-              {/* Discount step buttons */}
-              <div style={{
-                display: 'flex', gap: 6, flex: 1,
-                justifyContent: 'center',
-              }}>
-                {DISCOUNT_STEPS.map((step) => {
-                  const isActive = minDiscount === step;
-                  const color = DISCOUNT_COLORS[step];
-                  const count = allDeals.filter(d => d.discount >= step).length;
-                  return (
-                    <button
-                      key={step}
-                      onClick={() => setMinDiscount(step)}
-                      style={{
-                        position: 'relative',
-                        padding: isActive ? '10px 16px' : '10px 14px',
-                        borderRadius: 14,
-                        border: isActive ? `2px solid ${color}` : '2px solid transparent',
-                        background: isActive ? `${color}10` : '#F8FAFC',
-                        cursor: 'pointer',
-                        transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-                        minWidth: 56,
-                        boxShadow: isActive ? `0 4px 16px ${color}25` : 'none',
-                      }}
-                    >
-                      <span style={{
-                        fontSize: 16, fontWeight: 800,
-                        fontFamily: "'Fredoka', sans-serif",
-                        color: isActive ? color : '#64748B',
-                        lineHeight: 1,
-                        transition: 'color 0.2s',
-                      }}>
-                        {step === 0 ? 'Tous' : `-${step}%`}
-                      </span>
-                      <span style={{
-                        fontSize: 10, fontWeight: 600,
-                        color: isActive ? color : '#94A3B8',
-                        fontFamily: "'Outfit', sans-serif",
-                        transition: 'color 0.2s',
-                      }}>
-                        {count} vol{count !== 1 ? 's' : ''}
-                      </span>
-                      {isActive && (
-                        <div style={{
-                          position: 'absolute', top: -4, right: -4,
-                          width: 14, height: 14, borderRadius: '50%',
-                          background: color,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: `0 2px 6px ${color}40`,
-                        }}>
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            )}
           </div>
+
+          {/* ── SKELETON LOADING ── */}
+          {allDeals.length === 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: 20,
+            }}>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} style={{
+                  background: 'white', borderRadius: 20, overflow: 'hidden',
+                  border: '1px solid #E2E8F0',
+                }}>
+                  <div style={{
+                    height: 180,
+                    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
+                    backgroundSize: '200% 100%',
+                    animation: 'dealPulse 2s ease-in-out infinite',
+                  }} />
+                  <div style={{ padding: '18px 22px 22px' }}>
+                    <div style={{ height: 14, width: '40%', borderRadius: 6, background: '#E2E8F0', marginBottom: 10 }} />
+                    <div style={{ height: 22, width: '60%', borderRadius: 6, background: '#E2E8F0', marginBottom: 8 }} />
+                    <div style={{ height: 12, width: '80%', borderRadius: 6, background: '#F1F5F9', marginBottom: 14 }} />
+                    <div style={{ height: 32, width: '45%', borderRadius: 6, background: '#E0F2FE' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── FEATURED DEAL #1 ── */}
           {featured && (
