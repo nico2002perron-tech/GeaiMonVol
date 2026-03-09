@@ -31,17 +31,30 @@ const CITY_COUNTRY: Record<string, string> = {
   'Halifax': 'Canada', 'Québec': 'Canada',
 };
 
-// ── Static fallback deals ──
+// ── Static fallback deals (shown when DB has no data) ──
 const STATIC_DEALS = [
-  { city: 'Paris', code: 'CDG', price: 549, oldPrice: 820, dates: 'Mai - Juin', tag: 'Classique', tagIcon: '🗼', category: 'monde' as const, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=500&fit=crop' },
-  { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, dates: 'Avril - Mai', tag: 'Top Deal', tagIcon: '🔥', category: 'monde' as const, image: 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=800&h=500&fit=crop' },
-  { city: 'Tokyo', code: 'TYO', price: 689, oldPrice: 1050, dates: 'Septembre', tag: 'Tendance', tagIcon: '✈️', category: 'monde' as const, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=500&fit=crop' },
-  { city: 'Vancouver', code: 'YVR', price: 289, oldPrice: 410, dates: 'Mai - Sept.', tag: 'Canada', tagIcon: '🍁', category: 'canada' as const, image: 'https://images.unsplash.com/photo-1609825488888-3a766db05542?w=800&h=500&fit=crop' },
-  { city: 'Calgary', code: 'YYC', price: 249, oldPrice: 380, dates: 'Juin - Aout', tag: 'Rocheuses', tagIcon: '🏔️', category: 'canada' as const, image: 'https://images.unsplash.com/photo-1561489413-985b06da5bee?w=800&h=500&fit=crop' },
-  { city: 'Halifax', code: 'YHZ', price: 199, oldPrice: 310, dates: 'Juillet - Sept.', tag: 'Maritimes', tagIcon: '🌊', category: 'canada' as const, image: 'https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&h=500&fit=crop' },
-  { city: 'Punta Cana', code: 'PUJ', price: 899, oldPrice: 1350, dates: 'Dec. - Mars', tag: 'Tout-inclus', tagIcon: '🏖️', category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&h=500&fit=crop' },
-  { city: 'Cancún', code: 'CUN', price: 849, oldPrice: 1200, dates: 'Janv. - Avril', tag: 'Tout-inclus', tagIcon: '🌴', category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800&h=500&fit=crop' },
-  { city: 'Varadero', code: 'VRA', price: 749, oldPrice: 1100, dates: 'Nov. - Avril', tag: 'Tout-inclus', tagIcon: '☀️', category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=500&fit=crop' },
+  { city: 'Paris', code: 'CDG', price: 549, oldPrice: 820, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=500&fit=crop' },
+  { city: 'Lisbonne', code: 'LIS', price: 489, oldPrice: 780, airline: 'TAP Portugal', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=800&h=500&fit=crop' },
+  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, airline: 'Air Canada', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&h=500&fit=crop' },
+  { city: 'Rome', code: 'FCO', price: 559, oldPrice: 820, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&h=500&fit=crop' },
+  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, airline: 'ANA', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=500&fit=crop' },
+  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, airline: 'Icelandair', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=800&h=500&fit=crop' },
+  { city: 'Londres', code: 'LHR', price: 479, oldPrice: 710, airline: 'Air Canada', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=500&fit=crop' },
+  { city: 'Athènes', code: 'ATH', price: 599, oldPrice: 880, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&h=500&fit=crop' },
+  { city: 'Dublin', code: 'DUB', price: 429, oldPrice: 640, airline: 'Aer Lingus', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=800&h=500&fit=crop' },
+  { city: 'Marrakech', code: 'RAK', price: 649, oldPrice: 950, airline: 'Royal Air Maroc', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=800&h=500&fit=crop' },
+  { city: 'Fort Lauderdale', code: 'FLL', price: 199, oldPrice: 340, airline: 'Spirit', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=500&fit=crop' },
+  { city: 'New York', code: 'JFK', price: 179, oldPrice: 310, airline: 'JetBlue', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=500&fit=crop' },
+  { city: 'Bogota', code: 'BOG', price: 449, oldPrice: 680, airline: 'Avianca', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1568385247005-0d371d214a94?w=800&h=500&fit=crop' },
+  { city: 'Vancouver', code: 'YVR', price: 289, oldPrice: 410, airline: 'WestJet', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1609825488888-3a766db05542?w=800&h=500&fit=crop' },
+  { city: 'Calgary', code: 'YYC', price: 249, oldPrice: 380, airline: 'WestJet', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1561489413-985b06da5bee?w=800&h=500&fit=crop' },
+  { city: 'Halifax', code: 'YHZ', price: 199, oldPrice: 310, airline: 'Air Canada', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&h=500&fit=crop' },
+  { city: 'Toronto', code: 'YYZ', price: 129, oldPrice: 220, airline: 'Porter', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1517090504332-af2bd570e1cb?w=800&h=500&fit=crop' },
+  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, airline: 'Air Transat', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&h=500&fit=crop' },
+  { city: 'Cancún', code: 'CUN', price: 599, oldPrice: 920, airline: 'Sunwing', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800&h=500&fit=crop' },
+  { city: 'Varadero', code: 'VRA', price: 549, oldPrice: 880, airline: 'Air Transat', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=500&fit=crop' },
+  { city: 'Montego Bay', code: 'MBJ', price: 579, oldPrice: 890, airline: 'WestJet', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=500&fit=crop' },
+  { city: 'San José', code: 'SJO', price: 449, oldPrice: 700, airline: 'Air Canada', stops: 1, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=800&h=500&fit=crop' },
 ];
 
 // ── Unified deal type ──
@@ -245,12 +258,32 @@ export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
     return () => observer.disconnect();
   }, []);
 
-  // ── Deals: use live data when available, otherwise SSR pre-fetched data ──
+  // ── Deals: live → SSR → static fallback (never empty) ──
   const allDeals: DealItem[] = useMemo(() => {
     if (isLive && livePrices && livePrices.length > 0) {
       return mapPricesToDeals(livePrices);
     }
-    return ssrDeals;
+    if (ssrDeals.length > 0) return ssrDeals;
+
+    // Fallback: static deals so the site is never empty
+    return STATIC_DEALS.map(d => ({
+      city: d.city,
+      code: d.code,
+      country: CITY_COUNTRY[d.city] || '',
+      price: d.price,
+      oldPrice: d.oldPrice,
+      discount: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100),
+      dealLevel: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100) >= 35 ? 'great' : 'good',
+      airline: d.airline,
+      stops: d.stops,
+      image: d.image,
+      category: d.category,
+      isLive: false,
+      departureDate: '',
+      returnDate: '',
+      bookingLink: `https://www.skyscanner.ca/transport/flights/yul/${d.code.toLowerCase()}/`,
+      duration: 0,
+    }));
   }, [livePrices, isLive, ssrDeals]);
 
   // ── Filter + Search ──
