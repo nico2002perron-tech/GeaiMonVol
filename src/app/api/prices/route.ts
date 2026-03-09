@@ -42,10 +42,15 @@ export async function GET() {
             return NextResponse.json({ error: latestResult.error?.message || 'Failed to fetch prices' }, { status: 500 });
         }
 
+        // Filter out old Google Flights data (migrated to Skyscanner)
+        const skyscannerRows = (latestResult.data || []).filter(
+            (row: any) => !row.source?.startsWith('google_flights')
+        );
+
         // Deduplicate: keep best price per destination
         // Prefer deals WITH dates over explore-only deals
         const bestByDest: Record<string, any> = {};
-        for (const row of latestResult.data || []) {
+        for (const row of skyscannerRows) {
             const existing = bestByDest[row.destination];
             if (!existing) {
                 bestByDest[row.destination] = row;
