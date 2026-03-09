@@ -130,12 +130,59 @@ const ArrowIcon = () => (
   </svg>
 );
 
-export default function ClientHome() {
+// Helper: map raw price data (from SSR or API) to DealItem[]
+function mapPricesToDeals(prices: any[]): DealItem[] {
+  const deals: DealItem[] = [];
+  const seen = new Set<string>();
+  const ALL_INCLUSIVE_CODES = ['CUN', 'PUJ', 'VRA', 'HAV', 'MBJ', 'SJO'];
+
+  for (const p of prices) {
+    const city = p.destination;
+    if (seen.has(city)) continue;
+    seen.add(city);
+
+    const code = p.destination_code || '';
+    const isCanadian = CANADA_CODES.includes(code) || code === 'CA' || city === 'Canada';
+    const isToutInclus = ALL_INCLUSIVE_CODES.includes(code);
+    const discount = p.discount || 0;
+    const avgPrice = p.avgPrice || 0;
+
+    deals.push({
+      city,
+      code,
+      country: CITY_COUNTRY[city] || '',
+      price: p.price,
+      oldPrice: avgPrice > p.price ? avgPrice : 0,
+      discount,
+      dealLevel: p.dealLevel || 'normal',
+      airline: p.airline || p.raw_data?.flights?.[0]?.airline || '',
+      stops: p.stops ?? -1,
+      image: CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE,
+      category: isCanadian ? 'canada' : isToutInclus ? 'tout-inclus' : 'monde',
+      isLive: true,
+      departureDate: p.departure_date || '',
+      returnDate: p.return_date || '',
+      bookingLink: p.bookingLink || p.raw_data?.booking_link || '',
+      duration: p.duration || p.raw_data?.duration_minutes || 0,
+    });
+  }
+
+  return deals;
+}
+
+interface ClientHomeProps {
+  initialDeals?: any[];
+}
+
+export default function ClientHome({ initialDeals = [] }: ClientHomeProps) {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('tous');
   const [sortMode, setSortMode] = useState<SortMode>('deal');
   const [minDiscount, setMinDiscount] = useState(20);
 
-  // Live prices from Skyscanner scans
+  // SSR deals mapped once — shown INSTANTLY on page load
+  const ssrDeals = useMemo(() => mapPricesToDeals(initialDeals), [initialDeals]);
+
+  // Live prices from Skyscanner scans (refreshes in background)
   const { prices: livePrices, isLive, lastUpdated } = useLivePrices();
 
   // Destination popup state
@@ -147,48 +194,15 @@ export default function ClientHome() {
     setPopupOpen(true);
   };
 
-  // ── Only real scanned prices — no fake data ──
+  // ── Deals: use live data when available, otherwise SSR pre-fetched data ──
   const allDeals: DealItem[] = useMemo(() => {
-    // Only use live data from the API (real scanned prices)
-    if (!isLive || !livePrices || livePrices.length === 0) return [];
-
-    const deals: DealItem[] = [];
-    const seen = new Set<string>();
-
-    for (const p of livePrices) {
-      const city = p.destination;
-      if (seen.has(city)) continue;
-      seen.add(city);
-
-      const code = p.destination_code || '';
-      const isCanadian = CANADA_CODES.includes(code) || code === 'CA' || city === 'Canada';
-      const ALL_INCLUSIVE_CODES = ['CUN', 'PUJ', 'VRA', 'HAV', 'MBJ', 'SJO'];
-      const isToutInclus = ALL_INCLUSIVE_CODES.includes(code);
-      const discount = p.discount || 0;
-      const avgPrice = p.avgPrice || 0;
-
-      deals.push({
-        city,
-        code,
-        country: CITY_COUNTRY[city] || '',
-        price: p.price,
-        oldPrice: avgPrice > p.price ? avgPrice : 0,
-        discount,
-        dealLevel: p.dealLevel || 'normal',
-        airline: p.airline || '',
-        stops: p.stops ?? -1,
-        image: CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE,
-        category: isCanadian ? 'canada' : isToutInclus ? 'tout-inclus' : 'monde',
-        isLive: true,
-        departureDate: p.departure_date || '',
-        returnDate: p.return_date || '',
-        bookingLink: (p as any).bookingLink || '',
-        duration: (p as any).duration || 0,
-      });
+    // If live API data is loaded, use it (freshest)
+    if (isLive && livePrices && livePrices.length > 0) {
+      return mapPricesToDeals(livePrices);
     }
-
-    return deals;
-  }, [livePrices, isLive]);
+    // Otherwise use SSR pre-fetched deals (instant on page load)
+    return ssrDeals;
+  }, [livePrices, isLive, ssrDeals]);
 
   // ── Filter ──
   const filteredDeals = useMemo(() => {
@@ -466,19 +480,19 @@ export default function ClientHome() {
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '6px 16px', borderRadius: 100,
-              background: isLive ? 'rgba(16,185,129,0.08)' : 'rgba(14,165,233,0.08)',
+              background: allDeals.length > 0 ? 'rgba(16,185,129,0.08)' : 'rgba(14,165,233,0.08)',
               marginBottom: 16,
               fontFamily: "'Outfit', sans-serif",
               fontSize: 13, fontWeight: 600,
-              color: isLive ? '#059669' : '#0284C7',
+              color: allDeals.length > 0 ? '#059669' : '#0284C7',
             }}>
               <span style={{
                 width: 7, height: 7, borderRadius: '50%',
-                background: isLive ? '#10B981' : '#0EA5E9',
+                background: allDeals.length > 0 ? '#10B981' : '#0EA5E9',
                 animation: 'dealPulse 2s ease-in-out infinite',
-                boxShadow: isLive ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(14,165,233,0.5)',
+                boxShadow: allDeals.length > 0 ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(14,165,233,0.5)',
               }} />
-              {isLive ? `En direct${timeAgo ? ` · ${timeAgo}` : ''}` : 'Deals du moment'}
+              {allDeals.length > 0 ? `En direct${timeAgo ? ` · ${timeAgo}` : ''}` : 'Deals du moment'}
             </div>
             <h2 style={{
               fontFamily: "'Fredoka', sans-serif",
