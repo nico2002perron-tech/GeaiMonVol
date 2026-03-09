@@ -164,7 +164,8 @@ export default function ClientHome() {
       });
     }
 
-    return deals;
+    // Only keep deals with 30%+ discount
+    return deals.filter(d => d.discount >= 30);
   }, [livePrices, isLive]);
 
   // ── Filter ──
