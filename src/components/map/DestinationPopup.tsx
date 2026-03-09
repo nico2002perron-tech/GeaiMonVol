@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 import type { SubDestination } from '@/lib/constants/deals';
-import Sparkline from '@/components/ui/Sparkline';
+import PriceHistoryChart from '@/components/ui/PriceHistoryChart';
 
 interface DestinationDeal {
     price: number;
@@ -77,8 +77,9 @@ export default function DestinationPopup({
     const [loading, setLoading] = useState(false);
     const [liveSearching, setLiveSearching] = useState(false);
     const [error, setError] = useState('');
+    const [chartDays, setChartDays] = useState(30);
     const overlayRef = useRef<HTMLDivElement>(null);
-    const { prices: historyPrices } = usePriceHistory(isOpen ? destination : null);
+    const { points: historyPoints, avg: historyAvg, min: historyMin, max: historyMax, loading: historyLoading } = usePriceHistory(isOpen ? destination : null, chartDays);
 
     // Detect country-level deal (2-letter country code like "MX", "BS", "FR")
     const isCountryLevel = destinationCode.length === 2 && destinationCode === destinationCode.toUpperCase();
@@ -687,26 +688,18 @@ export default function DestinationPopup({
                             </div>
                         )}
 
-                        {/* Price history sparkline */}
-                        {historyPrices.length >= 2 && (
+                        {/* Price history chart */}
+                        {(historyPoints.length >= 2 || historyLoading) && (
                             <div style={{ marginTop: 20 }}>
-                                <div style={{
-                                    fontSize: 12, fontWeight: 600, color: '#64748B',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    marginBottom: 8,
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
-                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                                    </svg>
-                                    Historique de prix (30 jours)
-                                </div>
-                                <div style={{
-                                    padding: '12px 16px', borderRadius: 14,
-                                    background: '#F8FAFC', border: '1px solid #E2E8F0',
-                                }}>
-                                    <Sparkline data={historyPrices} width={440} height={40} />
-                                </div>
+                                <PriceHistoryChart
+                                    points={historyPoints}
+                                    avg={historyAvg}
+                                    min={historyMin}
+                                    max={historyMax}
+                                    days={chartDays}
+                                    onDaysChange={setChartDays}
+                                    loading={historyLoading}
+                                />
                             </div>
                         )}
 
