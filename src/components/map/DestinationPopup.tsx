@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS } from '@/lib/constants/deals';
+import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
+import type { SubDestination } from '@/lib/constants/deals';
 import Sparkline from '@/components/ui/Sparkline';
 
 interface DestinationDeal {
@@ -79,11 +80,36 @@ export default function DestinationPopup({
     const overlayRef = useRef<HTMLDivElement>(null);
     const { prices: historyPrices } = usePriceHistory(isOpen ? destination : null);
 
-    // Fallback Skyscanner URL (no specific dates)
-    const fallbackUrl = `https://www.skyscanner.ca/transport/flights/yul/${destinationCode.toLowerCase()}/`;
+    // Detect country-level deal (2-letter country code like "MX", "BS", "FR")
+    const isCountryLevel = destinationCode.length === 2 && destinationCode === destinationCode.toUpperCase();
+    const subDestinations: SubDestination[] = isCountryLevel ? (COUNTRY_SUBDESTINATIONS[destinationCode] || []) : [];
+    const [selectedSubDest, setSelectedSubDest] = useState<SubDestination | null>(null);
 
+    // Active code/city for search (either the sub-destination or the original)
+    const activeCode = selectedSubDest?.code || destinationCode;
+    const activeCity = selectedSubDest?.city || destination;
+
+    // Fallback Skyscanner URL
+    const fallbackUrl = `https://www.skyscanner.ca/transport/flights/yul/${activeCode.toLowerCase()}/`;
+
+    // Reset when popup opens
     useEffect(() => {
-        if (!isOpen || !destination) return;
+        if (!isOpen) return;
+        setSelectedSubDest(null);
+        setDeals([]);
+        setError('');
+    }, [isOpen]);
+
+    // Fetch deals when destination/sub-destination changes
+    useEffect(() => {
+        if (!isOpen || !activeCity) return;
+
+        // For country-level deals with sub-destinations, wait for user to pick a city
+        if (isCountryLevel && subDestinations.length > 0 && !selectedSubDest) {
+            setDeals([]);
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError('');
@@ -91,7 +117,7 @@ export default function DestinationPopup({
         setLiveSearching(false);
 
         // Step 1: Try fetching pre-scanned dates from DB
-        fetch(`/api/prices/destination?name=${encodeURIComponent(destination)}`)
+        fetch(`/api/prices/destination?name=${encodeURIComponent(activeCity)}`)
             .then((res) => res.json())
             .then((data) => {
                 if (data.error) {
@@ -101,16 +127,15 @@ export default function DestinationPopup({
                 }
 
                 const dbDeals: DestinationDeal[] = data.deals || [];
-                // Filter to only deals with dates
                 const datedDeals = dbDeals.filter(d => d.departureDate);
 
                 if (datedDeals.length > 0) {
                     setDeals(datedDeals);
                     setLoading(false);
-                } else if (destinationCode) {
+                } else if (activeCode) {
                     // Step 2: No dated deals in DB — do live search
                     setLiveSearching(true);
-                    fetch(`/api/prices/search-live?code=${encodeURIComponent(destinationCode)}&city=${encodeURIComponent(destination)}`)
+                    fetch(`/api/prices/search-live?code=${encodeURIComponent(activeCode)}&city=${encodeURIComponent(activeCity)}`)
                         .then((res) => res.json())
                         .then((liveData) => {
                             if (liveData.deals && liveData.deals.length > 0) {
@@ -130,7 +155,7 @@ export default function DestinationPopup({
                 setError('Impossible de charger les dates');
                 setLoading(false);
             });
-    }, [isOpen, destination, destinationCode]);
+    }, [isOpen, activeCity, activeCode, isCountryLevel, selectedSubDest, subDestinations.length]);
 
     // Close on ESC
     useEffect(() => {
@@ -287,7 +312,108 @@ export default function DestinationPopup({
                     {/* Content — scrollable */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 24px' }}>
 
-                        {/* Section header */}
+                        {/* ═══ CITY PICKER (country-level deals) ═══ */}
+                        {isCountryLevel && subDestinations.length > 0 && (
+                            <div style={{ marginBottom: 20 }}>
+                                <div style={{
+                                    fontSize: 13, fontWeight: 600, color: '#0F172A',
+                                    fontFamily: "'Outfit', sans-serif",
+                                    marginBottom: 10,
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                }}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    Ou veux-tu aller?
+                                </div>
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: subDestinations.length <= 2 ? '1fr 1fr' : 'repeat(auto-fill, minmax(130px, 1fr))',
+                                    gap: 8,
+                                }}>
+                                    {subDestinations.map((sub) => {
+                                        const isSelected = selectedSubDest?.code === sub.code;
+                                        return (
+                                            <button
+                                                key={sub.code}
+                                                onClick={() => setSelectedSubDest(isSelected ? null : sub)}
+                                                style={{
+                                                    position: 'relative',
+                                                    border: isSelected ? '2px solid #0EA5E9' : '2px solid transparent',
+                                                    borderRadius: 14,
+                                                    overflow: 'hidden',
+                                                    cursor: 'pointer',
+                                                    background: 'none',
+                                                    padding: 0,
+                                                    transition: 'all 0.25s ease',
+                                                    transform: isSelected ? 'scale(1.03)' : 'scale(1)',
+                                                    boxShadow: isSelected ? '0 4px 16px rgba(14,165,233,0.25)' : '0 2px 8px rgba(0,0,0,0.06)',
+                                                }}
+                                            >
+                                                <img
+                                                    src={sub.image}
+                                                    alt={sub.city}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: 80,
+                                                        objectFit: 'cover',
+                                                        display: 'block',
+                                                        filter: isSelected ? 'brightness(1.05)' : 'brightness(0.9)',
+                                                        transition: 'filter 0.2s',
+                                                    }}
+                                                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = DEFAULT_CITY_IMAGE; }}
+                                                />
+                                                <div style={{
+                                                    position: 'absolute', inset: 0,
+                                                    background: isSelected
+                                                        ? 'linear-gradient(to top, rgba(14,165,233,0.7) 0%, transparent 60%)'
+                                                        : 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)',
+                                                    transition: 'background 0.2s',
+                                                }} />
+                                                <div style={{
+                                                    position: 'absolute', bottom: 6, left: 8, right: 8,
+                                                }}>
+                                                    <div style={{
+                                                        fontSize: 12, fontWeight: 700, color: '#fff',
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                        textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                                                        lineHeight: 1.2,
+                                                    }}>
+                                                        {sub.city}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.8)',
+                                                        fontFamily: "'Fredoka', sans-serif",
+                                                    }}>
+                                                        {sub.code}
+                                                    </div>
+                                                </div>
+                                                {isSelected && (
+                                                    <div style={{
+                                                        position: 'absolute', top: 6, right: 6,
+                                                        width: 20, height: 20, borderRadius: '50%',
+                                                        background: '#0EA5E9',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}>
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                                    </div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {!selectedSubDest && (
+                                    <div style={{
+                                        textAlign: 'center', marginTop: 10,
+                                        fontSize: 12, color: '#94A3B8',
+                                        fontFamily: "'Outfit', sans-serif",
+                                    }}>
+                                        Choisis une ville pour voir les dates et prix
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Section header (shown when not waiting for city pick) */}
+                        {(!isCountryLevel || selectedSubDest || subDestinations.length === 0) && (
                         <div style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                             marginBottom: 16,
@@ -308,10 +434,10 @@ export default function DestinationPopup({
                                     {loading
                                         ? 'Chargement...'
                                         : liveSearching
-                                            ? 'Recherche en direct sur Skyscanner...'
+                                            ? `Recherche ${activeCity} sur Skyscanner...`
                                             : deals.length > 0
-                                                ? `${deals.length} date${deals.length > 1 ? 's' : ''} disponible${deals.length > 1 ? 's' : ''}`
-                                                : 'Aucune date scannee'}
+                                                ? `${deals.length} date${deals.length > 1 ? 's' : ''} pour ${activeCity}`
+                                                : `Aucune date pour ${activeCity}`}
                                 </span>
                             </div>
                             {/* Always-visible Skyscanner link */}
@@ -334,6 +460,7 @@ export default function DestinationPopup({
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M7 17L17 7M17 7H7M17 7v10" /></svg>
                             </a>
                         </div>
+                        )}
 
                         {/* Error state */}
                         {error && (
