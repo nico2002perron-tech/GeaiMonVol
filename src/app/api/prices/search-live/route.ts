@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import { searchRoundTrip, resolveEntityId, buildBookingLink } from '@/lib/providers/flights/skyscanner';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 /**
  * Live Skyscanner search for a specific destination.
  * GET /api/prices/search-live?code=CDG&city=Paris
  *
- * Searches 12 upcoming months, returns dates with prices and booking links.
- * Also caches results in price_history for future use.
+ * Searches 4 upcoming months (fast popup response).
+ * Full 12-month data comes from cron scans in background.
  */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         const now = new Date();
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
-        for (let i = 1; i <= 12; i++) {
+        for (let i = 1; i <= 4; i++) {
             const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
             const ret = new Date(outbound);
             ret.setDate(outbound.getDate() + 7);
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
                 });
 
                 // Brief delay between searches
-                await new Promise(r => setTimeout(r, 800));
+                await new Promise(r => setTimeout(r, 400));
             } catch {
                 // Skip this month if search fails
             }
