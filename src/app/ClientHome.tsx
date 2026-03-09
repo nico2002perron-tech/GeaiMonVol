@@ -162,6 +162,8 @@ export default function ClientHome() {
 
       const code = p.destination_code || '';
       const isCanadian = CANADA_CODES.includes(code) || code === 'CA' || city === 'Canada';
+      const ALL_INCLUSIVE_CODES = ['CUN', 'PUJ', 'VRA', 'HAV', 'MBJ', 'SJO'];
+      const isToutInclus = ALL_INCLUSIVE_CODES.includes(code);
       const discount = p.discount || 0;
       const avgPrice = p.avgPrice || 0;
 
@@ -176,7 +178,7 @@ export default function ClientHome() {
         airline: p.airline || '',
         stops: p.stops ?? -1,
         image: CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE,
-        category: isCanadian ? 'canada' : 'monde',
+        category: isCanadian ? 'canada' : isToutInclus ? 'tout-inclus' : 'monde',
         isLive: true,
         departureDate: p.departure_date || '',
         returnDate: p.return_date || '',

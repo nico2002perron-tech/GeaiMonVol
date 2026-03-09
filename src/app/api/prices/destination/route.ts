@@ -34,18 +34,26 @@ export async function GET(request: Request) {
         }
 
         const deals = Object.values(bestByDate)
+            .filter((d) => d.departure_date) // Only deals with actual dates
             .sort((a, b) => a.price - b.price)
             .map((d) => ({
                 price: d.price,
                 currency: d.currency || 'CAD',
                 airline: d.airline || d.raw_data?.flights?.[0]?.airline || '',
+                airlineLogo: d.raw_data?.airline_logo || '',
+                operatingAirline: d.raw_data?.operating_airline || '',
                 stops: d.stops ?? ((d.raw_data?.flights?.length || 1) - 1),
                 departureDate: d.departure_date,
                 returnDate: d.return_date,
                 durationMinutes: d.raw_data?.duration_minutes || 0,
+                returnDurationMinutes: d.raw_data?.return_duration_minutes || 0,
+                returnStops: d.raw_data?.return_stops,
                 bookingLink: d.raw_data?.booking_link || d.raw_data?.google_flights_link || '',
                 source: d.source,
                 scannedAt: d.scanned_at,
+                tags: d.raw_data?.tags || [],
+                seatsRemaining: d.raw_data?.seats_remaining,
+                totalOptions: d.raw_data?.total_options,
             }));
 
         return NextResponse.json({

@@ -383,11 +383,18 @@ export function calculateRealDiscount(
 
     const discount = avgPrice > 0 ? Math.round(((avgPrice - currentPrice) / avgPrice) * 100) : 0;
 
-    // Classifier le deal
+    // Classify the deal based on discount percentage (primary)
+    // "lowest_ever" only if price is significantly below historical minimum
+    // AND there's meaningful history (at least 5 data points from real scans)
     let dealLevel = 'normal';
     let isGoodDeal = false;
 
-    if (currentPrice <= lowestEver) {
+    // Check if this is genuinely the lowest ever (10%+ below previous min, with enough history)
+    const isLowestEver = prices.length >= 5
+        && currentPrice < lowestEver * 0.90
+        && discount >= 30;
+
+    if (isLowestEver) {
         dealLevel = 'lowest_ever';
         isGoodDeal = true;
     } else if (discount >= 40) {

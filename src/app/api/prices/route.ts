@@ -1,24 +1,26 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { calculateRealDiscount } from '@/lib/services/flights';
+import { COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 
 export async function GET() {
     try {
         const supabase = await createServerSupabase();
-        const threeDaysAgo = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Fetch latest prices AND 30-day history in parallel (2 queries instead of N+1)
+        // Fetch latest prices (30-day window) AND 90-day history in parallel
         const [latestResult, historyResult] = await Promise.all([
             supabase
                 .from('price_history')
                 .select('*')
-                .gte('scanned_at', threeDaysAgo)
+                .gte('scanned_at', thirtyDaysAgo)
+                .neq('source', 'historical_seed')
                 .order('price', { ascending: true }),
             supabase
                 .from('price_history')
                 .select('destination, price, scanned_at')
-                .gte('scanned_at', thirtyDaysAgo)
+                .gte('scanned_at', ninetyDaysAgo)
                 .order('scanned_at', { ascending: false }),
         ]);
 
@@ -27,10 +29,35 @@ export async function GET() {
         }
 
         // Deduplicate: keep best price per destination
+        // Prefer deals WITH dates over explore-only deals
         const bestByDest: Record<string, any> = {};
         for (const row of latestResult.data || []) {
-            if (!bestByDest[row.destination] || row.price < bestByDest[row.destination].price) {
+            const existing = bestByDest[row.destination];
+            if (!existing) {
                 bestByDest[row.destination] = row;
+            } else {
+                // Prefer row with dates
+                const existingHasDates = !!existing.departure_date;
+                const rowHasDates = !!row.departure_date;
+                if (rowHasDates && !existingHasDates) {
+                    bestByDest[row.destination] = row;
+                } else if (rowHasDates === existingHasDates && row.price < existing.price) {
+                    bestByDest[row.destination] = row;
+                }
+            }
+        }
+
+        // Filter out country-level explore deals that have no city picker
+        // (2-letter codes like UK, JO, ZA without COUNTRY_SUBDESTINATIONS = useless)
+        for (const [dest, price] of Object.entries(bestByDest)) {
+            const code = price.destination_code || '';
+            const isCountryCode = code.length === 2 && code === code.toUpperCase();
+            const hasCityPicker = isCountryCode && COUNTRY_SUBDESTINATIONS[code]?.length > 0;
+            const hasDates = !!price.departure_date;
+
+            // Remove country-level deals with no city picker AND no dates
+            if (isCountryCode && !hasCityPicker && !hasDates) {
+                delete bestByDest[dest];
             }
         }
 

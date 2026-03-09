@@ -118,6 +118,9 @@ export default function DestinationPopup({
             return;
         }
 
+        // Country-level codes (2-letter) can't be searched directly — need airport code
+        const canLiveSearch = activeCode.length >= 3;
+
         setLoading(true);
         setError('');
         setDeals([]);
@@ -139,8 +142,8 @@ export default function DestinationPopup({
                 if (datedDeals.length > 0) {
                     setDeals(datedDeals);
                     setLoading(false);
-                } else if (activeCode) {
-                    // Step 2: No dated deals in DB — do live search
+                } else if (canLiveSearch) {
+                    // Step 2: No dated deals in DB — do live search (only for airport codes)
                     setLiveSearching(true);
                     fetch(`/api/prices/search-live?code=${encodeURIComponent(activeCode)}&city=${encodeURIComponent(activeCity)}`)
                         .then((res) => res.json())
@@ -155,6 +158,7 @@ export default function DestinationPopup({
                             setLoading(false);
                         });
                 } else {
+                    // Country code without city picker — just show fallback
                     setLoading(false);
                 }
             })
@@ -499,7 +503,7 @@ export default function DestinationPopup({
                                         fontSize: 12, color: '#94A3B8',
                                         fontFamily: "'Outfit', sans-serif",
                                     }}>
-                                        Recherche des meilleurs prix pour les 6 prochains mois...
+                                        Recherche des meilleurs prix pour les 4 prochains mois...
                                     </div>
                                 )}
                             </div>
