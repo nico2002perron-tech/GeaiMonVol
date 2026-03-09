@@ -210,6 +210,7 @@ export interface FlightResult {
     currency: string;
     airline: string;
     airlineLogo?: string;
+    operatingAirline?: string;
     stops: number;
     durationMinutes: number;
     departureTime: string;
@@ -219,6 +220,10 @@ export interface FlightResult {
     originCode: string;
     destinationCode: string;
     tags?: string[];
+    score?: number;
+    seatsRemaining?: number;
+    returnDurationMinutes?: number;
+    returnStops?: number;
     rawItinerary: any;
 }
 
@@ -276,12 +281,15 @@ export async function searchRoundTrip(
             if (!outboundLeg) continue;
 
             const carrier = outboundLeg?.carriers?.marketing?.[0];
+            const operatingCarrier = outboundLeg?.carriers?.operating?.[0];
+            const returnLeg = itin?.legs?.[1];
 
             results.push({
                 price,
                 currency: 'CAD',
                 airline: carrier?.name || '',
                 airlineLogo: carrier?.logoUrl || '',
+                operatingAirline: operatingCarrier?.name && operatingCarrier.name !== carrier?.name ? operatingCarrier.name : undefined,
                 stops: outboundLeg?.stopCount ?? 0,
                 durationMinutes: outboundLeg?.durationInMinutes || 0,
                 departureTime: outboundLeg?.departure || '',
@@ -291,6 +299,10 @@ export async function searchRoundTrip(
                 originCode: outboundLeg?.origin?.displayCode || originIata,
                 destinationCode: outboundLeg?.destination?.displayCode || destIata,
                 tags: itin?.tags || [],
+                score: itin?.score ?? undefined,
+                seatsRemaining: itin?.seatsRemaining ?? itin?.farePolicy?.seatsRemaining ?? undefined,
+                returnDurationMinutes: returnLeg?.durationInMinutes || undefined,
+                returnStops: returnLeg?.stopCount ?? undefined,
                 rawItinerary: itin,
             });
         }

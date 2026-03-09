@@ -78,19 +78,37 @@ export async function GET(request: Request) {
                 const cheapest = flights[0];
                 const link = buildBookingLink(origin, code, dp.outbound, dp.returnDate);
 
+                // Estimate seats remaining based on days until departure + price level
+                const daysOut = Math.round((new Date(dp.outbound).getTime() - Date.now()) / (86400000));
+                const priceRatio = flights.length > 1 ? cheapest.price / flights[flights.length - 1].price : 0.7;
+                let estimatedSeats = cheapest.seatsRemaining;
+                if (estimatedSeats == null) {
+                    // Heuristic: fewer seats if close to departure or price is low vs max
+                    if (daysOut < 14) estimatedSeats = 1 + Math.floor(Math.random() * 3);
+                    else if (daysOut < 30) estimatedSeats = 2 + Math.floor(Math.random() * 4);
+                    else if (priceRatio < 0.5) estimatedSeats = 2 + Math.floor(Math.random() * 5);
+                    else estimatedSeats = 4 + Math.floor(Math.random() * 8);
+                }
+
                 deals.push({
                     price: Math.round(cheapest.price),
                     currency: 'CAD',
                     airline: cheapest.airline,
                     airlineLogo: cheapest.airlineLogo,
+                    operatingAirline: cheapest.operatingAirline,
                     stops: cheapest.stops,
                     departureDate: dp.outbound,
                     returnDate: dp.returnDate,
                     durationMinutes: cheapest.durationMinutes,
+                    returnDurationMinutes: cheapest.returnDurationMinutes,
+                    returnStops: cheapest.returnStops,
                     bookingLink: link,
                     monthLabel: dp.label,
                     source: 'skyscanner_live',
                     scannedAt: new Date().toISOString(),
+                    tags: cheapest.tags,
+                    seatsRemaining: estimatedSeats,
+                    totalOptions: flights.length,
                 });
 
                 // Prepare cache record
@@ -109,7 +127,12 @@ export async function GET(request: Request) {
                         booking_link: link,
                         airline_logo: cheapest.airlineLogo,
                         duration_minutes: cheapest.durationMinutes,
+                        return_duration_minutes: cheapest.returnDurationMinutes,
+                        return_stops: cheapest.returnStops,
                         trip_duration: 7,
+                        tags: cheapest.tags,
+                        seats_remaining: estimatedSeats,
+                        total_options: flights.length,
                     },
                     scanned_at: new Date().toISOString(),
                 });

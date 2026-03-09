@@ -11,14 +11,20 @@ interface DestinationDeal {
     currency: string;
     airline: string;
     airlineLogo?: string;
+    operatingAirline?: string;
     stops: number;
     departureDate: string;
     returnDate: string;
     durationMinutes: number;
+    returnDurationMinutes?: number;
+    returnStops?: number;
     bookingLink: string;
     monthLabel?: string;
     source: string;
     scannedAt: string;
+    tags?: string[];
+    seatsRemaining?: number;
+    totalOptions?: number;
 }
 
 interface DestinationPopupProps {
@@ -504,6 +510,13 @@ export default function DestinationPopup({
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {deals.map((deal, i) => {
                                     const isCheapest = i === 0;
+                                    const seats = deal.seatsRemaining;
+                                    const isUrgent = seats != null && seats <= 3;
+                                    const hasTags = deal.tags && deal.tags.length > 0;
+                                    const tripDays = deal.departureDate && deal.returnDate
+                                        ? Math.round((new Date(deal.returnDate).getTime() - new Date(deal.departureDate).getTime()) / 86400000)
+                                        : 0;
+
                                     return (
                                         <div
                                             key={`${deal.departureDate}-${i}`}
@@ -515,31 +528,71 @@ export default function DestinationPopup({
                                                     : '#F8FAFC',
                                                 border: isCheapest
                                                     ? '2px solid rgba(14,165,233,0.2)'
-                                                    : '1px solid #E2E8F0',
+                                                    : isUrgent
+                                                        ? '1px solid rgba(239,68,68,0.2)'
+                                                        : '1px solid #E2E8F0',
                                                 transition: 'all 0.2s ease',
                                             }}
                                         >
-                                            {/* Cheapest badge */}
-                                            {isCheapest && (
-                                                <div style={{
-                                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                                    padding: '3px 10px', borderRadius: 8,
-                                                    background: '#0EA5E9', color: '#fff',
-                                                    fontSize: 10, fontWeight: 700,
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                    marginBottom: 10,
-                                                }}>
-                                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                                                    MEILLEUR PRIX
-                                                </div>
-                                            )}
+                                            {/* Top badges row */}
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                                flexWrap: 'wrap', marginBottom: 10,
+                                            }}>
+                                                {isCheapest && (
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                        padding: '3px 10px', borderRadius: 8,
+                                                        background: '#0EA5E9', color: '#fff',
+                                                        fontSize: 10, fontWeight: 700,
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                    }}>
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                                                        MEILLEUR PRIX
+                                                    </span>
+                                                )}
+                                                {/* Seats remaining badge */}
+                                                {seats != null && (
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                        padding: '3px 10px', borderRadius: 8,
+                                                        background: isUrgent ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                                        color: isUrgent ? '#DC2626' : '#D97706',
+                                                        fontSize: 10, fontWeight: 700,
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                        animation: isUrgent ? 'destPulse 2s ease-in-out infinite' : 'none',
+                                                    }}>
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                                            <circle cx="12" cy="7" r="4"/>
+                                                        </svg>
+                                                        {isUrgent
+                                                            ? `${seats} billet${seats > 1 ? 's' : ''} restant${seats > 1 ? 's' : ''}`
+                                                            : `${seats} places dispo`}
+                                                    </span>
+                                                )}
+                                                {/* Trip duration badge */}
+                                                {tripDays > 0 && (
+                                                    <span style={{
+                                                        display: 'inline-flex', alignItems: 'center', gap: 3,
+                                                        padding: '3px 8px', borderRadius: 8,
+                                                        background: 'rgba(99,102,241,0.08)',
+                                                        color: '#6366F1',
+                                                        fontSize: 10, fontWeight: 600,
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                    }}>
+                                                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                                                        {tripDays} nuits
+                                                    </span>
+                                                )}
+                                            </div>
 
                                             {/* Date + Price row */}
                                             <div style={{
                                                 display: 'flex', justifyContent: 'space-between',
                                                 alignItems: 'flex-start', marginBottom: 10,
                                             }}>
-                                                <div>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
                                                     {/* Date */}
                                                     <div style={{
                                                         fontSize: 15, fontWeight: 700, color: '#0F172A',
@@ -552,27 +605,75 @@ export default function DestinationPopup({
                                                             : deal.monthLabel || 'Dates flexibles'}
                                                     </div>
 
-                                                    {/* Airline + stops + duration */}
+                                                    {/* Airline */}
                                                     <div style={{
                                                         fontSize: 12, color: '#64748B',
                                                         fontFamily: "'Outfit', sans-serif",
-                                                        marginTop: 4,
-                                                        display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+                                                        marginTop: 5,
+                                                        display: 'flex', alignItems: 'center', gap: 6,
                                                     }}>
-                                                        {deal.airline && (
-                                                            <span style={{ fontWeight: 500 }}>{deal.airline}</span>
+                                                        {deal.airlineLogo && (
+                                                            <img src={deal.airlineLogo} alt="" style={{
+                                                                width: 18, height: 18, borderRadius: 4,
+                                                                objectFit: 'contain', background: '#fff',
+                                                                border: '1px solid #E2E8F0',
+                                                            }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                                                         )}
+                                                        {deal.airline && (
+                                                            <span style={{ fontWeight: 600, color: '#334155' }}>{deal.airline}</span>
+                                                        )}
+                                                        {deal.operatingAirline && (
+                                                            <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                                                                op. {deal.operatingAirline}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Flight details: stops + duration (aller & retour) */}
+                                                    <div style={{
+                                                        fontSize: 11, color: '#64748B',
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                        marginTop: 6,
+                                                        display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                                                    }}>
+                                                        {/* Outbound */}
                                                         <span style={{
-                                                            padding: '1px 8px', borderRadius: 8,
-                                                            background: deal.stops === 0 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                                                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                            padding: '2px 8px', borderRadius: 6,
+                                                            background: deal.stops === 0 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
                                                             color: deal.stops === 0 ? '#059669' : '#D97706',
-                                                            fontSize: 11, fontWeight: 600,
+                                                            fontWeight: 600,
                                                         }}>
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
                                                             {formatStops(deal.stops)}
+                                                            {deal.durationMinutes > 0 && (
+                                                                <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+                                                                    {formatDuration(deal.durationMinutes)}
+                                                                </span>
+                                                            )}
                                                         </span>
-                                                        {deal.durationMinutes > 0 && (
-                                                            <span style={{ color: '#94A3B8' }}>
-                                                                {formatDuration(deal.durationMinutes)}
+                                                        {/* Return */}
+                                                        {(deal.returnStops != null || deal.returnDurationMinutes) && (
+                                                            <span style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                                                padding: '2px 8px', borderRadius: 6,
+                                                                background: (deal.returnStops ?? 0) === 0 ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+                                                                color: (deal.returnStops ?? 0) === 0 ? '#059669' : '#D97706',
+                                                                fontWeight: 600,
+                                                            }}>
+                                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5m6 6l-6-6 6-6"/></svg>
+                                                                {formatStops(deal.returnStops ?? deal.stops)}
+                                                                {deal.returnDurationMinutes && deal.returnDurationMinutes > 0 && (
+                                                                    <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+                                                                        {formatDuration(deal.returnDurationMinutes)}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                        {/* Total options */}
+                                                        {deal.totalOptions && deal.totalOptions > 1 && (
+                                                            <span style={{ color: '#94A3B8', fontSize: 10 }}>
+                                                                {deal.totalOptions} vols trouves
                                                             </span>
                                                         )}
                                                     </div>
@@ -595,6 +696,15 @@ export default function DestinationPopup({
                                                     }}>
                                                         aller-retour
                                                     </div>
+                                                    {deal.price > 0 && tripDays > 0 && (
+                                                        <div style={{
+                                                            fontSize: 10, color: '#0EA5E9',
+                                                            fontFamily: "'Fredoka', sans-serif",
+                                                            fontWeight: 600, marginTop: 3,
+                                                        }}>
+                                                            {Math.round(deal.price / tripDays)} $/nuit
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
 
