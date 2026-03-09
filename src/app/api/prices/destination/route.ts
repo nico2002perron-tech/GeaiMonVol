@@ -12,22 +12,38 @@ export async function GET(request: Request) {
     try {
         const supabase = await createServerSupabase();
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        const { data, error } = await supabase
-            .from('price_history')
-            .select('*')
-            .eq('destination', name)
-            .gte('scanned_at', thirtyDaysAgo)
-            .order('price', { ascending: true });
+        // Fetch recent scans + 90-day history for avg price
+        const [scansResult, historyResult] = await Promise.all([
+            supabase
+                .from('price_history')
+                .select('*')
+                .eq('destination', name)
+                .gte('scanned_at', thirtyDaysAgo)
+                .order('price', { ascending: true }),
+            supabase
+                .from('price_history')
+                .select('price')
+                .eq('destination', name)
+                .gte('scanned_at', ninetyDaysAgo),
+        ]);
 
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
+        if (scansResult.error) {
+            return NextResponse.json({ error: scansResult.error.message }, { status: 500 });
         }
 
         // Filter out old Google Flights data + seed data
-        const filtered = (data || []).filter(
+        const filtered = (scansResult.data || []).filter(
             (row: any) => !row.source?.startsWith('google_flights') && row.source !== 'historical_seed'
         );
+
+        // Calculate average price from 90-day history
+        const histPrices = (historyResult.data || []).map((r: any) => r.price).filter(Boolean);
+        const avgPrice = histPrices.length > 0
+            ? Math.round(histPrices.reduce((a: number, b: number) => a + b, 0) / histPrices.length)
+            : 0;
 
         // Deduplicate: keep best price per departure_date
         const bestByDate: Record<string, any> = {};
@@ -47,15 +63,19 @@ export async function GET(request: Request) {
         };
 
         const deals = Object.values(bestByDate)
-            .filter((d) => d.departure_date) // Only deals with actual dates
-            .sort((a, b) => a.price - b.price)
+            .filter((d) => d.departure_date && d.departure_date >= today) // Only future dates
+            .sort((a, b) => a.departure_date.localeCompare(b.departure_date)) // Sort by date (chronological)
             .map((d) => {
                 const code = d.destination_code || destCode;
                 const rawLink = d.raw_data?.booking_link || '';
-                // Always use Skyscanner link
                 const bookingLink = rawLink.includes('skyscanner')
                     ? rawLink
                     : buildSkyLink(d.departure_date, d.return_date, code);
+
+                // Per-deal discount vs 90-day average
+                const dealDiscount = avgPrice > d.price
+                    ? Math.round(((avgPrice - d.price) / avgPrice) * 100)
+                    : 0;
 
                 return {
                     price: d.price,
@@ -75,14 +95,17 @@ export async function GET(request: Request) {
                     tags: d.raw_data?.tags || [],
                     seatsRemaining: d.raw_data?.seats_remaining,
                     totalOptions: d.raw_data?.total_options,
+                    discount: dealDiscount,
+                    tripNights: d.raw_data?.trip_duration || 0,
                 };
             });
 
         return NextResponse.json({
             destination: name,
-            destinationCode: data?.[0]?.destination_code || '',
+            destinationCode: scansResult.data?.[0]?.destination_code || '',
             deals,
             count: deals.length,
+            avgPrice,
         }, {
             headers: {
                 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
