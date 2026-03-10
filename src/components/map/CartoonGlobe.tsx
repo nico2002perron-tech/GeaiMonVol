@@ -562,76 +562,73 @@ export default function CartoonGlobe({
 
         // Skip all event listeners in minimal mode — pure decoration
         if (minimal) {
-            // Pre-cache ocean gradient (never changes)
+            // Pre-cache gradients (never change)
             const oceanGrad = ctx.createRadialGradient(
-                cx - radius * 0.2, cy - radius * 0.15, radius * 0.1,
+                cx - radius * 0.15, cy - radius * 0.1, radius * 0.05,
                 cx, cy, radius
             );
-            oceanGrad.addColorStop(0, '#1a4a7a');
-            oceanGrad.addColorStop(0.45, '#0f3460');
-            oceanGrad.addColorStop(1, '#0a2340');
+            oceanGrad.addColorStop(0, '#5bb8e8');
+            oceanGrad.addColorStop(0.5, '#3a8fd4');
+            oceanGrad.addColorStop(1, '#1b5fa0');
 
-            // Pre-cache shine gradient
             const shine = ctx.createRadialGradient(
-                cx - radius * 0.3, cy - radius * 0.3, 0,
-                cx - radius * 0.3, cy - radius * 0.3, radius * 0.5
+                cx - radius * 0.3, cy - radius * 0.35, 0,
+                cx - radius * 0.3, cy - radius * 0.35, radius * 0.55
             );
-            shine.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
-            shine.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
+            shine.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
+            shine.addColorStop(0.4, 'rgba(255, 255, 255, 0.06)');
             shine.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
-            // Pre-cache edge shadow gradient
-            const edge = ctx.createRadialGradient(cx, cy, radius * 0.7, cx, cy, radius);
-            edge.addColorStop(0, 'rgba(5, 20, 50, 0)');
-            edge.addColorStop(0.85, 'rgba(5, 20, 50, 0.15)');
-            edge.addColorStop(1, 'rgba(5, 20, 50, 0.4)');
+            const edge = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
+            edge.addColorStop(0, 'rgba(10, 40, 80, 0)');
+            edge.addColorStop(0.85, 'rgba(10, 40, 80, 0.12)');
+            edge.addColorStop(1, 'rgba(10, 40, 80, 0.35)');
 
-            const dotSize = isMobile ? 1.8 : 2.2;
-            const halfDot = dotSize / 2;
-            const rSq = radius * radius;
+            const projection = d3.geoOrthographic()
+                .scale(radius).translate([cx, cy]).clipAngle(90);
+            const pathGen = d3.geoPath().projection(projection).context(ctx);
 
             const animate = () => {
                 rotationRef.current[0] -= 0.1;
+                projection.rotate(rotationRef.current);
                 ctx.clearRect(0, 0, width, height);
 
-                // Cartoon ocean
+                // Cartoon ocean sphere
                 ctx.fillStyle = oceanGrad;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Dot-matrix continents — fillRect (max perf)
-                const rotLng = -rotationRef.current[0];
-                const rotLat = -rotationRef.current[1];
-                const dots = landDotsRef.current;
-                ctx.fillStyle = '#8AD0F5';
-                for (let i = 0; i < dots.length; i++) {
-                    const d = dots[i];
-                    const p = projectOrtho(d.lng, d.lat, rotLng, rotLat, cx, cy, radius);
-                    if (!p) continue;
-                    const dx = p[0] - cx, dy = p[1] - cy;
-                    const distSq = dx * dx + dy * dy;
-                    const edgeFade = 1 - distSq / rSq;
-                    if (edgeFade <= 0) continue;
-                    ctx.globalAlpha = d.brightness * edgeFade;
-                    ctx.fillRect(p[0] - halfDot, p[1] - halfDot, dotSize, dotSize);
+                // Solid cartoon continents — pale blue
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.fillStyle = '#b8e2f8';
+                ctx.strokeStyle = 'rgba(80, 160, 210, 0.4)';
+                ctx.lineWidth = 0.6;
+                for (const country of countries) {
+                    ctx.beginPath();
+                    pathGen(country);
+                    ctx.fill();
+                    ctx.stroke();
                 }
-                ctx.globalAlpha = 1;
+                ctx.restore();
 
-                // Cartoon shine
+                // Cartoon shine highlight
                 ctx.fillStyle = shine;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Edge shadow
+                // Soft edge shadow
                 ctx.fillStyle = edge;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Thin cartoon outline
-                ctx.strokeStyle = 'rgba(100, 180, 230, 0.2)';
+                ctx.strokeStyle = 'rgba(100, 180, 230, 0.3)';
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
