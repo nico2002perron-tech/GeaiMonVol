@@ -2058,8 +2058,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           </p>
           <div className="lp-globe-static">
             <div className="lp-globe-sphere">
-              <div className="lp-globe-land" />
-              <div className="lp-globe-shine" />
+              <div className="lp-globe-texture" />
+              <div className="lp-globe-shade" />
             </div>
           </div>
           <div style={{ marginTop: 48 }}>

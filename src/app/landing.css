@@ -1961,85 +1961,155 @@
   margin-right: auto;
 }
 
-/* ── Static 3D Globe ── */
+/* ── Realistic 3D Globe ── */
 .lp-globe-static {
   margin: 48px auto 0;
-  width: 340px;
-  height: 340px;
+  width: 380px;
+  height: 380px;
   position: relative;
-  perspective: 800px;
 }
 
+/* Star field behind globe */
+.lp-globe-static::before {
+  content: '';
+  position: absolute;
+  inset: -80px;
+  border-radius: 20px;
+  background:
+    radial-gradient(1.2px 1.2px at 28px 35px, rgba(255,255,255,0.7), transparent 2px),
+    radial-gradient(1px 1px at 115px 12px, rgba(255,255,255,0.45), transparent 2px),
+    radial-gradient(1.5px 1.5px at 205px 75px, rgba(255,255,255,0.6), transparent 2px),
+    radial-gradient(1px 1px at 310px 45px, rgba(255,255,255,0.4), transparent 2px),
+    radial-gradient(1px 1px at 55px 145px, rgba(255,255,255,0.55), transparent 2px),
+    radial-gradient(1.3px 1.3px at 175px 185px, rgba(255,255,255,0.35), transparent 2px),
+    radial-gradient(1px 1px at 258px 128px, rgba(255,255,255,0.6), transparent 2px),
+    radial-gradient(1px 1px at 388px 155px, rgba(255,255,255,0.4), transparent 2px),
+    radial-gradient(1.2px 1.2px at 425px 28px, rgba(255,255,255,0.5), transparent 2px),
+    radial-gradient(1.5px 1.5px at 95px 305px, rgba(255,255,255,0.4), transparent 2px),
+    radial-gradient(1px 1px at 355px 275px, rgba(255,255,255,0.55), transparent 2px),
+    radial-gradient(1px 1px at 465px 218px, rgba(255,255,255,0.3), transparent 2px),
+    radial-gradient(1px 1px at 68px 405px, rgba(255,255,255,0.5), transparent 2px),
+    radial-gradient(1.3px 1.3px at 285px 355px, rgba(255,255,255,0.4), transparent 2px),
+    radial-gradient(1px 1px at 445px 385px, rgba(255,255,255,0.6), transparent 2px),
+    radial-gradient(1px 1px at 18px 248px, rgba(255,255,255,0.35), transparent 2px),
+    radial-gradient(1.2px 1.2px at 505px 98px, rgba(255,255,255,0.45), transparent 2px),
+    radial-gradient(1px 1px at 325px 425px, rgba(255,255,255,0.4), transparent 2px),
+    radial-gradient(1px 1px at 490px 320px, rgba(255,255,255,0.3), transparent 2px),
+    radial-gradient(1.4px 1.4px at 140px 440px, rgba(255,255,255,0.5), transparent 2px),
+    radial-gradient(1px 1px at 410px 460px, rgba(255,255,255,0.35), transparent 2px),
+    radial-gradient(1px 1px at 230px 480px, rgba(255,255,255,0.45), transparent 2px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Atmosphere glow — brighter on the sun-facing (left) side */
+.lp-globe-static::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 28% 32%, rgba(80, 160, 255, 0.18) 44%, rgba(60, 140, 255, 0.08) 52%, transparent 62%),
+    radial-gradient(circle at 50% 50%, transparent 43%, rgba(60, 140, 255, 0.09) 50%, rgba(60, 140, 255, 0.05) 58%, transparent 68%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Globe sphere — deep ocean base */
 .lp-globe-sphere {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 38% 35%, #1a3a5c 0%, #122a48 25%, #0c1e38 50%, #06142a 75%, #030c1a 100%);
+  position: relative;
+  z-index: 1;
+  background: radial-gradient(circle at 38% 38%, #0f2a50 0%, #0a1e3c 40%, #061528 70%, #030b18 100%);
   box-shadow:
-    0 0 60px rgba(6, 182, 212, 0.12),
-    0 0 120px rgba(6, 182, 212, 0.06),
-    inset -30px -20px 60px rgba(0, 0, 0, 0.5),
-    inset 10px 10px 40px rgba(30, 80, 130, 0.15);
-  animation: globeSpin 60s linear infinite;
+    0 0 50px rgba(60, 140, 255, 0.14),
+    0 0 100px rgba(60, 140, 255, 0.06),
+    0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-/* Continent-like shapes via layered gradients that shift with rotation */
-.lp-globe-land {
+/* Rotating continents + longitude grid — this layer scrolls to simulate spin */
+.lp-globe-texture {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(ellipse 18% 22% at 55% 32%, rgba(20, 80, 60, 0.35) 0%, transparent 100%),
-    radial-gradient(ellipse 12% 30% at 62% 50%, rgba(20, 80, 60, 0.3) 0%, transparent 100%),
-    radial-gradient(ellipse 25% 15% at 38% 28%, rgba(25, 85, 65, 0.3) 0%, transparent 100%),
-    radial-gradient(ellipse 10% 12% at 70% 60%, rgba(20, 75, 55, 0.25) 0%, transparent 100%),
-    radial-gradient(ellipse 20% 18% at 30% 55%, rgba(22, 78, 58, 0.28) 0%, transparent 100%),
-    radial-gradient(ellipse 8% 10% at 48% 70%, rgba(18, 70, 50, 0.2) 0%, transparent 100%),
-    radial-gradient(ellipse 15% 8% at 25% 42%, rgba(25, 90, 70, 0.22) 0%, transparent 100%);
-  animation: globeSpin 60s linear infinite;
+    /* ── Europe ── */
+    radial-gradient(ellipse 11% 14% at 26% 28%, rgba(42, 140, 88, 0.5), transparent),
+    radial-gradient(ellipse 6% 8% at 22% 24%, rgba(48, 150, 95, 0.4), transparent),
+    radial-gradient(ellipse 8% 5% at 30% 25%, rgba(45, 145, 92, 0.35), transparent),
+    /* ── Africa ── */
+    radial-gradient(ellipse 9% 22% at 28% 48%, rgba(50, 145, 85, 0.45), transparent),
+    radial-gradient(ellipse 6% 10% at 24% 42%, rgba(45, 138, 80, 0.35), transparent),
+    radial-gradient(ellipse 5% 6% at 33% 55%, rgba(40, 130, 75, 0.3), transparent),
+    /* ── Asia ── */
+    radial-gradient(ellipse 18% 11% at 45% 28%, rgba(44, 142, 86, 0.42), transparent),
+    radial-gradient(ellipse 10% 8% at 52% 34%, rgba(40, 135, 82, 0.35), transparent),
+    radial-gradient(ellipse 6% 12% at 55% 42%, rgba(38, 130, 78, 0.3), transparent),
+    radial-gradient(ellipse 4% 5% at 48% 22%, rgba(42, 138, 84, 0.3), transparent),
+    /* ── North America ── */
+    radial-gradient(ellipse 10% 12% at 76% 28%, rgba(46, 148, 90, 0.45), transparent),
+    radial-gradient(ellipse 6% 8% at 72% 35%, rgba(42, 140, 85, 0.38), transparent),
+    radial-gradient(ellipse 4% 6% at 80% 24%, rgba(44, 144, 88, 0.32), transparent),
+    /* ── South America ── */
+    radial-gradient(ellipse 7% 18% at 70% 55%, rgba(48, 150, 92, 0.42), transparent),
+    radial-gradient(ellipse 5% 8% at 68% 48%, rgba(42, 140, 85, 0.35), transparent),
+    /* ── Australia ── */
+    radial-gradient(ellipse 7% 5% at 56% 62%, rgba(50, 148, 88, 0.38), transparent),
+    radial-gradient(ellipse 3% 3% at 58% 60%, rgba(45, 140, 82, 0.28), transparent),
+    /* ── Greenland / Arctic ── */
+    radial-gradient(ellipse 7% 4% at 68% 14%, rgba(190, 210, 228, 0.18), transparent),
+    /* ── Antarctica ── */
+    radial-gradient(ellipse 35% 4% at 50% 93%, rgba(190, 210, 228, 0.15), transparent),
+    /* ── Longitude grid lines ── */
+    repeating-linear-gradient(90deg,
+      transparent 0px, transparent 59px,
+      rgba(80, 180, 255, 0.055) 59px, rgba(80, 180, 255, 0.055) 60px);
+  background-size: 760px 380px;
+  background-repeat: repeat-x;
+  background-position: 0 center;
+  animation: globeRotate 55s linear infinite;
 }
 
-/* Specular highlight / atmosphere shine */
-.lp-globe-shine {
+/* Static 3D shading + latitude grid — never moves, creates the sphere illusion */
+.lp-globe-shade {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    radial-gradient(ellipse 50% 50% at 32% 30%, rgba(255,255,255,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 45%, rgba(6, 182, 212, 0.06) 70%, rgba(6, 182, 212, 0.12) 90%, transparent 100%);
+    /* Specular highlight — small bright sun reflection */
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 10%, transparent 22%),
+    /* Secondary diffuse glow */
+    radial-gradient(circle at 36% 36%, rgba(100, 180, 255, 0.07) 0%, transparent 35%),
+    /* Terminator — the light/dark boundary, angled from top-left to bottom-right */
+    linear-gradient(112deg,
+      transparent 30%,
+      rgba(0,0,0,0.08) 42%,
+      rgba(0,0,0,0.22) 52%,
+      rgba(0,0,0,0.42) 62%,
+      rgba(0,0,0,0.62) 75%,
+      rgba(0,0,0,0.82) 90%),
+    /* Limb darkening — sphere edges are always darker */
+    radial-gradient(circle at 40% 40%,
+      transparent 30%,
+      rgba(0,0,0,0.08) 50%,
+      rgba(0,0,0,0.25) 65%,
+      rgba(0,0,0,0.5) 80%,
+      rgba(0,0,0,0.78) 92%,
+      rgba(0,0,0,0.92) 100%),
+    /* Latitude grid lines — static horizontal rings */
+    repeating-linear-gradient(0deg,
+      transparent 0px, transparent 39px,
+      rgba(80, 180, 255, 0.04) 39px, rgba(80, 180, 255, 0.04) 40px);
   pointer-events: none;
+  z-index: 2;
 }
 
-/* Atmospheric glow ring */
-.lp-globe-static::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: conic-gradient(from 200deg, rgba(6,182,212,0.15), rgba(14,165,233,0.06), transparent 40%, transparent 60%, rgba(14,165,233,0.06), rgba(6,182,212,0.15));
-  z-index: -1;
-  filter: blur(2px);
-}
-
-/* Subtle ambient glow underneath */
-.lp-globe-static::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 20px;
-  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.15), transparent 70%);
-  border-radius: 50%;
-  filter: blur(8px);
-}
-
-@keyframes globeSpin {
-  from { transform: rotateY(0deg); }
-  to { transform: rotateY(360deg); }
+@keyframes globeRotate {
+  from { background-position: 0 center; }
+  to { background-position: 760px center; }
 }
 
 .lp-btn-light {
@@ -2561,8 +2631,12 @@
   }
 
   .lp-globe-static {
-    width: 260px;
-    height: 260px;
+    width: 280px;
+    height: 280px;
+  }
+
+  .lp-globe-static::before {
+    inset: -40px;
   }
 
   .lp-footer-top {
@@ -2679,8 +2753,7 @@
   .lp-ticker-right,
   .lp-live-dot,
   .lp-live-dot > span,
-  .lp-globe-sphere,
-  .lp-globe-land,
+  .lp-globe-texture,
   .lp-typing-dot,
   .lp-plane-fly,
   .lp details p {
