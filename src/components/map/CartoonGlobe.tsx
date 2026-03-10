@@ -1425,8 +1425,8 @@ export default function CartoonGlobe({
                 id="cartoon-globe-canvas"
                 style={{ display: 'block', width: '100%', height: '100%' }}
             />
-            {/* ─── GLOBE CONTROLS ─── */}
-            <div style={{
+            {/* ─── GLOBE CONTROLS (hidden in minimal mode) ─── */}
+            {!minimal && <div style={{
                 position: 'absolute',
                 bottom: isMobile ? 16 : 28,
                 left: '50%',
@@ -1487,31 +1487,30 @@ export default function CartoonGlobe({
                 >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
                 </button>
-            </div>
-
-            <style>{`
-                .globe-ctrl-btn {
-                    width: 36px; height: 36px; border-radius: 50%; border: none;
-                    background: transparent; cursor: pointer;
-                    display: flex; align-items: center; justify-content: center;
-                    color: #334155; transition: all 0.2s ease;
-                }
-                .globe-ctrl-btn:hover {
-                    background: rgba(14,165,233,0.1);
-                    color: #0EA5E9;
-                }
-                .globe-ctrl-btn:active {
-                    transform: scale(0.9);
-                }
-                .globe-ctrl-reset {
-                    width: 40px; height: 40px;
-                    background: rgba(14,165,233,0.08);
-                    color: #0EA5E9;
-                }
-                .globe-ctrl-reset:hover {
-                    background: rgba(14,165,233,0.18) !important;
-                }
-            `}</style>
+                <style>{`
+                    .globe-ctrl-btn {
+                        width: 36px; height: 36px; border-radius: 50%; border: none;
+                        background: transparent; cursor: pointer;
+                        display: flex; align-items: center; justify-content: center;
+                        color: #334155; transition: all 0.2s ease;
+                    }
+                    .globe-ctrl-btn:hover {
+                        background: rgba(14,165,233,0.1);
+                        color: #0EA5E9;
+                    }
+                    .globe-ctrl-btn:active {
+                        transform: scale(0.9);
+                    }
+                    .globe-ctrl-reset {
+                        width: 40px; height: 40px;
+                        background: rgba(14,165,233,0.08);
+                        color: #0EA5E9;
+                    }
+                    .globe-ctrl-reset:hover {
+                        background: rgba(14,165,233,0.18) !important;
+                    }
+                `}</style>
+            </div>}
 
             {/* ─── TOOLTIP OVERLAY ─── */}
             {tooltip.visible && (
