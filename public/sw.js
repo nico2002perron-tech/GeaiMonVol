@@ -1,4 +1,4 @@
-const CACHE_NAME = 'geaimonvol-v1';
+const CACHE_NAME = 'geaimonvol-v2';
 const OFFLINE_URL = '/';
 
 const PRECACHE_URLS = [
@@ -30,9 +30,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch — network first, fallback to cache
 self.addEventListener('fetch', (event) => {
-    // Skip non-GET and API requests
+    // Skip non-GET, API requests, and Next.js static assets (JS/CSS chunks)
+    // Caching _next chunks causes stale JS after deployments → React hook errors
     if (event.request.method !== 'GET') return;
     if (event.request.url.includes('/api/')) return;
+    if (event.request.url.includes('/_next/')) return;
 
     event.respondWith(
         fetch(event.request)

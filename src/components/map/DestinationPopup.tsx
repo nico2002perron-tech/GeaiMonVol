@@ -187,20 +187,8 @@ export default function DestinationPopup({
         return () => window.removeEventListener('keydown', onKey);
     }, [isOpen, onClose]);
 
-    if (!isOpen) return null;
-
-    const imgSrc = CITY_IMAGES[destination] || COUNTRY_IMAGES[destination] || DEFAULT_CITY_IMAGE;
-    const level = dealLevel ? DEAL_LEVELS[dealLevel] : null;
-
-    // Sort deals
-    const sortedDeals = [...deals].sort((a, b) => {
-        if (sortMode === 'price') return a.price - b.price;
-        return a.departureDate.localeCompare(b.departureDate);
-    });
-
-    const cheapestPrice = deals.length > 0 ? Math.min(...deals.map(d => d.price)) : 0;
-
     // Month comparator — group deals by month, find cheapest per month
+    // MUST be before the early return to respect React's Rules of Hooks
     const monthGroups = useMemo(() => {
         const MONTH_NAMES = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
         const groups: Record<string, { label: string; sortKey: string; cheapest: number; count: number }> = {};
@@ -221,6 +209,19 @@ export default function DestinationPopup({
 
         return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
     }, [deals]);
+
+    if (!isOpen) return null;
+
+    const imgSrc = CITY_IMAGES[destination] || COUNTRY_IMAGES[destination] || DEFAULT_CITY_IMAGE;
+    const level = dealLevel ? DEAL_LEVELS[dealLevel] : null;
+
+    // Sort deals
+    const sortedDeals = [...deals].sort((a, b) => {
+        if (sortMode === 'price') return a.price - b.price;
+        return a.departureDate.localeCompare(b.departureDate);
+    });
+
+    const cheapestPrice = deals.length > 0 ? Math.min(...deals.map(d => d.price)) : 0;
 
     const shareDestination = () => {
         const text = `Vol Montreal → ${destination} des ${cheapestPrice}$ A/R sur GeaiMonVol`;

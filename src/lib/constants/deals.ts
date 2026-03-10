@@ -17,7 +17,7 @@ export interface SubDestination {
 
 export const COUNTRY_SUBDESTINATIONS: Record<string, SubDestination[]> = {
     'MX': [
-        { city: 'Cancun', code: 'CUN', image: 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400&h=250&fit=crop' },
+        { city: 'Cancun', code: 'CUN', image: 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400&h=250&fit=crop' },
         { city: 'Mexico City', code: 'MEX', image: 'https://images.unsplash.com/photo-1518659526054-190340b32735?w=400&h=250&fit=crop' },
         { city: 'Puerto Vallarta', code: 'PVR', image: 'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?w=400&h=250&fit=crop' },
         { city: 'Los Cabos', code: 'SJD', image: 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400&h=250&fit=crop' },
@@ -42,7 +42,7 @@ export const COUNTRY_SUBDESTINATIONS: Record<string, SubDestination[]> = {
         { city: 'Malaga', code: 'AGP', image: 'https://images.unsplash.com/photo-1564221710304-0b37c8b4a5a6?w=400&h=250&fit=crop' },
     ],
     'PT': [
-        { city: 'Lisbonne', code: 'LIS', image: 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400&h=250&fit=crop' },
+        { city: 'Lisbonne', code: 'LIS', image: 'https://images.unsplash.com/photo-1520483601560-389dff434fdf?w=400&h=250&fit=crop' },
         { city: 'Porto', code: 'OPO', image: 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=250&fit=crop' },
     ],
     'IT': [
@@ -88,7 +88,7 @@ export const COUNTRY_SUBDESTINATIONS: Record<string, SubDestination[]> = {
         { city: 'Rio de Janeiro', code: 'GIG', image: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&h=250&fit=crop' },
     ],
     'PE': [
-        { city: 'Lima', code: 'LIM', image: 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400&h=250&fit=crop' },
+        { city: 'Lima', code: 'LIM', image: 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400&h=250&fit=crop' },
         { city: 'Cusco', code: 'CUZ', image: 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400&h=250&fit=crop' },
     ],
     'AR': [
@@ -113,7 +113,7 @@ export const COUNTRY_SUBDESTINATIONS: Record<string, SubDestination[]> = {
         { city: 'Casablanca', code: 'CMN', image: 'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?w=400&h=250&fit=crop' },
     ],
     'TH': [
-        { city: 'Bangkok', code: 'BKK', image: 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400&h=250&fit=crop' },
+        { city: 'Bangkok', code: 'BKK', image: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400&h=250&fit=crop' },
         { city: 'Phuket', code: 'HKT', image: 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=400&h=250&fit=crop' },
     ],
     'JP': [
@@ -129,7 +129,7 @@ export const COUNTRY_SUBDESTINATIONS: Record<string, SubDestination[]> = {
         { city: 'Hanoi', code: 'HAN', image: 'https://images.unsplash.com/photo-1509030450996-dd1a26dda07a?w=400&h=250&fit=crop' },
     ],
     'IS': [
-        { city: 'Reykjavik', code: 'KEF', image: 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400&h=250&fit=crop' },
+        { city: 'Reykjavik', code: 'KEF', image: 'https://images.unsplash.com/photo-1504233529578-6d46baba6d34?w=400&h=250&fit=crop' },
     ],
     'CA': [
         { city: 'Toronto', code: 'YYZ', image: 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400&h=250&fit=crop' },
@@ -168,7 +168,7 @@ export const COUNTRY_IMAGES: Record<string, string> = {
     'France': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400',
     'Espagne': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
     'Spain': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
-    'Portugal': 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400',
+    'Portugal': 'https://images.unsplash.com/photo-1520483601560-389dff434fdf?w=400',
     'Italie': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
     'Italy': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
     'Grèce': 'https://images.unsplash.com/photo-1503152394-c571994fd383?w=400',
@@ -185,12 +185,12 @@ export const COUNTRY_IMAGES: Record<string, string> = {
     'Morocco': 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=400',
     'Japon': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
     'Japan': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
-    'Thaïlande': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
-    'Thailand': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
+    'Thaïlande': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400',
+    'Thailand': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400',
     'Indonésie': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
     'Indonesia': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
-    'Mexique': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
-    'Mexico': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
+    'Mexique': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400',
+    'Mexico': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400',
     'États-Unis': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
     'United States of America': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
     'Canada': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400',
@@ -199,14 +199,14 @@ export const COUNTRY_IMAGES: Record<string, string> = {
     'Dominican Republic': 'https://images.unsplash.com/photo-1535916707207-35f97e715e1c?w=400',
     'Colombie': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400',
     'Colombia': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400',
-    'Pérou': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400',
-    'Peru': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400',
+    'Pérou': 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400',
+    'Peru': 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400',
     'Brésil': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400',
     'Brazil': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400',
     'Argentine': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=400',
     'Argentina': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=400',
-    'Islande': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
-    'Iceland': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
+    'Islande': 'https://images.unsplash.com/photo-1504233529578-6d46baba6d34?w=400',
+    'Iceland': 'https://images.unsplash.com/photo-1504233529578-6d46baba6d34?w=400',
     'Jamaïque': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400',
     'Jamaica': 'https://images.unsplash.com/photo-1580237541049-2d715a09486e?w=400',
     'Costa Rica': 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=400',
@@ -227,7 +227,7 @@ export const CITY_IMAGES: Record<string, string> = {
     'Londres': 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=400',
     'Rome': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400',
     'Barcelone': 'https://images.unsplash.com/photo-1583422874117-10d21bb26055?w=400',
-    'Lisbonne': 'https://images.unsplash.com/photo-1585211777166-73269c464104?w=400',
+    'Lisbonne': 'https://images.unsplash.com/photo-1520483601560-389dff434fdf?w=400',
     'Athènes': 'https://images.unsplash.com/photo-1503152394-c571994fd383?w=400',
     'Dublin': 'https://images.unsplash.com/photo-1549918837-33fb394ea33d?w=400',
     'Amsterdam': 'https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=400',
@@ -235,12 +235,12 @@ export const CITY_IMAGES: Record<string, string> = {
     'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400',
     'Marrakech': 'https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=400',
     'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400',
-    'Bangkok': 'https://images.unsplash.com/photo-1508009603885-50cf7c579367?w=400',
+    'Bangkok': 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400',
     'Bali': 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=400',
-    'Cancún': 'https://images.unsplash.com/photo-1520116468414-046603d3d63b?w=400',
+    'Cancún': 'https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=400',
     'Miami': 'https://images.unsplash.com/photo-1514214246283-d427a95c5d2f?w=400',
     'New York': 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=400',
-    'Reykjavik': 'https://images.unsplash.com/photo-1504541982954-541e20faee3a?w=400',
+    'Reykjavik': 'https://images.unsplash.com/photo-1504233529578-6d46baba6d34?w=400',
     'Toronto': 'https://images.unsplash.com/photo-1517090504332-e94e18675f74?w=400&h=250&fit=crop',
     'Ottawa': 'https://images.unsplash.com/photo-1558025137-0b406e0f5765?w=400&h=250&fit=crop',
     'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a654ae982a?w=400&h=250&fit=crop',
@@ -254,7 +254,7 @@ export const CITY_IMAGES: Record<string, string> = {
     'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=400&h=250&fit=crop',
     'La Havane': 'https://images.unsplash.com/photo-1500759285222-a95626b934cb?w=400&h=250&fit=crop',
     'Bogota': 'https://images.unsplash.com/photo-1568385247005-0d371d214862?w=400&h=250&fit=crop',
-    'Lima': 'https://images.unsplash.com/photo-1531968455001-5c5272a67c71?w=400&h=250&fit=crop',
+    'Lima': 'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=400&h=250&fit=crop',
     'São Paulo': 'https://images.unsplash.com/photo-1554168848-a261d7180836?w=400&h=250&fit=crop',
     'Buenos Aires': 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?w=400&h=250&fit=crop',
     'Los Angeles': 'https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=400&h=250&fit=crop',
@@ -265,4 +265,4 @@ export const CITY_IMAGES: Record<string, string> = {
     'Cuba (Varadero)': 'https://images.unsplash.com/photo-1570345070170-51d6e8f38953?w=400&h=250&fit=crop',
 };
 
-export const DEFAULT_CITY_IMAGE = 'https://images.unsplash.com/photo-1436491865332-7a61a109db05?w=400&h=250&fit=crop';
+export const DEFAULT_CITY_IMAGE = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=250&fit=crop';
