@@ -560,6 +560,62 @@ export default function CartoonGlobe({
         const onWheel = (e: WheelEvent) => { e.preventDefault(); };
         const onDblClick = (e: MouseEvent) => { e.preventDefault(); };
 
+        // Skip all event listeners in minimal mode — pure decoration
+        if (minimal) {
+            const animate = () => {
+                timeRef.current += 1;
+                if (!isDraggingRef.current && !isMouseOnGlobeRef.current) {
+                    rotationRef.current = [
+                        rotationRef.current[0] - 0.12,
+                        rotationRef.current[1],
+                        rotationRef.current[2],
+                    ];
+                }
+                const visibleRadius = radius;
+                const ctx2 = ctx;
+                ctx2.clearRect(0, 0, width, height);
+
+                // Dark ocean sphere
+                ctx2.fillStyle = '#020810';
+                ctx2.beginPath();
+                ctx2.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+                ctx2.fill();
+
+                // Dot-matrix continents
+                const rotLng = -rotationRef.current[0];
+                const rotLat = -rotationRef.current[1];
+                const dots = landDotsRef.current;
+                for (let i = 0; i < dots.length; i++) {
+                    const d = dots[i];
+                    const p = projectOrtho(d.lng, d.lat, rotLng, rotLat, cx, cy, visibleRadius);
+                    if (!p) continue;
+                    const dx = p[0] - cx, dy = p[1] - cy;
+                    const distRatio = Math.sqrt(dx * dx + dy * dy) / visibleRadius;
+                    const edgeFade = Math.max(0, 1 - distRatio * distRatio * 1.2);
+                    const dotSize = isMobile ? 1.0 : 1.3;
+                    ctx2.globalAlpha = d.brightness * edgeFade * 0.85;
+                    ctx2.fillStyle = '#c8d8e8';
+                    ctx2.fillRect(p[0] - dotSize / 2, p[1] - dotSize / 2, dotSize, dotSize);
+                }
+                ctx2.globalAlpha = 1;
+
+                // Limb darkening
+                const limbGrad = ctx2.createRadialGradient(cx, cy, visibleRadius * 0.3, cx, cy, visibleRadius);
+                limbGrad.addColorStop(0, 'rgba(2, 8, 16, 0)');
+                limbGrad.addColorStop(0.6, 'rgba(2, 8, 16, 0)');
+                limbGrad.addColorStop(0.85, 'rgba(2, 8, 16, 0.4)');
+                limbGrad.addColorStop(1, 'rgba(2, 8, 16, 0.85)');
+                ctx2.fillStyle = limbGrad;
+                ctx2.beginPath();
+                ctx2.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+                ctx2.fill();
+
+                animFrameRef.current = requestAnimationFrame(animate);
+            };
+            animFrameRef.current = requestAnimationFrame(animate);
+            return () => { cancelAnimationFrame(animFrameRef.current); };
+        }
+
         canvas.addEventListener('wheel', onWheel, { passive: false });
         canvas.addEventListener('dblclick', onDblClick);
 
@@ -826,103 +882,6 @@ export default function CartoonGlobe({
 
             // ─── CLEAR CANVAS (transparent — shows page gradient behind) ───
             ctx.clearRect(0, 0, width, height);
-
-            // ═══ MINIMAL DARK MODE — dot-matrix globe, no overlays ═══
-            if (minimal) {
-                // Stars
-                for (const star of starsRef.current) {
-                    const twinkle = Math.sin(timeRef.current * star.twinkleSpeed + star.phase);
-                    ctx.globalAlpha = star.baseOpacity * (0.6 + 0.4 * twinkle);
-                    ctx.fillStyle = star.color;
-                    ctx.beginPath();
-                    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.globalAlpha = 1;
-
-                // Shooting stars
-                for (const ss of shootingStarsRef.current) {
-                    if (ss.life <= 0 || ss.life >= ss.maxLife) continue;
-                    const progress = ss.life / ss.maxLife;
-                    const alpha = progress < 0.3 ? progress / 0.3 : 1 - (progress - 0.3) / 0.7;
-                    ctx.save();
-                    ctx.globalAlpha = ss.opacity * alpha * 0.6;
-                    ctx.strokeStyle = '#00D4FF';
-                    ctx.lineWidth = 1.2;
-                    ctx.beginPath();
-                    ctx.moveTo(ss.x, ss.y);
-                    ctx.lineTo(
-                        ss.x - Math.cos(ss.angle) * ss.length * alpha,
-                        ss.y - Math.sin(ss.angle) * ss.length * alpha
-                    );
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
-                // Atmosphere glow — cyan right + purple left
-                ctx.save();
-                const atmoR = visibleRadius * 1.18;
-                // Cyan glow (right)
-                const cyanGlow = ctx.createRadialGradient(cx + visibleRadius * 0.2, cy - visibleRadius * 0.1, visibleRadius * 0.9, cx, cy, atmoR);
-                cyanGlow.addColorStop(0, 'rgba(0, 212, 255, 0)');
-                cyanGlow.addColorStop(0.6, 'rgba(0, 212, 255, 0)');
-                cyanGlow.addColorStop(0.78, 'rgba(0, 212, 255, 0.12)');
-                cyanGlow.addColorStop(0.88, 'rgba(0, 180, 255, 0.06)');
-                cyanGlow.addColorStop(1, 'rgba(0, 212, 255, 0)');
-                ctx.fillStyle = cyanGlow;
-                ctx.fillRect(0, 0, width, height);
-                // Purple glow (left)
-                const purpleGlow = ctx.createRadialGradient(cx - visibleRadius * 0.3, cy + visibleRadius * 0.2, visibleRadius * 0.85, cx, cy, atmoR);
-                purpleGlow.addColorStop(0, 'rgba(140, 60, 220, 0)');
-                purpleGlow.addColorStop(0.6, 'rgba(140, 60, 220, 0)');
-                purpleGlow.addColorStop(0.78, 'rgba(140, 60, 220, 0.1)');
-                purpleGlow.addColorStop(0.88, 'rgba(100, 40, 180, 0.05)');
-                purpleGlow.addColorStop(1, 'rgba(140, 60, 220, 0)');
-                ctx.fillStyle = purpleGlow;
-                ctx.fillRect(0, 0, width, height);
-                ctx.restore();
-
-                // Dark ocean sphere
-                ctx.fillStyle = '#020810';
-                ctx.beginPath();
-                ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Dot-matrix continents
-                const rotLng = -rotationRef.current[0];
-                const rotLat = -rotationRef.current[1];
-                const dots = landDotsRef.current;
-                for (let i = 0; i < dots.length; i++) {
-                    const d = dots[i];
-                    const p = projectOrtho(d.lng, d.lat, rotLng, rotLat, cx, cy, visibleRadius);
-                    if (!p) continue;
-                    // Fade at edges for sphere depth
-                    const dx = p[0] - cx, dy = p[1] - cy;
-                    const distRatio = Math.sqrt(dx * dx + dy * dy) / visibleRadius;
-                    const edgeFade = Math.max(0, 1 - distRatio * distRatio * 1.2);
-                    const dotSize = isMobile ? 1.0 : 1.3;
-                    ctx.globalAlpha = d.brightness * edgeFade * 0.85;
-                    ctx.fillStyle = '#c8d8e8';
-                    ctx.fillRect(p[0] - dotSize / 2, p[1] - dotSize / 2, dotSize, dotSize);
-                }
-                ctx.globalAlpha = 1;
-
-                // Limb darkening overlay
-                ctx.save();
-                const limbGrad = ctx.createRadialGradient(cx, cy, visibleRadius * 0.3, cx, cy, visibleRadius);
-                limbGrad.addColorStop(0, 'rgba(2, 8, 16, 0)');
-                limbGrad.addColorStop(0.6, 'rgba(2, 8, 16, 0)');
-                limbGrad.addColorStop(0.85, 'rgba(2, 8, 16, 0.4)');
-                limbGrad.addColorStop(1, 'rgba(2, 8, 16, 0.85)');
-                ctx.fillStyle = limbGrad;
-                ctx.beginPath();
-                ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-
-                animFrameRef.current = requestAnimationFrame(animate);
-                return;
-            }
 
             // ─── DROP SHADOW (floating effect) ───
             ctx.save();
