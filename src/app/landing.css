@@ -1961,74 +1961,27 @@
   margin-right: auto;
 }
 
-/* ── Earth Globe ── */
-.lp-globe-earth {
+/* ── 3D Globe ── */
+.lp-globe-wrap {
   margin: 48px auto 0;
-  width: 340px;
-  height: 340px;
-  position: relative;
-}
-
-/* Cyan atmosphere glow */
-.lp-globe-earth::after {
-  content: '';
-  position: absolute;
-  inset: -18px;
-  border-radius: 50%;
-  background: radial-gradient(circle,
-    transparent 42%,
-    rgba(0, 212, 255, 0.08) 48%,
-    rgba(0, 212, 255, 0.14) 52%,
-    rgba(0, 212, 255, 0.06) 58%,
-    transparent 66%);
-  z-index: 0;
-  pointer-events: none;
-}
-
-/* Sphere */
-.lp-globe-sphere {
   width: 100%;
-  height: 100%;
-  border-radius: 50%;
+  max-width: 520px;
+  height: 420px;
+  border-radius: 20px;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
-  background: #020810;
-  box-shadow:
-    0 0 60px rgba(0, 212, 255, 0.1),
-    0 0 120px rgba(0, 212, 255, 0.04);
-}
-
-/* Night earth texture — hue-shifted to cyan */
-.lp-globe-map {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: url('/earth.webp') repeat-x 0 center;
-  background-size: auto 100%;
-  animation: globeSpin 50s linear infinite;
-  filter: hue-rotate(160deg) saturate(1.8) brightness(1.4);
-}
-
-/* Sphere shading overlay */
-.lp-globe-shade {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 50%,
-      transparent 30%,
-      rgba(2, 8, 16, 0.15) 50%,
-      rgba(2, 8, 16, 0.4) 68%,
-      rgba(2, 8, 16, 0.7) 82%,
-      rgba(2, 8, 16, 0.92) 100%);
   pointer-events: none;
-  z-index: 2;
 }
 
-@keyframes globeSpin {
-  from { background-position: 0 center; }
-  to { background-position: -680px center; }
+.lp-globe-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.lp-globe-placeholder {
+  width: 100%;
+  height: 420px;
+  background: radial-gradient(circle at 50% 50%, #091d38 0%, #020810 70%);
+  border-radius: 20px;
 }
 
 .lp-btn-light {
@@ -2549,9 +2502,12 @@
     height: 240px;
   }
 
-  .lp-globe-earth {
-    width: 260px;
-    height: 260px;
+  .lp-globe-wrap {
+    height: 300px;
+  }
+
+  .lp-globe-placeholder {
+    height: 300px;
   }
 
   .lp-footer-top {
@@ -2668,7 +2624,7 @@
   .lp-ticker-right,
   .lp-live-dot,
   .lp-live-dot > span,
-  .lp-globe-map,
+  .lp-globe-placeholder,
   .lp-typing-dot,
   .lp-plane-fly,
   .lp details p {

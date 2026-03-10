@@ -1,9 +1,15 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
+
+const LandingGlobe = dynamic(() => import('@/components/map/CartoonGlobe'), {
+  ssr: false,
+  loading: () => <div className="lp-globe-placeholder" />,
+});
 import DestinationPopup from '@/components/map/DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES } from '@/lib/constants/deals';
@@ -2056,11 +2062,15 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             Explore les destinations en temps reel sur notre carte interactive.
             Chaque point represente un deal actif au depart de Montreal.
           </p>
-          <div className="lp-globe-earth">
-            <div className="lp-globe-sphere">
-              <div className="lp-globe-map" />
-              <div className="lp-globe-shade" />
-            </div>
+          <div className="lp-globe-wrap">
+            <LandingGlobe
+              deals={[]}
+              mapView="world"
+              isMobile={false}
+              onRegionSelect={() => {}}
+              onHoverDeal={() => {}}
+              onLeaveDeal={() => {}}
+            />
           </div>
           <div style={{ marginTop: 48 }}>
             <Link href="/explore" className="lp-btn-light">
