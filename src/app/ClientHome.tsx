@@ -122,6 +122,97 @@ function getViewerCount(city: string, discount: number): number {
   return base + bonus;
 }
 
+// ── Animated Stats Counter ──
+function AnimatedStats() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [counts, setCounts] = useState([0, 0, 0, 0]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.3 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const targets = [40, 35, 24, 90];
+    const duration = 2000;
+    const start = Date.now();
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const frame = () => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = ease(progress);
+      setCounts(targets.map(t => Math.round(t * eased)));
+      if (progress < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }, [visible]);
+
+  const stats = [
+    { value: `${counts[0]}+`, label: 'Destinations scannees', icon: '🌍' },
+    { value: `-${counts[1]}%`, label: 'Rabais moyen detecte', icon: '📉' },
+    { value: `${counts[2]}h`, label: 'Mise a jour des prix', icon: '⏱️' },
+    { value: `${counts[3]}j`, label: 'D\'historique de prix', icon: '📊' },
+  ];
+
+  return (
+    <section ref={ref} style={{
+      padding: '80px 32px',
+      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      {/* Subtle glow */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%',
+        width: 500, height: 500,
+        transform: 'translate(-50%, -50%)',
+        background: 'radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        maxWidth: 900, margin: '0 auto', position: 'relative',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: 32, textAlign: 'center',
+      }}>
+        {stats.map((stat, i) => (
+          <div key={i} style={{
+            padding: '20px 0',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(20px)',
+            transition: `all 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.15}s`,
+          }}>
+            <div style={{ fontSize: 24, marginBottom: 10 }}>{stat.icon}</div>
+            <div style={{
+              fontSize: 42, fontWeight: 700, color: '#fff',
+              fontFamily: "'Fredoka', sans-serif",
+              lineHeight: 1,
+              background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>
+              {stat.value}
+            </div>
+            <div style={{
+              fontSize: 13, color: 'rgba(255,255,255,0.55)',
+              fontFamily: "'Outfit', sans-serif",
+              marginTop: 10, letterSpacing: 0.3,
+            }}>
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
 type SortMode = 'deal' | 'price' | 'discount';
 
@@ -306,6 +397,25 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     return () => observer.disconnect();
   }, []);
 
+  // Scroll-triggered reveal animations
+  useEffect(() => {
+    const reveals = document.querySelectorAll('.lp-reveal, .lp-reveal-left, .lp-reveal-right');
+    if (!reveals.length) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
+    );
+    reveals.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
   // ── Deals: live → SSR → static fallback (never empty) ──
   const allDeals: DealItem[] = useMemo(() => {
     if (isLive && livePrices && livePrices.length > 0) {
@@ -423,6 +533,32 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       <section className="lp-hero">
         <div className="lp-ocean">
           <div className="lp-ocean-gradient" />
+          <div className="lp-ocean-aurora" />
+          {/* Floating particles */}
+          <div className="lp-ocean-particles">
+            {Array.from({ length: 18 }, (_, i) => {
+              const size = 3 + (i % 5) * 2;
+              const left = 5 + (i * 37 + 13) % 90;
+              const duration = 10 + (i % 7) * 3;
+              const delay = (i * 1.7) % 12;
+              const colors = ['rgba(14,165,233,0.15)', 'rgba(6,182,212,0.12)', 'rgba(99,102,241,0.1)', 'rgba(16,185,129,0.1)'];
+              return (
+                <div
+                  key={i}
+                  className="lp-particle"
+                  style={{
+                    width: size,
+                    height: size,
+                    left: `${left}%`,
+                    background: colors[i % 4],
+                    animationDuration: `${duration}s`,
+                    animationDelay: `${delay}s`,
+                    boxShadow: `0 0 ${size * 2}px ${colors[i % 4]}`,
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
         <div className="lp-hero-content">
           <div className="lp-hero-text">
@@ -1715,12 +1851,12 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
       {/* ─── HOW IT WORKS ─── */}
       <section className="lp-how" id="how">
-        <div className="lp-how-header">
+        <div className="lp-how-header lp-reveal">
           <span className="lp-section-label">Simple comme bonjour</span>
           <h2 className="lp-section-title">Comment ca marche</h2>
         </div>
         <div className="lp-steps">
-          <div className="lp-step">
+          <div className="lp-step lp-reveal lp-reveal-delay-1">
             <div className="lp-step-icon lp-step-icon-1"><span>📡</span></div>
             <div className="lp-step-content">
               <div className="lp-step-num">01</div>
@@ -1734,7 +1870,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               <path d="M55,6 L67,12 L55,18" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>
-          <div className="lp-step">
+          <div className="lp-step lp-reveal lp-reveal-delay-3">
             <div className="lp-step-icon lp-step-icon-2"><span>🎯</span></div>
             <div className="lp-step-content">
               <div className="lp-step-num">02</div>
@@ -1748,7 +1884,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               <path d="M55,6 L67,12 L55,18" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>
-          <div className="lp-step">
+          <div className="lp-step lp-reveal lp-reveal-delay-5">
             <div className="lp-step-icon lp-step-icon-3"><span>🗺️</span></div>
             <div className="lp-step-content">
               <div className="lp-step-num">03</div>
@@ -1762,7 +1898,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
       {/* ─── AI GUIDE FEATURE ─── */}
       <section className="lp-feature" id="guide">
-        <div className="lp-feature-text">
+        <div className="lp-feature-text lp-reveal-left">
           <span className="lp-section-label">Intelligence artificielle</span>
           <h2 className="lp-section-title">Ton guide de voyage, genere par IA</h2>
           <p className="lp-section-sub" style={{ marginBottom: 0 }}>
@@ -1780,7 +1916,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <ArrowIcon />
           </Link>
         </div>
-        <div className="lp-feature-visual">
+        <div className="lp-feature-visual lp-reveal-right">
           <div className="lp-feature-visual-glow" />
           <div className="lp-mockup-msg user">
             <span className="label">Toi</span>
@@ -1850,7 +1986,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
       {/* ─── GLOBE SECTION ─── */}
       <section className="lp-globe-section">
-        <div className="lp-globe-inner">
+        <div className="lp-globe-inner lp-reveal">
           <span className="lp-section-label">Globe interactif</span>
           <h2 className="lp-section-title">Visualise les deals sur le globe 3D</h2>
           <p className="lp-section-sub">
@@ -1884,7 +2020,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         background: '#fff',
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div className="lp-reveal" style={{ textAlign: 'center', marginBottom: 56 }}>
             <span className="lp-section-label">Ce que le monde en pense</span>
             <h2 className="lp-section-title">Des voyageurs satisfaits</h2>
             <p className="lp-section-sub">
@@ -1997,7 +2133,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         borderTop: '1px solid #E2E8F0',
       }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <div className="lp-reveal" style={{ textAlign: 'center', marginBottom: 48 }}>
             <span className="lp-section-label">Questions frequentes</span>
             <h2 className="lp-section-title">Tout ce que tu veux savoir</h2>
           </div>
@@ -2066,49 +2202,12 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         </div>
       </section>
 
-      {/* ─── STATS COUNTER ─── */}
-      <section style={{
-        padding: '72px 32px',
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-      }}>
-        <div style={{
-          maxWidth: 900, margin: '0 auto',
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 32, textAlign: 'center',
-        }}>
-          {[
-            { value: '40+', label: 'Destinations scannees', icon: '🌍' },
-            { value: '-35%', label: 'Rabais moyen detecte', icon: '📉' },
-            { value: '24h', label: 'Mise a jour des prix', icon: '⏱️' },
-            { value: '90j', label: 'D\'historique de prix', icon: '📊' },
-          ].map((stat, i) => (
-            <div key={i} style={{ padding: '12px 0' }}>
-              <div style={{ fontSize: 20, marginBottom: 8 }}>{stat.icon}</div>
-              <div style={{
-                fontSize: 36, fontWeight: 700, color: '#fff',
-                fontFamily: "'Fredoka', sans-serif",
-                lineHeight: 1,
-                background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}>
-                {stat.value}
-              </div>
-              <div style={{
-                fontSize: 13, color: 'rgba(255,255,255,0.6)',
-                fontFamily: "'Outfit', sans-serif",
-                marginTop: 8,
-              }}>
-                {stat.label}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ─── STATS COUNTER (animated) ─── */}
+      <AnimatedStats />
 
       {/* ─── FINAL CTA + NEWSLETTER ─── */}
       <section className="lp-final-cta">
-        <div className="lp-final-inner">
+        <div className="lp-final-inner lp-reveal">
           <span className="lp-section-label">Pret a partir?</span>
           <h2 className="lp-section-title">Trouve ton prochain vol maintenant</h2>
           <p className="lp-section-sub">
