@@ -75,6 +75,7 @@ interface DealItem {
   returnDate: string;
   bookingLink: string;
   duration: number;
+  scannedAt: string;
 }
 
 function formatDateShort(dateStr: string): string {
@@ -90,6 +91,22 @@ function formatDateRange(dep: string, ret: string): string {
   const d = formatDateShort(dep);
   const r = ret ? formatDateShort(ret) : '';
   return r ? `${d} - ${r}` : d;
+}
+
+function getTripNights(dep: string, ret: string): number {
+  if (!dep || !ret) return 0;
+  return Math.round((new Date(ret).getTime() - new Date(dep).getTime()) / 86400000);
+}
+
+function formatScannedAgo(scannedAt: string): string {
+  if (!scannedAt) return '';
+  const mins = Math.round((Date.now() - new Date(scannedAt).getTime()) / 60000);
+  if (mins < 1) return 'scanne a l\'instant';
+  if (mins < 60) return `scanne il y a ${mins} min`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `scanne il y a ${hours}h`;
+  const days = Math.round(hours / 24);
+  return `scanne il y a ${days}j`;
 }
 
 type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
@@ -111,6 +128,7 @@ const SORT_OPTIONS: { id: SortMode; label: string }[] = [
 ];
 
 const RANK_COLORS = ['#F59E0B', '#94A3B8', '#D97706'];
+const BUDGET_PRESETS = [500, 750, 1000, 1500];
 
 const CheckIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -158,6 +176,7 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
       returnDate: p.return_date || '',
       bookingLink: p.bookingLink || p.raw_data?.booking_link || '',
       duration: p.duration || p.raw_data?.duration_minutes || 0,
+      scannedAt: p.scanned_at || p.scannedAt || '',
     });
   }
 
@@ -293,6 +312,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       returnDate: '',
       bookingLink: `https://www.skyscanner.ca/transport/flights/yul/${d.code.toLowerCase()}/`,
       duration: 0,
+      scannedAt: '',
     }));
   }, [livePrices, isLive, ssrDeals]);
 
@@ -484,6 +504,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               country: d.country, dealLevel: d.dealLevel, airline: d.airline,
               stops: d.stops, isLive: d.isLive, departureDate: d.departureDate,
               returnDate: d.returnDate, bookingLink: d.bookingLink, duration: d.duration,
+              scannedAt: d.scannedAt,
             }))
           : STATIC_DEALS.map(d => ({
               city: d.city, code: d.code, price: d.price,
@@ -491,6 +512,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               image: d.image, category: d.category as 'canada' | 'monde' | 'tout-inclus',
               country: CITY_COUNTRY[d.city] || '', dealLevel: 'normal', airline: '',
               stops: -1, isLive: false, departureDate: '', returnDate: '', bookingLink: '', duration: 0,
+              scannedAt: '',
             }));
         const half = Math.ceil(tickerDeals.length / 2);
         const row1 = tickerDeals.slice(0, half);
@@ -723,44 +745,68 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 ))}
               </select>
 
-              {/* Budget max input */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 0,
-                border: maxBudget > 0 ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
-                borderRadius: 12, overflow: 'hidden',
-                background: 'white', flexShrink: 0,
-                transition: 'border-color 0.2s',
-              }}>
-                <span style={{
-                  padding: '8px 8px 8px 10px', fontSize: 12, color: '#94A3B8',
-                  fontFamily: "'Outfit', sans-serif", fontWeight: 600,
-                  whiteSpace: 'nowrap', background: maxBudget > 0 ? 'rgba(14,165,233,0.04)' : 'transparent',
+              {/* Budget presets + custom */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap' }}>
+                {BUDGET_PRESETS.map(amount => {
+                  const isActive = maxBudget === amount;
+                  return (
+                    <button
+                      key={amount}
+                      onClick={() => setMaxBudget(isActive ? 0 : amount)}
+                      style={{
+                        padding: '7px 12px', borderRadius: 10,
+                        border: isActive ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
+                        background: isActive ? 'rgba(14,165,233,0.08)' : 'white',
+                        color: isActive ? '#0EA5E9' : '#334155',
+                        fontSize: 12, fontWeight: 700,
+                        fontFamily: "'Fredoka', sans-serif",
+                        cursor: 'pointer', transition: 'all 0.2s',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      &lt; {amount}$
+                    </button>
+                  );
+                })}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 0,
+                  border: maxBudget > 0 && !BUDGET_PRESETS.includes(maxBudget) ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
+                  borderRadius: 12, overflow: 'hidden',
+                  background: 'white', flexShrink: 0,
+                  transition: 'border-color 0.2s',
                 }}>
-                  Max
-                </span>
-                <input
-                  type="number"
-                  value={maxBudget > 0 ? maxBudget : ''}
-                  onChange={(e) => setMaxBudget(parseInt(e.target.value) || 0)}
-                  placeholder="--"
-                  style={{
-                    width: 56, padding: '8px 4px', border: 'none',
-                    fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
-                    color: '#0F172A', textAlign: 'center', outline: 'none',
-                    background: 'transparent',
-                  }}
-                />
-                <span style={{
-                  padding: '8px 10px 8px 0', fontSize: 13, color: '#94A3B8',
-                  fontFamily: "'Fredoka', sans-serif", fontWeight: 600,
-                }}>$</span>
+                  <span style={{
+                    padding: '7px 6px 7px 10px', fontSize: 11, color: '#94A3B8',
+                    fontFamily: "'Outfit', sans-serif", fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Max
+                  </span>
+                  <input
+                    type="number"
+                    value={maxBudget > 0 && !BUDGET_PRESETS.includes(maxBudget) ? maxBudget : ''}
+                    onChange={(e) => setMaxBudget(parseInt(e.target.value) || 0)}
+                    placeholder="--"
+                    style={{
+                      width: 50, padding: '7px 2px', border: 'none',
+                      fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+                      color: '#0F172A', textAlign: 'center', outline: 'none',
+                      background: 'transparent',
+                    }}
+                  />
+                  <span style={{
+                    padding: '7px 8px 7px 0', fontSize: 12, color: '#94A3B8',
+                    fontFamily: "'Fredoka', sans-serif", fontWeight: 600,
+                  }}>$</span>
+                </div>
                 {maxBudget > 0 && (
                   <button
                     onClick={() => setMaxBudget(0)}
                     style={{
-                      border: 'none', background: 'none', color: '#94A3B8',
-                      cursor: 'pointer', padding: '0 8px 0 0', fontSize: 14,
-                      display: 'flex', alignItems: 'center',
+                      width: 24, height: 24, borderRadius: '50%',
+                      border: 'none', background: '#E2E8F0', color: '#64748B',
+                      fontSize: 12, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
                   >&times;</button>
                 )}
@@ -901,6 +947,18 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       {DEAL_LEVELS[featured.dealLevel].icon} {DEAL_LEVELS[featured.dealLevel].label}
                     </div>
                   )}
+                  {featured.stops === 0 && (
+                    <div style={{
+                      padding: '5px 14px', borderRadius: 100,
+                      background: '#10B981', color: '#fff',
+                      fontSize: 12, fontWeight: 700,
+                      fontFamily: "'Outfit', sans-serif",
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
+                    }}>
+                      ✈ Direct
+                    </div>
+                  )}
                 </div>
 
                 {/* Price overlay on image */}
@@ -918,6 +976,12 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     {featured.oldPrice > featured.price && <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'line-through', fontFamily: "'Outfit', sans-serif" }}>{Math.round(featured.oldPrice)} $</div>}
                     <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 700, color: '#fff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>{Math.round(featured.price)} $</div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>aller-retour</div>
+                    {featured.scannedAt && (
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 2, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                        {formatScannedAgo(featured.scannedAt)}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -933,10 +997,18 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     <span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', padding: '4px 12px', borderRadius: 8, background: '#E0F2FE', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: 4 }}>
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                       {formatDateRange(featured.departureDate, featured.returnDate)}
+                      {(() => {
+                        const nights = getTripNights(featured.departureDate, featured.returnDate);
+                        return nights > 0 ? (
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 6, background: 'rgba(99,102,241,0.1)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
+                            {nights} nuits
+                          </span>
+                        ) : null;
+                      })()}
                     </span>
                   )}
                   {featured.airline && <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', padding: '4px 12px', borderRadius: 8, background: '#F1F5F9', fontFamily: "'Outfit', sans-serif" }}>{featured.airline}</span>}
-                  {featured.stops >= 0 && <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8, background: featured.stops === 0 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: featured.stops === 0 ? '#059669' : '#D97706', fontFamily: "'Outfit', sans-serif" }}>{featured.stops === 0 ? 'Direct' : `${featured.stops} escale${featured.stops > 1 ? 's' : ''}`}</span>}
+                  {featured.stops > 0 && <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: '#D97706', fontFamily: "'Outfit', sans-serif" }}>{`${featured.stops} escale${featured.stops > 1 ? 's' : ''}`}</span>}
                   {/* Favorite */}
                   <button onClick={(e) => toggleFavorite(featured.city, e)} style={{
                     width: 34, height: 34, borderRadius: '50%', border: 'none',
@@ -1042,6 +1114,21 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         </div>
                       )}
 
+                      {/* Direct flight badge */}
+                      {deal.stops === 0 && (
+                        <div style={{
+                          position: 'absolute', top: level ? 40 : 12, right: 12,
+                          padding: '3px 10px', borderRadius: 100,
+                          background: '#10B981', color: '#fff',
+                          fontSize: 10, fontWeight: 700,
+                          fontFamily: "'Outfit', sans-serif",
+                          display: 'flex', alignItems: 'center', gap: 3,
+                          boxShadow: '0 2px 8px rgba(16,185,129,0.4)',
+                        }}>
+                          ✈ Direct
+                        </div>
+                      )}
+
                       {/* Discount */}
                       {deal.discount > 0 && (
                         <div style={{
@@ -1110,7 +1197,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       }}>
                         {deal.country}
                         {deal.airline ? ` · ${deal.airline}` : ''}
-                        {deal.stops >= 0 ? ` · ${deal.stops === 0 ? 'Direct' : `${deal.stops} esc.`}` : ''}
+                        {deal.stops > 0 ? ` · ${deal.stops} esc.` : ''}
                       </span>
 
                       {/* Date badge */}
@@ -1124,17 +1211,33 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         }}>
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
                           {formatDateRange(deal.departureDate, deal.returnDate)}
+                          {(() => {
+                            const nights = getTripNights(deal.departureDate, deal.returnDate);
+                            return nights > 0 ? (
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
+                                {nights} nuits
+                              </span>
+                            ) : null;
+                          })()}
                         </div>
                       )}
 
                       {/* Price + CTA row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          {deal.oldPrice > deal.price && (
-                            <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                            {deal.oldPrice > deal.price && (
+                              <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
+                            )}
+                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
+                            <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
+                          </div>
+                          {deal.scannedAt && (
+                            <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                              {formatScannedAgo(deal.scannedAt)}
+                            </div>
                           )}
-                          <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
-                          <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
                         </div>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 5,
