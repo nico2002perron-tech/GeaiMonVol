@@ -662,31 +662,46 @@ export default function DestinationPopup({
                                         </div>
                                     )}
 
-                                    {/* Nearby destinations */}
+                                    {/* Nearby destinations — internal flights advisory */}
                                     {geai.nearby.length > 0 && (
                                         <div style={{
                                             padding: '10px 12px', borderRadius: 10,
                                             background: 'rgba(245,158,11,0.06)',
-                                            border: '1px solid rgba(245,158,11,0.12)',
+                                            border: '1px solid rgba(245,158,11,0.15)',
                                         }}>
                                             <div style={{
                                                 fontSize: 10, fontWeight: 700, color: '#F59E0B',
-                                                fontFamily: "'Fredoka', sans-serif", marginBottom: 6,
+                                                fontFamily: "'Fredoka', sans-serif", marginBottom: 4,
                                                 display: 'flex', alignItems: 'center', gap: 4,
                                             }}>
-                                                <span style={{ fontSize: 12 }}>&#9992;&#65039;</span> A proximite
+                                                <span style={{ fontSize: 13 }}>&#9888;&#65039;</span> Important — profite au max de ton voyage!
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            <div style={{
+                                                fontSize: 11.5, color: 'rgba(255,255,255,0.75)',
+                                                fontFamily: "'Outfit', sans-serif", lineHeight: 1.45,
+                                                marginBottom: 8,
+                                            }}>
+                                                Informe-toi sur les vols internes pour pas juste rester a {destination}. Y&apos;a des places incroyables a decouvrir a cote :
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                                                 {geai.nearby.map((n, idx) => (
                                                     <div key={idx} style={{
-                                                        fontSize: 12, color: 'rgba(255,255,255,0.8)',
+                                                        fontSize: 12, color: 'rgba(255,255,255,0.85)',
                                                         fontFamily: "'Outfit', sans-serif", lineHeight: 1.4,
                                                         display: 'flex', alignItems: 'flex-start', gap: 6,
+                                                        padding: '5px 8px', borderRadius: 8,
+                                                        background: 'rgba(245,158,11,0.05)',
                                                     }}>
-                                                        <span style={{
-                                                            fontSize: 8, color: '#F59E0B', marginTop: 4, flexShrink: 0,
-                                                        }}>&#9679;</span>
-                                                        <span><strong style={{ color: '#F59E0B' }}>{n.city}</strong> — {n.reason}</span>
+                                                        <span style={{ fontSize: 14, flexShrink: 0 }}>&#9992;&#65039;</span>
+                                                        <span>
+                                                            <strong style={{ color: '#F59E0B' }}>{n.city}</strong> — {n.reason}
+                                                            <span style={{
+                                                                display: 'block', fontSize: 10, color: 'rgba(255,255,255,0.5)',
+                                                                marginTop: 1, fontStyle: 'italic',
+                                                            }}>
+                                                                Cherche &laquo; vol interne {destination} → {n.city} &raquo;
+                                                            </span>
+                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>
