@@ -27,7 +27,9 @@ export async function GET(request: Request) {
                 .from('price_history')
                 .select('price')
                 .eq('destination', name)
-                .gte('scanned_at', ninetyDaysAgo),
+                .gte('scanned_at', ninetyDaysAgo)
+                .neq('source', 'historical_seed')
+                .not('source', 'like', 'google_flights%'),
         ]);
 
         if (scansResult.error) {
@@ -39,11 +41,18 @@ export async function GET(request: Request) {
             (row: any) => !row.source?.startsWith('google_flights') && row.source !== 'historical_seed'
         );
 
-        // Calculate average price from 90-day history
+        // Calculate average + median price from 90-day history
         const histPrices = (historyResult.data || []).map((r: any) => r.price).filter(Boolean);
         const avgPrice = histPrices.length > 0
             ? Math.round(histPrices.reduce((a: number, b: number) => a + b, 0) / histPrices.length)
             : 0;
+        const sorted = [...histPrices].sort((a: number, b: number) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        const medianPrice = sorted.length > 0
+            ? Math.round(sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2)
+            : 0;
+        // Use median as reference for discounts (more robust)
+        const refPrice = medianPrice > 0 ? medianPrice : avgPrice;
 
         // Deduplicate: keep best price per departure_date
         const bestByDate: Record<string, any> = {};
@@ -72,9 +81,9 @@ export async function GET(request: Request) {
                     ? rawLink
                     : buildSkyLink(d.departure_date, d.return_date, code);
 
-                // Per-deal discount vs 90-day average
-                const dealDiscount = avgPrice > d.price
-                    ? Math.round(((avgPrice - d.price) / avgPrice) * 100)
+                // Per-deal discount vs 90-day median
+                const dealDiscount = histPrices.length >= 3 && refPrice > d.price
+                    ? Math.round(((refPrice - d.price) / refPrice) * 100)
                     : 0;
 
                 return {
@@ -106,6 +115,8 @@ export async function GET(request: Request) {
             deals,
             count: deals.length,
             avgPrice,
+            medianPrice,
+            historyCount: histPrices.length,
         }, {
             headers: {
                 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',

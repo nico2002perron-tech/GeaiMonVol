@@ -13,7 +13,9 @@ interface LivePrice {
     scanned_at: string;
     discount?: number;
     avgPrice?: number;
+    medianPrice?: number;
     dealLevel?: string;
+    historyCount?: number;
     priceLevel?: string;
     bookingLink?: string;
     raw_data?: any;
@@ -30,10 +32,11 @@ function getStaticFallback(): LivePrice[] {
         departure_date: '',
         return_date: '',
         scanned_at: '',
-        discount: f.disc,
-        avgPrice: f.oldPrice,
-        dealLevel: f.dealLevel || (f.disc >= 40 ? 'incredible' : f.disc >= 25 ? 'great' : 'normal'),
-        priceLevel: f.priceLevel,
+        discount: 0,
+        avgPrice: 0,
+        medianPrice: 0,
+        dealLevel: 'normal',
+        historyCount: 0,
         bookingLink: '',
         raw_data: { lat: f.lat, lon: f.lon, tags: f.tags, img: f.img, imgSmall: f.imgSmall },
     }));

@@ -35,6 +35,8 @@ export async function GET() {
                 .from('price_history')
                 .select('destination, price, scanned_at')
                 .gte('scanned_at', ninetyDaysAgo)
+                .neq('source', 'historical_seed')
+                .not('source', 'like', 'google_flights%')
                 .order('scanned_at', { ascending: false }),
         ]);
 
@@ -88,41 +90,21 @@ export async function GET() {
             });
         }
 
-        // Enrich prices with discount info
+        // Enrich prices with discount info (median-based, same logic as page.tsx)
         const enrichedPrices = [];
-        for (const [dest, price] of Object.entries(bestByDest)) {
-            const history = historyByDest[dest] || [];
+        for (const [, price] of Object.entries(bestByDest)) {
+            const history = historyByDest[price.destination] || [];
             const discountInfo = calculateRealDiscount(price.price, history);
-
-            // Fallback: if not enough history, use Google price_insights
-            if (discountInfo.discount === 0 && price.raw_data?.price_insights) {
-                const insights = price.raw_data.price_insights;
-                const typicalRange = insights.typical_price_range;
-                if (typicalRange?.length >= 2) {
-                    const typicalAvg = Math.round((typicalRange[0] + typicalRange[1]) / 2);
-                    if (typicalAvg > price.price) {
-                        const googleDiscount = Math.round(((typicalAvg - price.price) / typicalAvg) * 100);
-                        enrichedPrices.push({
-                            ...price,
-                            discount: googleDiscount,
-                            avgPrice: typicalAvg,
-                            lowestEver: price.price,
-                            isGoodDeal: googleDiscount >= 15,
-                            dealLevel: insights.price_level === 'low' ? 'great' : 'normal',
-                            priceLevel: insights.price_level,
-                        });
-                        continue;
-                    }
-                }
-            }
 
             enrichedPrices.push({
                 ...price,
                 discount: discountInfo.discount,
                 avgPrice: discountInfo.avgPrice,
+                medianPrice: discountInfo.medianPrice,
                 lowestEver: discountInfo.lowestEver,
                 isGoodDeal: discountInfo.isGoodDeal,
                 dealLevel: discountInfo.dealLevel,
+                historyCount: discountInfo.historyCount,
             });
         }
 
