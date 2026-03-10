@@ -440,6 +440,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         @keyframes rankShine{0%{left:-100%}100%{left:200%}}
         @keyframes geaiBounce{0%{transform:scale(0.85) translateX(-6px);opacity:0}50%{transform:scale(1.02) translateX(1px)}100%{transform:scale(1) translateX(0);opacity:1}}
         @keyframes geaiBob{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-2px) rotate(2deg)}75%{transform:translateY(1px) rotate(-1deg)}}
+        @keyframes topDealGlow{0%,100%{box-shadow:0 0 15px var(--glow-color,rgba(124,58,237,0.15)),0 4px 20px rgba(0,0,0,0.06)}50%{box-shadow:0 0 30px var(--glow-color,rgba(124,58,237,0.3)),0 8px 32px rgba(0,0,0,0.08)}}
+        @keyframes topBannerShine{0%{background-position:200% center}100%{background-position:-200% center}}
       `}</style>
 
       {/* ─── HEADER ─── */}
@@ -974,7 +976,13 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           )}
 
           {/* ── FEATURED DEAL #1 ── */}
-          {featured && (
+          {featured && (() => {
+            const featTopColor = featured.dealLevel === 'lowest_ever' ? '#7C3AED'
+              : featured.dealLevel === 'incredible' ? '#DC2626'
+              : featured.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
+            const featLevel = DEAL_LEVELS[featured.dealLevel];
+            const featIsTop = ['lowest_ever', 'incredible', 'great'].includes(featured.dealLevel);
+            return (
             <div
               onClick={() => openDealPopup(featured)}
               className="deal-featured"
@@ -982,20 +990,48 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 position: 'relative',
                 borderRadius: 24, overflow: 'hidden',
                 background: 'white',
-                border: '1.5px solid rgba(14,165,233,0.15)',
+                border: featIsTop ? `2px solid ${featTopColor}50` : '1.5px solid rgba(14,165,233,0.15)',
                 marginBottom: 28,
                 cursor: 'pointer',
                 transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                animation: featIsTop ? 'topDealGlow 3s ease-in-out 0.3s infinite' : undefined,
+                ...(featIsTop ? { ['--glow-color' as any]: `${featTopColor}25` } : {}),
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 20px 60px rgba(14,165,233,0.12)';
+                e.currentTarget.style.boxShadow = `0 20px 60px ${featTopColor}18`;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'none';
                 e.currentTarget.style.boxShadow = '';
               }}
             >
+              {/* ── TOP DEAL BANNER — Featured ── */}
+              {featIsTop && featLevel && (
+                <div style={{
+                  background: `linear-gradient(135deg, ${featTopColor}, ${featTopColor}CC)`,
+                  padding: '8px 20px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    fontSize: 13, fontWeight: 800, color: '#fff',
+                    fontFamily: "'Fredoka', sans-serif",
+                    letterSpacing: 0.5,
+                  }}>
+                    {featLevel.icon} {featLevel.label}
+                  </span>
+                  <span style={{
+                    fontSize: 14, fontWeight: 800, color: '#fff',
+                    fontFamily: "'Fredoka', sans-serif",
+                    background: 'rgba(255,255,255,0.2)',
+                    padding: '3px 14px', borderRadius: 100,
+                  }}>
+                    Economise {featured.discount}%
+                  </span>
+                </div>
+              )}
+
               {/* Image — full width on mobile, side on desktop */}
               <div style={{ position: 'relative', height: 220 }}>
                 <Image src={featured.image} alt={featured.city} fill sizes="100vw" style={{ objectFit: 'cover' }} />
@@ -1180,7 +1216,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 );
               })()}
             </div>
-          )}
+          ); })()}
 
           {/* ── DEALS GRID / LIST ── */}
           {rest.length > 0 && viewMode === 'grid' && (
@@ -1194,6 +1230,11 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const viewers = getViewerCount(deal.city, deal.discount);
+                const isTopDeal = ['lowest_ever', 'incredible', 'great'].includes(deal.dealLevel);
+                const topColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
+                  : deal.dealLevel === 'incredible' ? '#DC2626'
+                  : deal.dealLevel === 'great' ? '#EA580C' : null;
+                const isAnimatedGlow = ['lowest_ever', 'incredible'].includes(deal.dealLevel);
 
                 return (
                   <React.Fragment key={`${deal.code}-${deal.city}`}>
@@ -1242,20 +1283,58 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         background: 'white',
                         borderRadius: 20,
                         overflow: 'hidden',
-                        border: '1px solid #E2E8F0',
+                        border: isTopDeal && topColor
+                          ? `2px solid ${topColor}40`
+                          : '1px solid #E2E8F0',
                         cursor: 'pointer',
                         transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                        animation: `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
+                        animation: isAnimatedGlow
+                          ? `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both, topDealGlow 3s ease-in-out ${Math.min(idx * 0.06, 0.6) + 0.5}s infinite`
+                          : `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
+                        ...(isAnimatedGlow && topColor ? { ['--glow-color' as any]: `${topColor}25` } : {}),
+                        boxShadow: isTopDeal && topColor && !isAnimatedGlow
+                          ? `0 0 16px ${topColor}12, 0 4px 20px rgba(0,0,0,0.06)`
+                          : undefined,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-6px)';
-                        e.currentTarget.style.boxShadow = '0 16px 48px rgba(15,23,42,0.1)';
+                        e.currentTarget.style.boxShadow = isTopDeal && topColor
+                          ? `0 16px 48px ${topColor}20, 0 8px 32px rgba(15,23,42,0.08)`
+                          : '0 16px 48px rgba(15,23,42,0.1)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.boxShadow = isTopDeal && !isAnimatedGlow && topColor
+                          ? `0 0 16px ${topColor}12, 0 4px 20px rgba(0,0,0,0.06)` : '';
                       }}
                     >
+                      {/* ── TOP DEAL BANNER ── */}
+                      {isTopDeal && level && topColor && (
+                        <div style={{
+                          background: `linear-gradient(135deg, ${topColor}, ${topColor}CC)`,
+                          backgroundSize: '400% 100%',
+                          padding: '7px 16px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                          <span style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            fontSize: 11, fontWeight: 800, color: '#fff',
+                            fontFamily: "'Fredoka', sans-serif",
+                            letterSpacing: 0.5,
+                          }}>
+                            {level.icon} {level.label}
+                          </span>
+                          <span style={{
+                            fontSize: 12, fontWeight: 800, color: '#fff',
+                            fontFamily: "'Fredoka', sans-serif",
+                            background: 'rgba(255,255,255,0.2)',
+                            padding: '2px 10px', borderRadius: 100,
+                          }}>
+                            -{deal.discount}%
+                          </span>
+                        </div>
+                      )}
+
                       {/* Image */}
                       <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
                         <Image
@@ -1525,6 +1604,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const nights = getTripNights(deal.departureDate, deal.returnDate);
                 const viewers = getViewerCount(deal.city, deal.discount);
+                const listTopColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
+                  : deal.dealLevel === 'incredible' ? '#DC2626'
+                  : deal.dealLevel === 'great' ? '#EA580C' : null;
+                const isListTop = !!listTopColor;
 
                 return (
                   <div
@@ -1532,17 +1615,21 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     onClick={() => openDealPopup(deal)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 14,
-                      background: 'white', borderRadius: 14,
-                      border: '1px solid #E2E8F0', padding: '12px 16px',
+                      background: isListTop ? `linear-gradient(90deg, ${listTopColor}06, white 20%)` : 'white',
+                      borderRadius: 14,
+                      border: isListTop ? `1.5px solid ${listTopColor}30` : '1px solid #E2E8F0',
+                      borderLeft: isListTop ? `4px solid ${listTopColor}` : undefined,
+                      padding: '12px 16px',
                       cursor: 'pointer', transition: 'all 0.2s',
                       animation: `dealFadeIn 0.3s ease-out ${Math.min(idx * 0.03, 0.3)}s both`,
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = '#0EA5E9';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(14,165,233,0.08)';
+                      e.currentTarget.style.borderColor = isListTop && listTopColor ? listTopColor : '#0EA5E9';
+                      e.currentTarget.style.boxShadow = isListTop && listTopColor
+                        ? `0 4px 16px ${listTopColor}15` : '0 4px 16px rgba(14,165,233,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.borderColor = isListTop && listTopColor ? `${listTopColor}30` : '#E2E8F0';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
@@ -1614,10 +1701,14 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         {deal.oldPrice > deal.price && (
                           <span style={{ fontSize: 11, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)}$</span>
                         )}
-                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)}$</span>
+                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: listTopColor || '#0EA5E9' }}>{Math.round(deal.price)}$</span>
                       </div>
                       {deal.discount > 0 && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>-{deal.discount}%</span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+                          color: '#fff', padding: '1px 7px', borderRadius: 100,
+                          background: listTopColor || '#10B981',
+                        }}>-{deal.discount}%</span>
                       )}
                     </div>
 
