@@ -38,7 +38,7 @@ export default function LandingHeader() {
     <header className="lp-header">
       <div className="lp-header-inner">
         <Link href="/" className="lp-logo">
-          <Image src="/logo_geai.png" alt="" width={30} height={30} className="lp-logo-img" />
+          <Image src="/logo_geai.png" alt="GeaiMonVol" width={30} height={30} className="lp-logo-img" />
           <span className="lp-logo-text">Geai<strong>MonVol</strong></span>
         </Link>
 
@@ -47,9 +47,9 @@ export default function LandingHeader() {
             <a href={h('#deals')} className="lp-nav-link">Deals</a>
             <Link href="/explore" className="lp-nav-link">
               Globe 3D
-              <span className="lp-live-dot"><span /></span>
+              <span className="lp-live-dot" aria-hidden="true"><span /></span>
             </Link>
-            <a href={h('#guide')} className="lp-nav-link">Guide IA</a>
+            <a href={h('#guide')} className="lp-nav-link">Guide GeaiAI</a>
             <a href={h('#how')} className="lp-nav-link">Comment ca marche</a>
           </div>
         </nav>
@@ -65,7 +65,7 @@ export default function LandingHeader() {
               <button className={`lp-h-user-btn${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)}>
                 <span className="lp-h-avatar">{displayName.charAt(0).toUpperCase()}</span>
                 <span className="lp-h-name">{displayName}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
               </button>
               {menuOpen && (
                 <div className="lp-h-drop">
@@ -85,7 +85,7 @@ export default function LandingHeader() {
                     Deals du moment
                   </a>
                   <a href={h('#guide')} className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Guide IA
+                    Guide GeaiAI
                   </a>
                   <div className="lp-h-drop-sep" />
                   <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se deconnecter</button>
@@ -93,7 +93,7 @@ export default function LandingHeader() {
               )}
             </div>
           )}
-          <button className={`lp-burger${mobileMenuOpen ? ' open' : ''}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Menu">
+          <button className={`lp-burger${mobileMenuOpen ? ' open' : ''}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'} aria-expanded={mobileMenuOpen}>
             <span /><span /><span />
           </button>
         </div>
@@ -103,9 +103,9 @@ export default function LandingHeader() {
         <div className="lp-mob">
           <a href={h('#deals')} onClick={() => setMobileMenuOpen(false)}>Deals</a>
           <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
-            Globe 3D <span className="lp-live-dot"><span /></span>
+            Globe 3D <span className="lp-live-dot" aria-hidden="true"><span /></span>
           </Link>
-          <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide IA</a>
+          <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide GeaiAI</a>
           <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ca marche</a>
           <div className="lp-mob-sep" />
           {!user ? (

@@ -898,9 +898,9 @@
   align-items: center;
   gap: 8px;
   padding: 16px 32px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.65);
   color: #0C4A6E;
-  border: 1px solid rgba(14, 165, 233, 0.15);
+  border: 1.5px solid rgba(14, 165, 233, 0.25);
   border-radius: 100px;
   text-decoration: none;
   font-size: 16px;
@@ -908,14 +908,15 @@
   cursor: pointer;
   transition: all 0.3s;
   backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
 }
 
 .lp-btn-glass:hover {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(14, 165, 233, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(14, 165, 233, 0.4);
   color: #0369A1;
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.15);
 }
 
 /* Also keep lp-btn-primary/secondary for other sections */
@@ -1169,11 +1170,11 @@
 }
 
 .lp-ticker-left {
-  animation: tickerLeft 45s linear infinite;
+  animation: tickerLeft 60s linear infinite;
 }
 
 .lp-ticker-right {
-  animation: tickerRight 50s linear infinite;
+  animation: tickerRight 65s linear infinite;
 }
 
 .lp-ticker-track:hover {
@@ -1231,6 +1232,11 @@
   background: #F8FAFC;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.lp-ticker-flag {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .lp-ticker-city {
@@ -1395,6 +1401,20 @@
 
 .lp-step:hover .lp-step-icon::after {
   border-color: rgba(14, 165, 233, 0.2);
+}
+
+/* Scale-in animation for step icons when revealed */
+.lp-step.visible .lp-step-icon {
+  animation: stepIconPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.lp-step.lp-reveal-delay-1.visible .lp-step-icon { animation-delay: 0.1s; }
+.lp-step.lp-reveal-delay-3.visible .lp-step-icon { animation-delay: 0.3s; }
+.lp-step.lp-reveal-delay-5.visible .lp-step-icon { animation-delay: 0.5s; }
+
+@keyframes stepIconPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 .lp-step-content {
@@ -1707,10 +1727,19 @@
 .lp-feature-list li {
   display: flex;
   gap: 14px;
-  align-items: flex-start;
+  align-items: center;
   font-size: 15px;
   color: var(--text);
   line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: 12px;
+  transition: background 0.2s, transform 0.2s;
+  cursor: default;
+}
+
+.lp-feature-list li:hover {
+  background: rgba(14, 165, 233, 0.04);
+  transform: translateX(4px);
 }
 
 .lp-feature-check {
@@ -1729,6 +1758,23 @@
   width: 14px;
   height: 14px;
   stroke: var(--green);
+}
+
+.lp-feature-icon-mini {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lp-feature-list li:hover .lp-feature-icon-mini {
+  transform: scale(1.15) rotate(-5deg);
 }
 
 /* Feature Visual — mockup preview */
@@ -1799,6 +1845,75 @@
 
 .lp-mockup-msg.ai .label {
   color: var(--green);
+}
+
+/* Sequential message reveal animation */
+.lp-feature-visual .lp-mockup-msg {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-feature-visual.visible .lp-mockup-msg:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.2s;
+}
+
+.lp-feature-visual.visible .lp-mockup-msg:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.8s;
+}
+
+.lp-feature-visual.visible .lp-mockup-msg:nth-child(4) {
+  opacity: 0.6;
+  transform: translateY(0);
+  transition-delay: 1.4s;
+}
+
+/* Typing indicator */
+.lp-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.lp-feature-visual.visible .lp-typing {
+  opacity: 1;
+  transition-delay: 0.5s;
+}
+
+.lp-feature-visual.visible .lp-typing.hide {
+  opacity: 0;
+  transition-delay: 0s;
+  transition-duration: 0.2s;
+}
+
+.lp-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+.lp-typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.lp-typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
 }
 
 /* ── GLOBE SECTION ── */
@@ -1924,11 +2039,44 @@
   padding: 96px 32px;
   text-align: center;
   background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-final-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lp-final-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+
+.lp-final-blob-1 {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(14,165,233,0.12), transparent 70%);
+}
+
+.lp-final-blob-2 {
+  width: 350px;
+  height: 350px;
+  bottom: -80px;
+  left: -80px;
+  background: radial-gradient(circle, rgba(6,182,212,0.1), transparent 70%);
 }
 
 .lp-final-inner {
   max-width: 600px;
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .lp-final-cta .lp-section-title {
@@ -1939,6 +2087,138 @@
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 36px;
+}
+
+/* ── NEWSLETTER ── */
+
+.lp-newsletter {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 32px 28px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #F0F9FF 0%, #F8FAFC 50%, #ECFDF5 100%);
+  border: 1px solid rgba(14, 165, 233, 0.12);
+  box-shadow: 0 4px 24px rgba(14, 165, 233, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-newsletter::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14,165,233,0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.lp-newsletter-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.lp-newsletter-icon {
+  font-size: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0EA5E9, #06B6D4);
+  color: white;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+}
+
+.lp-newsletter-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #0F172A;
+  font-family: 'Fredoka', sans-serif;
+}
+
+.lp-newsletter-sub {
+  font-size: 13.5px;
+  color: #64748B;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.lp-newsletter-form {
+  display: flex;
+  gap: 8px;
+}
+
+.lp-newsletter-input {
+  flex: 1;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #E2E8F0;
+  background: #fff;
+  font-size: 14px;
+  font-family: 'Outfit', sans-serif;
+  color: #0F172A;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.lp-newsletter-input:focus {
+  border-color: #0EA5E9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.lp-newsletter-btn {
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #0EA5E9, #06B6D4);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-newsletter-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(14, 165, 233, 0.35);
+}
+
+.lp-newsletter-btn.sent {
+  background: linear-gradient(135deg, #10B981, #059669);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.lp-plane-fly {
+  display: inline-block;
+  animation: planeFly 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes planeFly {
+  0% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 1; }
+  50% { transform: translateX(8px) translateY(-6px) rotate(-15deg); opacity: 1; }
+  100% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 1; }
+}
+
+.lp-newsletter-privacy {
+  font-size: 11px;
+  color: #94A3B8;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  margin-top: 12px;
 }
 
 /* ── FOOTER ── */
@@ -2039,6 +2319,16 @@
 .lp details[open] {
   border-color: rgba(14, 165, 233, 0.2) !important;
   background: linear-gradient(135deg, rgba(14, 165, 233, 0.02), #fff) !important;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.06);
+}
+
+.lp details p {
+  animation: faqReveal 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes faqReveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── RESPONSIVE ── */
@@ -2208,6 +2498,7 @@
     transform: rotate(90deg);
     padding-top: 0;
     width: 50px;
+    margin: 4px 0;
   }
 
   .lp-grid {
@@ -2247,6 +2538,18 @@
     flex-direction: column;
     text-align: center;
   }
+
+  .lp-newsletter {
+    padding: 24px 20px 20px;
+  }
+
+  .lp-newsletter-form {
+    flex-direction: column;
+  }
+
+  .lp-newsletter-btn {
+    width: 100%;
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -2272,5 +2575,129 @@
 
   #deals [style*="grid-template-columns: repeat(auto-fill"] {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   ACCESSIBILITY — Focus visible styles
+   ══════════════════════════════════════════════ */
+
+.lp-nav-link:focus-visible,
+.lp-h-login:focus-visible,
+.lp-h-signup:focus-visible,
+.lp-h-user-btn:focus-visible,
+.lp-burger:focus-visible,
+.lp-btn-ocean:focus-visible,
+.lp-btn-glass:focus-visible,
+.lp-btn-primary:focus-visible,
+.lp-btn-secondary:focus-visible,
+.lp-btn-light:focus-visible,
+.lp-ticker-card:focus-visible,
+.lp-newsletter-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+}
+
+.lp-newsletter-input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.lp-mob a:focus-visible,
+.lp-h-drop-link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/* Generic focus-visible for buttons inside .lp */
+.lp button:focus-visible,
+.lp a:focus-visible,
+.lp select:focus-visible,
+.lp input:focus-visible,
+.lp details summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════
+   ACCESSIBILITY — Prefers reduced motion
+   ══════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all keyframe animations */
+  .lp-particle,
+  .lp-ocean-aurora,
+  .lp-hero-badge,
+  .lp-hero-text h1,
+  .lp-hero-sub,
+  .lp-hero-actions,
+  .lp-hero-proof,
+  .lp-hero-card,
+  .lp-hero-card-float-1,
+  .lp-hero-card-float-2,
+  .lp-hero-card-float-3,
+  .lp-ticker-left,
+  .lp-ticker-right,
+  .lp-live-dot,
+  .lp-live-dot > span,
+  .lp-globe-dot,
+  .lp-typing-dot,
+  .lp-plane-fly,
+  .lp details p {
+    animation: none !important;
+  }
+
+  /* Show ticker statically */
+  .lp-ticker-track {
+    animation: none !important;
+  }
+
+  /* Show all reveals immediately */
+  .lp-reveal,
+  .lp-reveal-left,
+  .lp-reveal-right {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  /* Show guide messages immediately */
+  .lp-feature-visual .lp-mockup-msg {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .lp-feature-visual .lp-mockup-msg:nth-child(4) {
+    opacity: 0.6 !important;
+  }
+
+  .lp-typing {
+    display: none !important;
+  }
+
+  /* Step icons pop — show immediately */
+  .lp-step.visible .lp-step-icon {
+    animation: none !important;
+  }
+
+  /* Reduce all transitions to instant */
+  .lp *,
+  .lp *::before,
+  .lp *::after {
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Keep hero cards visible without floating */
+  .lp-hero-card {
+    transform: none !important;
+  }
+
+  /* Show particles statically */
+  .lp-particle {
+    opacity: 0.5 !important;
   }
 }

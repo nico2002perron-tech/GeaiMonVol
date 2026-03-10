@@ -67,14 +67,14 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
         if (!selectedFlight) return;
         const f = selectedFlight;
         const h = selectedHotel;
-        const subject = encodeURIComponent('GeaiMonVol - Guide IA - ' + f.city);
+        const subject = encodeURIComponent('GeaiMonVol - Guide GeaiAI - ' + f.city);
         const prefsText = (prefs || []).map(p => {
             const cat = PREF_CATEGORIES.find(c => c.id === p);
             return cat ? cat.icon + ' ' + cat.label : p;
         }).join(', ');
 
         const body = encodeURIComponent(
-            'Nouvelle commande de Guide IA GeaiMonVol\n\n' +
+            'Nouvelle commande de Guide GeaiAI\n\n' +
             'Destination : ' + f.city + ', ' + f.country + '\n' +
             'Vol : ' + f.route + ' | ' + f.dates + ' | ' + f.price + ' $\n' +
             (h ? 'Hotel : ' + h.name + ' (' + h.stars + ' etoiles, ' + h.price + ' $/nuit)\n' : 'Hotel : Non selectionne\n') +
@@ -112,7 +112,7 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
         ctaText = 'Etape suivante';
         ctaDisabled = !selectedHotel && cityHotels.length > 0; // Allow skip if no hotels? Original code allows skip via button
     } else if (step === 2) {
-        title = 'Guide IA personnalise';
+        title = 'Guide GeaiAI personnalise';
         sub = 'Optimisez votre voyage a ' + selectedFlight.city;
         ctaText = guideWanted ? 'Personnaliser mon guide' : 'Voir le recapitulatif';
     } else if (step === 3) {
@@ -144,14 +144,14 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
                 <div className="book-step-labels">
                     <span className={`book-step-lbl ${step === 0 ? 'active' : ''}`}>Vol</span>
                     <span className={`book-step-lbl ${step === 1 ? 'active' : ''}`}>Hôtel</span>
-                    <span className={`book-step-lbl ${step === 2 ? 'active' : ''}`}>Guide IA</span>
+                    <span className={`book-step-lbl ${step === 2 ? 'active' : ''}`}>Guide GeaiAI</span>
                     <span className={`book-step-lbl ${step === 3 ? 'active' : ''}`}>Récap</span>
                 </div>
 
                 <div className="book-title" id="bookTitle">
                     {step === 0 && 'Votre vol'}
                     {step === 1 && 'Choisir un hôtel'}
-                    {step === 2 && 'Votre guide IA'}
+                    {step === 2 && 'Votre Guide GeaiAI'}
                     {step === 3 && 'Récapitulatif'}
                 </div>
                 <div className="book-subtitle" id="bookSubtitle">

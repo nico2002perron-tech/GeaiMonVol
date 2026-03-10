@@ -32,6 +32,17 @@ const CITY_COUNTRY: Record<string, string> = {
   'Halifax': 'Canada', 'Québec': 'Canada',
 };
 
+// ── Country flag emojis ──
+const COUNTRY_FLAGS: Record<string, string> = {
+  'France': '🇫🇷', 'Espagne': '🇪🇸', 'Portugal': '🇵🇹', 'Italie': '🇮🇹',
+  'Grèce': '🇬🇷', 'Royaume-Uni': '🇬🇧', 'Irlande': '🇮🇪', 'Pays-Bas': '🇳🇱',
+  'Allemagne': '🇩🇪', 'Mexique': '🇲🇽', 'Rép. Dominicaine': '🇩🇴',
+  'Cuba': '🇨🇺', 'États-Unis': '🇺🇸', 'Maroc': '🇲🇦', 'Thaïlande': '🇹🇭',
+  'Japon': '🇯🇵', 'Colombie': '🇨🇴', 'Pérou': '🇵🇪', 'Brésil': '🇧🇷',
+  'Argentine': '🇦🇷', 'Indonésie': '🇮🇩', 'Vietnam': '🇻🇳', 'Islande': '🇮🇸',
+  'Jamaïque': '🇯🇲', 'Costa Rica': '🇨🇷', 'Canada': '🇨🇦',
+};
+
 // ── Static fallback deals (shown when DB has no data) ──
 const STATIC_DEALS = [
   { city: 'Paris', code: 'CDG', price: 549, oldPrice: 820, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=500&fit=crop' },
@@ -310,6 +321,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const filtersRef = useRef<HTMLDivElement>(null);
+  const heroVisualRef = useRef<HTMLDivElement>(null);
 
   // Favorites (localStorage) — using Record instead of Set to avoid useMemo issues
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -416,6 +428,29 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     return () => obs.disconnect();
   }, []);
 
+  // Hero parallax on scroll (respects prefers-reduced-motion)
+  useEffect(() => {
+    const el = heroVisualRef.current;
+    if (!el) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          if (scrollY < 900) {
+            el.style.transform = `translateY(${scrollY * 0.15}px)`;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // ── Deals: live → SSR → static fallback (never empty) ──
   const allDeals: DealItem[] = useMemo(() => {
     if (isLive && livePrices && livePrices.length > 0) {
@@ -518,6 +553,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     <div className="lp">
       <style>{`
         @keyframes dealPulse{0%,100%{opacity:1}50%{opacity:.4}}
+        @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
         @keyframes dealGlow{0%,100%{box-shadow:0 0 20px rgba(14,165,233,0.15)}50%{box-shadow:0 0 40px rgba(14,165,233,0.3)}}
         @keyframes dealFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
         @keyframes dealFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -572,7 +608,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </h1>
             <p className="lp-hero-sub">
               On detecte les baisses de prix sur les vols au depart de Montreal
-              et notre IA te cree un itineraire complet en quelques secondes.
+              et GeaiAI te cree un itineraire complet en quelques secondes.
             </p>
             <div className="lp-hero-actions">
               <a href="#deals" className="lp-btn-ocean">
@@ -611,7 +647,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </div>
           </div>
 
-          <div className="lp-hero-visual">
+          <div className="lp-hero-visual" ref={heroVisualRef}>
             {(() => {
               // Pick top 3 deals with highest discount for hero cards
               const heroDeals = allDeals
@@ -687,6 +723,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     {row1.map((d) => (
                       <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
                         <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
+                        {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
                         <span className="lp-ticker-arrow">✈</span>
                         {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
@@ -705,6 +742,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     {row2.map((d) => (
                       <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
                         <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
+                        {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
                         <span className="lp-ticker-arrow">✈</span>
                         {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
@@ -784,7 +822,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           {/* ── Search + Filter + Sort — unified bar ── */}
           <div style={{
             position: stickyFilters ? 'sticky' : 'relative',
-            top: stickyFilters ? 0 : 'auto',
+            top: stickyFilters ? 76 : 'auto',
             zIndex: stickyFilters ? 50 : 'auto',
             background: stickyFilters ? 'rgba(248,250,252,0.95)' : 'transparent',
             backdropFilter: stickyFilters ? 'blur(12px)' : 'none',
@@ -809,6 +847,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Chercher une destination..."
+                  aria-label="Chercher une destination"
                   style={{
                     width: '100%', padding: '10px 14px 10px 38px',
                     borderRadius: 14, border: '1.5px solid #E2E8F0',
@@ -830,9 +869,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
+                    aria-label="Effacer la recherche"
                     style={{
                       position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                      width: 20, height: 20, borderRadius: '50%', border: 'none',
+                      width: 24, height: 24, borderRadius: '50%', border: 'none',
                       background: '#E2E8F0', color: '#64748B', fontSize: 11,
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -890,6 +930,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               <select
                 value={sortMode}
                 onChange={(e) => setSortMode(e.target.value as SortMode)}
+                aria-label="Trier les deals"
                 style={{
                   padding: '9px 30px 9px 12px', borderRadius: 12,
                   border: '1px solid #E2E8F0', background: 'white', color: '#0F172A',
@@ -912,20 +953,22 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 overflow: 'hidden', flexShrink: 0,
               }}>
                 <button onClick={() => setViewMode('grid')} style={{
-                  padding: '7px 10px', border: 'none', cursor: 'pointer',
+                  padding: '10px 12px', border: 'none', cursor: 'pointer',
                   background: viewMode === 'grid' ? '#0EA5E9' : 'white',
                   color: viewMode === 'grid' ? '#fff' : '#94A3B8',
-                  display: 'flex', alignItems: 'center', transition: 'all 0.2s',
-                }} title="Grille">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s', minWidth: 44, minHeight: 44,
+                }} title="Grille" aria-label="Affichage en grille" aria-pressed={viewMode === 'grid'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 </button>
                 <button onClick={() => setViewMode('list')} style={{
-                  padding: '7px 10px', border: 'none', borderLeft: '1px solid #E2E8F0', cursor: 'pointer',
+                  padding: '10px 12px', border: 'none', borderLeft: '1px solid #E2E8F0', cursor: 'pointer',
                   background: viewMode === 'list' ? '#0EA5E9' : 'white',
                   color: viewMode === 'list' ? '#fff' : '#94A3B8',
-                  display: 'flex', alignItems: 'center', transition: 'all 0.2s',
-                }} title="Liste">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s', minWidth: 44, minHeight: 44,
+                }} title="Liste" aria-label="Affichage en liste" aria-pressed={viewMode === 'list'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 </button>
               </div>
 
@@ -971,6 +1014,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     value={maxBudget > 0 && !BUDGET_PRESETS.includes(maxBudget) ? maxBudget : ''}
                     onChange={(e) => setMaxBudget(parseInt(e.target.value) || 0)}
                     placeholder="--"
+                    aria-label="Budget maximum personnalise"
                     style={{
                       width: 50, padding: '7px 2px', border: 'none',
                       fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
@@ -1068,15 +1112,15 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 }}>
                   <div style={{
                     height: 180,
-                    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
-                    backgroundSize: '200% 100%',
-                    animation: 'dealPulse 2s ease-in-out infinite',
+                    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%)',
+                    backgroundSize: '400% 100%',
+                    animation: 'shimmer 1.8s ease-in-out infinite',
                   }} />
                   <div style={{ padding: '18px 22px 22px' }}>
-                    <div style={{ height: 14, width: '40%', borderRadius: 6, background: '#E2E8F0', marginBottom: 10 }} />
-                    <div style={{ height: 22, width: '60%', borderRadius: 6, background: '#E2E8F0', marginBottom: 8 }} />
-                    <div style={{ height: 12, width: '80%', borderRadius: 6, background: '#F1F5F9', marginBottom: 14 }} />
-                    <div style={{ height: 32, width: '45%', borderRadius: 6, background: '#E0F2FE' }} />
+                    <div style={{ height: 14, width: '40%', borderRadius: 6, background: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.15s', marginBottom: 10 }} />
+                    <div style={{ height: 22, width: '60%', borderRadius: 6, background: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.3s', marginBottom: 8 }} />
+                    <div style={{ height: 12, width: '80%', borderRadius: 6, background: 'linear-gradient(90deg, #F1F5F9 25%, #e2e8f0 37%, #F1F5F9 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.45s', marginBottom: 14 }} />
+                    <div style={{ height: 32, width: '45%', borderRadius: 6, background: 'linear-gradient(90deg, #E0F2FE 25%, #bae6fd 37%, #E0F2FE 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.6s' }} />
                   </div>
                 </div>
               ))}
@@ -1093,6 +1137,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             return (
             <div
               onClick={() => openDealPopup(featured)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(featured); } }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Deal #1 : ${featured.city} a ${Math.round(featured.price)}$${featured.discount > 0 ? `, -${featured.discount}%` : ''}`}
               className="deal-featured"
               style={{
                 position: 'relative',
@@ -1243,8 +1291,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     </span>
                   )}
                   {/* Favorite */}
-                  <button onClick={(e) => toggleFavorite(featured.city, e)} style={{
-                    width: 34, height: 34, borderRadius: '50%', border: 'none',
+                  <button onClick={(e) => toggleFavorite(featured.city, e)} aria-label={favorites[featured.city] ? `Retirer ${featured.city} des favoris` : `Ajouter ${featured.city} aux favoris`} style={{
+                    width: 44, height: 44, borderRadius: '50%', border: 'none',
                     background: favorites[featured.city] ? 'rgba(239,68,68,0.08)' : '#F1F5F9',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.2s', fontSize: 16,
@@ -1252,8 +1300,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     {favorites[featured.city] ? '❤️' : '🤍'}
                   </button>
                   {/* Share */}
-                  <button onClick={(e) => shareDeal(featured, e)} style={{
-                    width: 34, height: 34, borderRadius: '50%', border: 'none',
+                  <button onClick={(e) => shareDeal(featured, e)} aria-label={`Partager le deal pour ${featured.city}`} style={{
+                    width: 44, height: 44, borderRadius: '50%', border: 'none',
                     background: '#F1F5F9', cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'all 0.2s',
@@ -1331,6 +1379,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     )}
                     <div
                       onClick={() => openDealPopup(deal)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Deal ${deal.city} a ${Math.round(deal.price)}$${deal.discount > 0 ? `, -${deal.discount}%` : ''}`}
                       style={{
                         background: 'white',
                         borderRadius: 20,
@@ -1466,12 +1518,13 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         }}>
                           <button
                             onClick={(e) => toggleFavorite(deal.city, e)}
+                            aria-label={favorites[deal.city] ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                             style={{
-                              width: 32, height: 32, borderRadius: '50%', border: 'none',
+                              width: 44, height: 44, borderRadius: '50%', border: 'none',
                               background: favorites[deal.city] ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
                               backdropFilter: 'blur(8px)',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.2s', fontSize: 14,
+                              transition: 'all 0.2s', fontSize: 16,
                               color: '#fff',
                             }}
                           >
@@ -1479,8 +1532,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           </button>
                           <button
                             onClick={(e) => shareDeal(deal, e)}
+                            aria-label="Partager ce deal"
                             style={{
-                              width: 32, height: 32, borderRadius: '50%', border: 'none',
+                              width: 44, height: 44, borderRadius: '50%', border: 'none',
                               background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               transition: 'all 0.2s',
@@ -1619,6 +1673,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   <div
                     key={`list-${deal.code}-${deal.city}`}
                     onClick={() => openDealPopup(deal)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Deal ${deal.city} a ${Math.round(deal.price)}$`}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 14,
                       background: isListTop ? `linear-gradient(90deg, ${listTopColor}06, white 20%)` : 'white',
@@ -1757,7 +1815,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   e.currentTarget.style.transform = 'none';
                 }}
               >
-                Voir plus de deals
+                Voir les {remainingCount} autres deals
                 <span style={{
                   fontSize: 12, fontWeight: 700,
                   padding: '3px 10px', borderRadius: 100,
@@ -1888,8 +1946,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <div className="lp-step-icon lp-step-icon-3"><span>🗺️</span></div>
             <div className="lp-step-content">
               <div className="lp-step-num">03</div>
-              <h3 className="lp-step-title">L&apos;IA planifie ton trip</h3>
-              <p className="lp-step-desc">Notre IA te genere un itineraire complet : activites, restos, budget jour par jour. Tout ce que t&apos;as besoin.</p>
+              <h3 className="lp-step-title">GeaiAI planifie ton trip</h3>
+              <p className="lp-step-desc">GeaiAI te genere un itineraire complet : activites, restos, budget jour par jour. Tout ce que t&apos;as besoin.</p>
               <span className="lp-step-premium">Premium</span>
             </div>
           </div>
@@ -1899,20 +1957,20 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       {/* ─── AI GUIDE FEATURE ─── */}
       <section className="lp-feature" id="guide">
         <div className="lp-feature-text lp-reveal-left">
-          <span className="lp-section-label">Intelligence artificielle</span>
-          <h2 className="lp-section-title">Ton guide de voyage, genere par IA</h2>
+          <span className="lp-section-label">Guide GeaiAI</span>
+          <h2 className="lp-section-title">Ton guide de voyage, genere par GeaiAI</h2>
           <p className="lp-section-sub" style={{ marginBottom: 0 }}>
             Dis-nous ta destination, ton budget et tes preferences.
             On te genere un itineraire complet en quelques secondes.
           </p>
           <ul className="lp-feature-list">
-            <li><span className="lp-feature-check"><CheckIcon /></span><span>Planning jour par jour adapte a ta duree de sejour</span></li>
-            <li><span className="lp-feature-check"><CheckIcon /></span><span>Suggestions de restos, activites et spots photo</span></li>
-            <li><span className="lp-feature-check"><CheckIcon /></span><span>Budget estime detaille pour tout le voyage</span></li>
-            <li><span className="lp-feature-check"><CheckIcon /></span><span>Assistant en temps reel pendant ton voyage</span></li>
+            <li><span className="lp-feature-icon-mini">📅</span><span>Planning jour par jour adapte a ta duree de sejour</span></li>
+            <li><span className="lp-feature-icon-mini">🍽️</span><span>Suggestions de restos, activites et spots photo</span></li>
+            <li><span className="lp-feature-icon-mini">💰</span><span>Budget estime detaille pour tout le voyage</span></li>
+            <li><span className="lp-feature-icon-mini">🤖</span><span>Assistant en temps reel pendant ton voyage</span></li>
           </ul>
           <Link href="/explore" className="lp-btn-primary">
-            Essayer le guide IA
+            Essayer le Guide GeaiAI
             <ArrowIcon />
           </Link>
         </div>
@@ -1922,11 +1980,16 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <span className="label">Toi</span>
             Je pars 5 jours a Lisbonne avec 1 500 $ de budget. J&apos;aime la bouffe locale et les quartiers historiques.
           </div>
+          <div className="lp-typing">
+            <span className="lp-typing-dot" />
+            <span className="lp-typing-dot" />
+            <span className="lp-typing-dot" />
+          </div>
           <div className="lp-mockup-msg ai">
-            <span className="label">GeaiMonVol IA</span>
+            <span className="label">GeaiAI</span>
             Voici ton itineraire pour Lisbonne! Jour 1 : Quartier de l&apos;Alfama, degustation de pasteis de nata chez Manteigaria, coucher de soleil au Miradouro da Graca...
           </div>
-          <div className="lp-mockup-msg ai" style={{ opacity: 0.6, maxWidth: '70%' }}>
+          <div className="lp-mockup-msg ai" style={{ maxWidth: '70%' }}>
             <span className="label">Budget estime</span>
             Vols: 529$ · Hebergement: 420$ · Nourriture: 280$ · Activites: 180$
           </div>
@@ -2044,7 +2107,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               {
                 name: 'Jean-Philippe R.',
                 city: 'Laval',
-                text: 'Le guide IA m\'a planifie un itineraire de 10 jours au Japon en 30 secondes. C\'etait meilleur que ce que j\'aurais fait en 3 heures de recherche.',
+                text: 'Le Guide GeaiAI m\'a planifie un itineraire de 10 jours au Japon en 30 secondes. C\'etait meilleur que ce que j\'aurais fait en 3 heures de recherche.',
                 dest: 'Tokyo',
                 saved: 520,
                 avatar: 'JP',
@@ -2058,15 +2121,26 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 avatar: 'CB',
               },
             ].map((t, i) => (
-              <div key={i} style={{
+              <div key={i} className={`lp-reveal lp-reveal-delay-${i + 1} lp-testimonial-card`} style={{
                 padding: '28px 24px',
                 borderRadius: 20,
                 background: '#F8FAFC',
                 border: '1px solid #E2E8F0',
                 display: 'flex', flexDirection: 'column', gap: 16,
-                transition: 'all 0.3s',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                 position: 'relative',
-              }}>
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.boxShadow = '0 16px 48px rgba(14,165,233,0.1)';
+                e.currentTarget.style.borderColor = 'rgba(14,165,233,0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = '#E2E8F0';
+              }}
+              >
                 {/* Stars */}
                 <div style={{ display: 'flex', gap: 2 }}>
                   {[1,2,3,4,5].map(s => (
@@ -2152,7 +2226,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 a: 'Non! On te redirige vers Skyscanner pour la reservation. On est un comparateur intelligent, pas une agence de voyage. Tu reserves toujours sur un site de confiance.',
               },
               {
-                q: 'C\'est quoi le Guide IA?',
+                q: 'C\'est quoi le Guide GeaiAI?',
                 a: 'C\'est un assistant qui te genere un itineraire complet en quelques secondes : planning jour par jour, suggestions de restos et activites, budget detaille. Disponible avec le plan Premium.',
               },
               {
@@ -2161,7 +2235,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               },
               {
                 q: 'Est-ce que c\'est gratuit?',
-                a: 'La version de base est 100% gratuite : deals en direct, globe interactif, alertes prix. Le plan Premium ajoute le Guide IA, les alertes prioritaires et plus encore.',
+                a: 'La version de base est 100% gratuite : deals en direct, globe interactif, alertes prix. Le plan Premium ajoute le Guide GeaiAI, les alertes prioritaires et plus encore.',
               },
             ].map((faq, i) => (
               <details
@@ -2207,12 +2281,17 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
       {/* ─── FINAL CTA + NEWSLETTER ─── */}
       <section className="lp-final-cta">
+        {/* Background decorative blobs */}
+        <div className="lp-final-bg">
+          <div className="lp-final-blob lp-final-blob-1" />
+          <div className="lp-final-blob lp-final-blob-2" />
+        </div>
         <div className="lp-final-inner lp-reveal">
           <span className="lp-section-label">Pret a partir?</span>
           <h2 className="lp-section-title">Trouve ton prochain vol maintenant</h2>
           <p className="lp-section-sub">
             Les prix changent chaque jour. Decouvre les deals en direct et planifie
-            ton voyage avec notre guide IA.
+            ton voyage avec le Guide GeaiAI.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
             <a href="#deals" className="lp-btn-primary">
@@ -2224,44 +2303,33 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </Link>
           </div>
 
-          {/* Newsletter signup */}
-          <div style={{
-            maxWidth: 480, margin: '0 auto',
-            padding: '28px 28px 24px', borderRadius: 20,
-            background: '#F8FAFC', border: '1px solid #E2E8F0',
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              justifyContent: 'center', marginBottom: 12,
-            }}>
-              <span style={{ fontSize: 18 }}>&#128232;</span>
-              <span style={{
-                fontSize: 15, fontWeight: 700, color: '#0F172A',
-                fontFamily: "'Fredoka', sans-serif",
-              }}>
-                Recois les meilleurs deals par courriel
+          {/* Newsletter signup — redesigned */}
+          <div className="lp-newsletter">
+            <div className="lp-newsletter-header">
+              <span className="lp-newsletter-icon">&#9993;</span>
+              <span className="lp-newsletter-title">
+                Ne rate pas les meilleures offres
               </span>
             </div>
-            <p style={{
-              fontSize: 13, color: '#64748B', textAlign: 'center',
-              fontFamily: "'Outfit', sans-serif", marginBottom: 16,
-              lineHeight: 1.5,
-            }}>
-              Un courriel par semaine avec les deals les plus fous. Pas de spam, promis.
+            <p className="lp-newsletter-sub">
+              Rejoins 500+ voyageurs quebecois. Un courriel par semaine avec les deals les plus fous.
             </p>
             <form
+              className="lp-newsletter-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 const form = e.currentTarget;
+                const btn = form.querySelector('.lp-newsletter-btn') as HTMLButtonElement;
                 const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
-                if (email) {
-                  // For now, just show success
-                  form.reset();
-                  alert('Merci! Tu vas recevoir les meilleurs deals.');
+                if (email && btn) {
+                  btn.classList.add('sent');
+                  btn.innerHTML = '<span class="lp-plane-fly">&#9992;</span> Envoye!';
+                  setTimeout(() => {
+                    form.reset();
+                    btn.classList.remove('sent');
+                    btn.innerHTML = "S'abonner";
+                  }, 2500);
                 }
-              }}
-              style={{
-                display: 'flex', gap: 8,
               }}
             >
               <input
@@ -2269,36 +2337,14 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 type="email"
                 required
                 placeholder="ton@courriel.com"
-                style={{
-                  flex: 1, padding: '12px 16px', borderRadius: 12,
-                  border: '1px solid #E2E8F0', background: '#fff',
-                  fontSize: 14, fontFamily: "'Outfit', sans-serif",
-                  color: '#0F172A', outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={(e) => e.currentTarget.style.borderColor = '#0EA5E9'}
-                onBlur={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
+                className="lp-newsletter-input"
               />
-              <button
-                type="submit"
-                style={{
-                  padding: '12px 20px', borderRadius: 12,
-                  border: 'none', background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                  color: '#fff', fontSize: 14, fontWeight: 700,
-                  fontFamily: "'Outfit', sans-serif",
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 12px rgba(14,165,233,0.25)',
-                }}
-              >
+              <button type="submit" className="lp-newsletter-btn">
                 S&apos;abonner
               </button>
             </form>
-            <p style={{
-              fontSize: 11, color: '#94A3B8', textAlign: 'center',
-              fontFamily: "'Outfit', sans-serif", marginTop: 10,
-            }}>
-              Tu peux te desabonner en tout temps. On respecte ta vie privee.
+            <p className="lp-newsletter-privacy">
+              Pas de spam, promis. Desabonnement en 1 clic.
             </p>
           </div>
         </div>
@@ -2310,19 +2356,19 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           <div className="lp-footer-top">
             <div>
               <div className="lp-footer-brand">
-                <Image src="/logo_geai.png" alt="" width={28} height={28} />
+                <Image src="/logo_geai.png" alt="GeaiMonVol" width={28} height={28} />
                 <span>GeaiMonVol</span>
               </div>
               <p className="lp-footer-brand-desc">
                 Les meilleurs deals de vols au depart de Montreal.
-                Scanne automatique, alertes personnalisees et guide de voyage IA.
+                Scanne automatique, alertes personnalisees et Guide GeaiAI.
               </p>
             </div>
             <div className="lp-footer-col">
               <div className="lp-footer-col-title">Produit</div>
               <Link href="/explore">Globe interactif</Link>
               <a href="#deals">Deals en direct</a>
-              <a href="#guide">Guide IA</a>
+              <a href="#guide">Guide GeaiAI</a>
             </div>
             <div className="lp-footer-col">
               <div className="lp-footer-col-title">Destinations</div>
