@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 import type { SubDestination } from '@/lib/constants/deals';
+import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 
 interface DestinationDeal {
     price: number;
@@ -186,29 +187,6 @@ export default function DestinationPopup({
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [isOpen, onClose]);
-
-    // Month comparator — group deals by month, find cheapest per month
-    // MUST be before the early return to respect React's Rules of Hooks
-    const monthGroups = useMemo(() => {
-        const MONTH_NAMES = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
-        const groups: Record<string, { label: string; sortKey: string; cheapest: number; count: number }> = {};
-
-        for (const deal of deals) {
-            if (!deal.departureDate) continue;
-            const d = new Date(deal.departureDate + 'T00:00:00');
-            const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
-            const label = `${MONTH_NAMES[d.getMonth()]}`;
-
-            if (!groups[key]) {
-                groups[key] = { label, sortKey: key, cheapest: deal.price, count: 1 };
-            } else {
-                groups[key].count++;
-                if (deal.price < groups[key].cheapest) groups[key].cheapest = deal.price;
-            }
-        }
-
-        return Object.values(groups).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-    }, [deals]);
 
     if (!isOpen) return null;
 
@@ -735,6 +713,29 @@ export default function DestinationPopup({
                                                             {deal.seatsRemaining} place{deal.seatsRemaining > 1 ? 's' : ''}
                                                         </span>
                                                     )}
+                                                    {/* Baggage info */}
+                                                    {deal.airline && (() => {
+                                                        const bag = AIRLINE_BAGGAGE[deal.airline];
+                                                        if (!bag) return null;
+                                                        return (
+                                                            <span style={{
+                                                                fontSize: 10, fontWeight: 600,
+                                                                padding: '1px 6px', borderRadius: 4,
+                                                                background: bag.checked
+                                                                    ? 'rgba(16,185,129,0.08)'
+                                                                    : bag.cabin
+                                                                        ? 'rgba(14,165,233,0.08)'
+                                                                        : 'rgba(239,68,68,0.08)',
+                                                                color: bag.checked
+                                                                    ? '#059669'
+                                                                    : bag.cabin
+                                                                        ? '#0284C7'
+                                                                        : '#DC2626',
+                                                            }}>
+                                                                {bag.checked ? '🧳 Bagage inclus' : bag.cabin ? '🎒 Cabine seul.' : '⚠️ Pas de bagage'}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 
@@ -860,72 +861,6 @@ export default function DestinationPopup({
                             </div>
                         )}
 
-                        {/* ── MONTH COMPARATOR ── */}
-                        {monthGroups.length > 1 && (
-                            <div style={{
-                                marginTop: 16, padding: '14px 16px', borderRadius: 16,
-                                background: '#F8FAFC', border: '1px solid #E2E8F0',
-                            }}>
-                                <div style={{
-                                    fontSize: 12, fontWeight: 700, color: '#0F172A',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6,
-                                }}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                                    Quel mois est le moins cher?
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    {(() => {
-                                        const cheapestMonth = Math.min(...monthGroups.map(g => g.cheapest));
-                                        const maxMonth = Math.max(...monthGroups.map(g => g.cheapest));
-                                        return monthGroups.map((g, i) => {
-                                            const isCheap = g.cheapest === cheapestMonth;
-                                            const barW = Math.max(20, (g.cheapest / maxMonth) * 100);
-                                            return (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <span style={{
-                                                        width: 50, fontSize: 11, fontWeight: 600,
-                                                        color: isCheap ? '#059669' : '#64748B',
-                                                        fontFamily: "'Outfit', sans-serif", textAlign: 'right',
-                                                        flexShrink: 0,
-                                                    }}>
-                                                        {g.label.slice(0, 4)}.
-                                                    </span>
-                                                    <div style={{
-                                                        flex: 1, height: 22, position: 'relative',
-                                                        background: '#E2E8F0', borderRadius: 6, overflow: 'hidden',
-                                                    }}>
-                                                        <div style={{
-                                                            height: '100%', borderRadius: 6,
-                                                            width: `${barW}%`,
-                                                            background: isCheap
-                                                                ? 'linear-gradient(90deg, #10B981, #34D399)'
-                                                                : 'linear-gradient(90deg, #94A3B8, #CBD5E1)',
-                                                            transition: 'width 0.5s ease',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                                                            paddingRight: 8,
-                                                        }}>
-                                                            <span style={{
-                                                                fontSize: 10, fontWeight: 700, color: '#fff',
-                                                                fontFamily: "'Fredoka', sans-serif",
-                                                            }}>
-                                                                {Math.round(g.cheapest)}$
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <span style={{
-                                                        fontSize: 9, color: '#94A3B8', fontWeight: 600,
-                                                        fontFamily: "'Outfit', sans-serif", width: 40, flexShrink: 0,
-                                                    }}>
-                                                        {g.count} vol{g.count > 1 ? 's' : ''}
-                                                    </span>
-                                                </div>
-                                            );
-                                        });
-                                    })()}
-                                </div>
-                            </div>
-                        )}
 
                         {/* ── Share + Tip row ── */}
                         <div style={{

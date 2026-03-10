@@ -7,6 +7,7 @@ import LandingHeader from '@/components/LandingHeader';
 import DestinationPopup from '@/components/map/DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES } from '@/lib/constants/deals';
+import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import './landing.css';
 
 // ── City → Country mapping ──
@@ -1082,6 +1083,21 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   )}
                   {featured.airline && <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', padding: '4px 12px', borderRadius: 8, background: '#F1F5F9', fontFamily: "'Outfit', sans-serif" }}>{featured.airline}</span>}
                   {featured.stops > 0 && <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: '#D97706', fontFamily: "'Outfit', sans-serif" }}>{`${featured.stops} escale${featured.stops > 1 ? 's' : ''}`}</span>}
+                  {/* Baggage */}
+                  {featured.airline && AIRLINE_BAGGAGE[featured.airline] && (
+                    <span style={{
+                      fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
+                      fontFamily: "'Outfit', sans-serif",
+                      background: AIRLINE_BAGGAGE[featured.airline].checked
+                        ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[featured.airline].cabin
+                          ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
+                      color: AIRLINE_BAGGAGE[featured.airline].checked
+                        ? '#059669' : AIRLINE_BAGGAGE[featured.airline].cabin
+                          ? '#0284C7' : '#DC2626',
+                    }}>
+                      {AIRLINE_BAGGAGE[featured.airline].checked ? '🧳 Bagage inclus' : AIRLINE_BAGGAGE[featured.airline].cabin ? '🎒 Cabine seul.' : '⚠️ Pas de bagage'}
+                    </span>
+                  )}
                   {/* Favorite */}
                   <button onClick={(e) => toggleFavorite(featured.city, e)} style={{
                     width: 34, height: 34, borderRadius: '50%', border: 'none',
@@ -1359,7 +1375,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           }}>YUL → {deal.code}</span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{
                             fontSize: 12, color: '#94A3B8',
                             fontFamily: "'Outfit', sans-serif",
@@ -1379,6 +1395,23 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             </span>
                           )}
                         </div>
+                        {/* Baggage info */}
+                        {deal.airline && AIRLINE_BAGGAGE[deal.airline] && (
+                          <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '2px 8px', borderRadius: 6, marginBottom: 6,
+                            fontSize: 10, fontWeight: 600,
+                            fontFamily: "'Outfit', sans-serif",
+                            background: AIRLINE_BAGGAGE[deal.airline].checked
+                              ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[deal.airline].cabin
+                                ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
+                            color: AIRLINE_BAGGAGE[deal.airline].checked
+                              ? '#059669' : AIRLINE_BAGGAGE[deal.airline].cabin
+                                ? '#0284C7' : '#DC2626',
+                          }}>
+                            {AIRLINE_BAGGAGE[deal.airline].checked ? '🧳 Bagage inclus' : AIRLINE_BAGGAGE[deal.airline].cabin ? '🎒 Cabine seulement' : '⚠️ Aucun bagage inclus'}
+                          </div>
+                        )}
 
                         {deal.departureDate && (
                           <div style={{
@@ -1541,7 +1574,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     </div>
 
                     {/* Badges */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
                       {deal.stops === 0 && (
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(16,185,129,0.1)', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>Direct</span>
                       )}
@@ -1549,6 +1582,20 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: '#E0F2FE', color: '#0284C7', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap' }}>
                           {formatDateRange(deal.departureDate, deal.returnDate)}
                           {nights > 0 ? ` · ${nights}n` : ''}
+                        </span>
+                      )}
+                      {deal.airline && AIRLINE_BAGGAGE[deal.airline] && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 4,
+                          fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap',
+                          background: AIRLINE_BAGGAGE[deal.airline].checked
+                            ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[deal.airline].cabin
+                              ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
+                          color: AIRLINE_BAGGAGE[deal.airline].checked
+                            ? '#059669' : AIRLINE_BAGGAGE[deal.airline].cabin
+                              ? '#0284C7' : '#DC2626',
+                        }}>
+                          {AIRLINE_BAGGAGE[deal.airline].checked ? '🧳' : AIRLINE_BAGGAGE[deal.airline].cabin ? '🎒' : '⚠️'}
                         </span>
                       )}
                     </div>
