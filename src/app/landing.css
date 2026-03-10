@@ -2031,9 +2031,10 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: url('/earth-dark.svg') repeat-x 0 center;
+  background: url('/earth.webp') repeat-x 0 center;
   background-size: auto 100%;
   animation: globeSpin 50s linear infinite;
+  image-rendering: auto;
 }
 
 /* 3D sphere shading — specular, terminator, limb darkening */
