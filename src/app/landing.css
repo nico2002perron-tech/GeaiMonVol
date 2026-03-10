@@ -1961,57 +1961,31 @@
   margin-right: auto;
 }
 
-/* ── Earth Globe (SVG texture on CSS sphere) ── */
+/* ── Earth Globe ── */
 .lp-globe-earth {
   margin: 48px auto 0;
-  width: 380px;
-  height: 380px;
+  width: 340px;
+  height: 340px;
   position: relative;
 }
 
-/* Star field */
-.lp-globe-earth::before {
-  content: '';
-  position: absolute;
-  inset: -70px;
-  border-radius: 16px;
-  background:
-    radial-gradient(1.2px 1.2px at 28px 32px, rgba(255,255,255,0.65), transparent 2px),
-    radial-gradient(1px 1px at 110px 15px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1.4px 1.4px at 200px 70px, rgba(255,255,255,0.55), transparent 2px),
-    radial-gradient(1px 1px at 305px 42px, rgba(255,255,255,0.35), transparent 2px),
-    radial-gradient(1px 1px at 52px 140px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1.2px 1.2px at 168px 180px, rgba(255,255,255,0.3), transparent 2px),
-    radial-gradient(1px 1px at 255px 125px, rgba(255,255,255,0.55), transparent 2px),
-    radial-gradient(1px 1px at 385px 148px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1.2px 1.2px at 420px 25px, rgba(255,255,255,0.45), transparent 2px),
-    radial-gradient(1.3px 1.3px at 90px 300px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 350px 270px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1px 1px at 460px 215px, rgba(255,255,255,0.3), transparent 2px),
-    radial-gradient(1px 1px at 65px 400px, rgba(255,255,255,0.45), transparent 2px),
-    radial-gradient(1.2px 1.2px at 280px 350px, rgba(255,255,255,0.35), transparent 2px),
-    radial-gradient(1px 1px at 440px 380px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1px 1px at 500px 95px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 15px 245px, rgba(255,255,255,0.3), transparent 2px),
-    radial-gradient(1.3px 1.3px at 320px 420px, rgba(255,255,255,0.4), transparent 2px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Atmosphere glow — asymmetric, brighter on lit side */
+/* Cyan atmosphere glow */
 .lp-globe-earth::after {
   content: '';
   position: absolute;
-  inset: -14px;
+  inset: -18px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 30% 32%, rgba(80,170,255,0.16) 44%, rgba(60,140,255,0.06) 52%, transparent 62%),
-    radial-gradient(circle at 50% 50%, transparent 44%, rgba(60,150,255,0.07) 50%, rgba(60,140,255,0.04) 58%, transparent 68%);
-  z-index: 3;
+  background: radial-gradient(circle,
+    transparent 42%,
+    rgba(0, 212, 255, 0.08) 48%,
+    rgba(0, 212, 255, 0.14) 52%,
+    rgba(0, 212, 255, 0.06) 58%,
+    transparent 66%);
+  z-index: 0;
   pointer-events: none;
 }
 
-/* Sphere body — deep ocean base */
+/* Sphere */
 .lp-globe-sphere {
   width: 100%;
   height: 100%;
@@ -2019,14 +1993,13 @@
   overflow: hidden;
   position: relative;
   z-index: 1;
-  background: radial-gradient(circle at 38% 38%, #0e2848 0%, #091d38 40%, #051428 70%, #020a16 100%);
+  background: #020810;
   box-shadow:
-    0 0 50px rgba(60,150,255,0.12),
-    0 0 100px rgba(60,150,255,0.05),
-    0 16px 50px rgba(0,0,0,0.5);
+    0 0 60px rgba(0, 212, 255, 0.1),
+    0 0 120px rgba(0, 212, 255, 0.04);
 }
 
-/* Continent map texture — real SVG earth, scrolls horizontally */
+/* Night earth texture — hue-shifted to cyan */
 .lp-globe-map {
   position: absolute;
   inset: 0;
@@ -2034,42 +2007,28 @@
   background: url('/earth.webp') repeat-x 0 center;
   background-size: auto 100%;
   animation: globeSpin 50s linear infinite;
-  image-rendering: auto;
+  filter: hue-rotate(160deg) saturate(1.8) brightness(1.4);
 }
 
-/* 3D sphere shading — specular, terminator, limb darkening */
+/* Sphere shading overlay */
 .lp-globe-shade {
   position: absolute;
   inset: 0;
   border-radius: 50%;
   background:
-    /* Specular highlight */
-    radial-gradient(circle at 30% 28%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 12%, transparent 24%),
-    /* Diffuse fill */
-    radial-gradient(circle at 36% 36%, rgba(100,180,255,0.06) 0%, transparent 35%),
-    /* Terminator shadow */
-    linear-gradient(110deg,
-      transparent 32%,
-      rgba(0,0,0,0.1) 44%,
-      rgba(0,0,0,0.28) 54%,
-      rgba(0,0,0,0.5) 66%,
-      rgba(0,0,0,0.72) 80%,
-      rgba(0,0,0,0.88) 94%),
-    /* Limb darkening */
-    radial-gradient(circle at 42% 42%,
-      transparent 32%,
-      rgba(0,0,0,0.06) 48%,
-      rgba(0,0,0,0.2) 62%,
-      rgba(0,0,0,0.45) 78%,
-      rgba(0,0,0,0.72) 90%,
-      rgba(0,0,0,0.9) 100%);
+    radial-gradient(circle at 50% 50%,
+      transparent 30%,
+      rgba(2, 8, 16, 0.15) 50%,
+      rgba(2, 8, 16, 0.4) 68%,
+      rgba(2, 8, 16, 0.7) 82%,
+      rgba(2, 8, 16, 0.92) 100%);
   pointer-events: none;
   z-index: 2;
 }
 
 @keyframes globeSpin {
   from { background-position: 0 center; }
-  to { background-position: -760px center; }
+  to { background-position: -680px center; }
 }
 
 .lp-btn-light {
@@ -2591,12 +2550,8 @@
   }
 
   .lp-globe-earth {
-    width: 280px;
-    height: 280px;
-  }
-
-  .lp-globe-earth::before {
-    inset: -40px;
+    width: 260px;
+    height: 260px;
   }
 
   .lp-footer-top {
