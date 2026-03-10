@@ -2070,6 +2070,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               onRegionSelect={() => {}}
               onHoverDeal={() => {}}
               onLeaveDeal={() => {}}
+              minimal
             />
           </div>
           <div style={{ marginTop: 48 }}>
