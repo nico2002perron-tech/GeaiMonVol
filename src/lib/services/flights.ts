@@ -372,16 +372,30 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
 export function calculateRealDiscount(
     currentPrice: number,
     priceHistory: Array<{ price: number; scanned_at: string }>
-): { discount: number; avgPrice: number; lowestEver: number; isGoodDeal: boolean; dealLevel: string } {
+): { discount: number; avgPrice: number; medianPrice: number; lowestEver: number; isGoodDeal: boolean; dealLevel: string; historyCount: number } {
     if (!priceHistory || priceHistory.length === 0) {
-        return { discount: 0, avgPrice: currentPrice, lowestEver: currentPrice, isGoodDeal: false, dealLevel: 'normal' };
+        return { discount: 0, avgPrice: currentPrice, medianPrice: currentPrice, lowestEver: currentPrice, isGoodDeal: false, dealLevel: 'normal', historyCount: 0 };
     }
 
     const prices = priceHistory.map(p => p.price);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+
+    // Median — more robust than average (resistant to outliers / seasonal spikes)
+    const sorted = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const medianPrice = Math.round(
+        sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+    );
+
     const lowestEver = Math.min(...prices);
 
-    const discount = avgPrice > 0 ? Math.round(((avgPrice - currentPrice) / avgPrice) * 100) : 0;
+    // Use MEDIAN as primary reference for discount (more reliable than average)
+    const discount = medianPrice > 0 ? Math.round(((medianPrice - currentPrice) / medianPrice) * 100) : 0;
+
+    // Require minimum 3 data points before showing any discount
+    if (prices.length < 3) {
+        return { discount: 0, avgPrice, medianPrice, lowestEver, isGoodDeal: false, dealLevel: 'normal', historyCount: prices.length };
+    }
 
     // Classify the deal based on discount percentage (primary)
     // "lowest_ever" only if price is significantly below historical minimum
@@ -417,9 +431,11 @@ export function calculateRealDiscount(
     return {
         discount: Math.max(discount, 0),
         avgPrice,
+        medianPrice,
         lowestEver,
         isGoodDeal,
         dealLevel,
+        historyCount: prices.length,
     };
 }
 

@@ -76,6 +76,9 @@ interface DealItem {
   bookingLink: string;
   duration: number;
   scannedAt: string;
+  medianPrice: number;
+  avgPrice: number;
+  historyCount: number;
 }
 
 function formatDateShort(dateStr: string): string {
@@ -116,6 +119,32 @@ function getViewerCount(city: string, discount: number): number {
   const base = Math.abs(hash % 20) + 5; // 5-24
   const bonus = discount >= 40 ? 15 : discount >= 25 ? 8 : 0;
   return base + bonus;
+}
+
+// ── GeAI Mascot — arrogant jay bird that explains deals with DATA ──
+function getGeaiQuote(deal: DealItem): string | null {
+  const { dealLevel, medianPrice, avgPrice, price, discount, historyCount } = deal;
+  if (!medianPrice || historyCount < 3 || discount < 15) return null;
+
+  const m = Math.round(medianPrice);
+  const a = Math.round(avgPrice);
+  const p = Math.round(price);
+  const n = historyCount;
+  const showBoth = Math.abs(medianPrice - avgPrice) / medianPrice > 0.05;
+  const ref = showBoth ? `Mediane: ${m}$, moyenne: ${a}$` : `Mediane: ${m}$`;
+
+  switch (dealLevel) {
+    case 'lowest_ever':
+      return `AYOYE! C'est le prix le plus bas que j'ai JAMAIS scanne. ${ref} sur 90 jours... pis la c'est ${p}$. C'est historique. Reserve avant que ca remonte!`;
+    case 'incredible':
+      return `Ecoute-moi bien. J'ai scanne ${n} prix en 90 jours. ${ref}. A ${p}$, c'est -${discount}% de VRAI rabais. Pas du marketing, de la DATA pure.`;
+    case 'great':
+      return `${n} prix scannes sur 90 jours. ${ref}. Ce -${discount}% est legit — c'est mon algorithme qui parle, pas une promo inventee.`;
+    case 'good':
+      return `Mon scan dit ${ref} sur ${n} prix. A ${p}$, t'es -${discount}% en dessous. Pas le deal du siecle, mais c'est honnetement bon!`;
+    default:
+      return null;
+  }
 }
 
 type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
@@ -166,14 +195,16 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
     const isCanadian = CANADA_CODES.includes(code) || code === 'CA' || city === 'Canada';
     const isToutInclus = ALL_INCLUSIVE_CODES.includes(code);
     const discount = p.discount || 0;
-    const avgPrice = p.avgPrice || 0;
+    const medianP = p.medianPrice || 0;
+    const avgP = p.avgPrice || 0;
+    const refPrice = medianP > 0 ? medianP : avgP; // prefer median
 
     deals.push({
       city,
       code,
       country: CITY_COUNTRY[city] || '',
       price: p.price,
-      oldPrice: avgPrice > p.price ? avgPrice : 0,
+      oldPrice: refPrice > p.price ? refPrice : 0,
       discount,
       dealLevel: p.dealLevel || 'normal',
       airline: p.airline || p.raw_data?.flights?.[0]?.airline || '',
@@ -186,6 +217,9 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
       bookingLink: p.bookingLink || p.raw_data?.booking_link || '',
       duration: p.duration || p.raw_data?.duration_minutes || 0,
       scannedAt: p.scanned_at || p.scannedAt || '',
+      medianPrice: medianP,
+      avgPrice: avgP,
+      historyCount: p.historyCount || 0,
     });
   }
 
@@ -323,6 +357,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       bookingLink: `https://www.skyscanner.ca/transport/flights/yul/${d.code.toLowerCase()}/`,
       duration: 0,
       scannedAt: '',
+      medianPrice: d.oldPrice,
+      avgPrice: d.oldPrice,
+      historyCount: 0,
     }));
   }, [livePrices, isLive, ssrDeals]);
 
@@ -400,6 +437,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         @keyframes dealFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
         @keyframes dealFadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes rankShine{0%{left:-100%}100%{left:200%}}
+        @keyframes geaiBounce{0%{transform:scale(0.85) translateX(-6px);opacity:0}50%{transform:scale(1.02) translateX(1px)}100%{transform:scale(1) translateX(0);opacity:1}}
+        @keyframes geaiBob{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-2px) rotate(2deg)}75%{transform:translateY(1px) rotate(-1deg)}}
       `}</style>
 
       {/* ─── HEADER ─── */}
@@ -514,7 +553,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               country: d.country, dealLevel: d.dealLevel, airline: d.airline,
               stops: d.stops, isLive: d.isLive, departureDate: d.departureDate,
               returnDate: d.returnDate, bookingLink: d.bookingLink, duration: d.duration,
-              scannedAt: d.scannedAt,
+              scannedAt: d.scannedAt, medianPrice: d.medianPrice, avgPrice: d.avgPrice,
+              historyCount: d.historyCount,
             }))
           : STATIC_DEALS.map(d => ({
               city: d.city, code: d.code, price: d.price,
@@ -522,7 +562,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               image: d.image, category: d.category as 'canada' | 'monde' | 'tout-inclus',
               country: CITY_COUNTRY[d.city] || '', dealLevel: 'normal', airline: '',
               stops: -1, isLive: false, departureDate: '', returnDate: '', bookingLink: '', duration: 0,
-              scannedAt: '',
+              scannedAt: '', medianPrice: d.oldPrice, avgPrice: d.oldPrice, historyCount: 0,
             }));
         const half = Math.ceil(tickerDeals.length / 2);
         const row1 = tickerDeals.slice(0, half);
@@ -1066,6 +1106,63 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
                 </div>
               </div>
+
+              {/* ── GeAI Mascot insight — featured card ── */}
+              {(() => {
+                const quote = getGeaiQuote(featured);
+                if (!quote) return null;
+                return (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 10,
+                      padding: '12px 20px 14px',
+                      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                      borderTop: '1px solid rgba(14,165,233,0.1)',
+                      animation: 'geaiBounce 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both',
+                    }}
+                  >
+                    {/* Bird avatar */}
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                      background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      position: 'relative', animation: 'geaiBob 3s ease-in-out infinite',
+                      boxShadow: '0 2px 10px rgba(14,165,233,0.4)',
+                    }}>
+                      <Image src="/logo_geai.png" alt="GeAI" width={24} height={24} style={{ borderRadius: '50%' }} />
+                      <span style={{
+                        position: 'absolute', bottom: -3, right: -6,
+                        fontSize: 7, fontWeight: 800, padding: '1px 5px',
+                        borderRadius: 4, background: '#F59E0B', color: '#fff',
+                        fontFamily: "'Fredoka', sans-serif",
+                        boxShadow: '0 1px 4px rgba(245,158,11,0.4)',
+                      }}>IA</span>
+                    </div>
+                    {/* Speech */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 11, fontWeight: 700, color: '#0EA5E9',
+                        fontFamily: "'Fredoka', sans-serif", marginBottom: 3,
+                        display: 'flex', alignItems: 'center', gap: 5,
+                      }}>
+                        Le Geai dit :
+                        <span style={{
+                          fontSize: 9, fontWeight: 600, padding: '1px 7px',
+                          borderRadius: 100, background: 'rgba(14,165,233,0.15)',
+                          color: 'rgba(14,165,233,0.7)', fontFamily: "'Outfit', sans-serif",
+                        }}>
+                          {featured.historyCount} prix analyses
+                        </span>
+                      </div>
+                      <div style={{
+                        fontSize: 12, color: 'rgba(255,255,255,0.85)',
+                        fontFamily: "'Outfit', sans-serif", lineHeight: 1.45,
+                      }}>{quote}</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -1303,6 +1400,52 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             })()}
                           </div>
                         )}
+
+                        {/* ── GeAI Mascot insight — grid card ── */}
+                        {(() => {
+                          const quote = getGeaiQuote(deal);
+                          if (!quote) return null;
+                          return (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                display: 'flex', alignItems: 'flex-start', gap: 8,
+                                padding: '8px 10px', borderRadius: 10,
+                                background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                border: '1px solid rgba(14,165,233,0.12)',
+                                marginBottom: 10,
+                                animation: 'geaiBounce 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both',
+                              }}
+                            >
+                              <div style={{
+                                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                                background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                position: 'relative', animation: 'geaiBob 3s ease-in-out infinite',
+                              }}>
+                                <Image src="/logo_geai.png" alt="GeAI" width={18} height={18} style={{ borderRadius: '50%' }} />
+                                <span style={{
+                                  position: 'absolute', bottom: -2, right: -5,
+                                  fontSize: 6, fontWeight: 800, padding: '0px 3px',
+                                  borderRadius: 3, background: '#F59E0B', color: '#fff',
+                                  fontFamily: "'Fredoka', sans-serif",
+                                }}>IA</span>
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{
+                                  fontSize: 9, fontWeight: 700, color: '#0EA5E9',
+                                  fontFamily: "'Fredoka', sans-serif", marginBottom: 2,
+                                }}>
+                                  Le Geai dit :
+                                </div>
+                                <div style={{
+                                  fontSize: 10.5, color: 'rgba(255,255,255,0.8)',
+                                  fontFamily: "'Outfit', sans-serif", lineHeight: 1.4,
+                                }}>{quote}</div>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>

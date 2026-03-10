@@ -27,6 +27,8 @@ async function getDeals() {
                 .from('price_history')
                 .select('destination, price, scanned_at')
                 .gte('scanned_at', ninetyDaysAgo)
+                .neq('source', 'historical_seed')
+                .not('source', 'like', 'google_flights%')
                 .order('scanned_at', { ascending: false }),
         ]);
 
@@ -72,9 +74,11 @@ async function getDeals() {
                 ...p,
                 discount: info.discount,
                 avgPrice: info.avgPrice,
+                medianPrice: info.medianPrice,
                 lowestEver: info.lowestEver,
                 isGoodDeal: info.isGoodDeal,
                 dealLevel: info.dealLevel,
+                historyCount: info.historyCount,
                 bookingLink: p.raw_data?.booking_link || '',
                 duration: p.raw_data?.duration_minutes || 0,
             });
