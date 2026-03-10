@@ -36,7 +36,61 @@ interface DestinationPopupProps {
     bestPrice?: number;
     dealLevel?: string;
     discount?: number;
+    medianPrice?: number;
+    avgPrice?: number;
+    historyCount?: number;
 }
+
+// ── Destination travel tips & nearby connections ──
+const DESTINATION_TIPS: Record<string, { tip: string; nearby?: { city: string; reason: string }[] }> = {
+    'Le Caire': { tip: 'Les pyramides de Gizeh et le Sphinx sont a 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallee des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongee en mer Rouge' }] },
+    'Cairo': { tip: 'Les pyramides de Gizeh et le Sphinx sont a 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallee des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongee en mer Rouge' }] },
+    'Egypte': { tip: 'Les pyramides de Gizeh sont incontournables, et Louxor est magique!', nearby: [{ city: 'Le Caire', reason: 'les pyramides' }, { city: 'Louxor', reason: 'la Vallee des Rois' }] },
+    'Lima': { tip: 'La gastronomie peruvienne est legendaire — ceviche, lomo saltado!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu (vols internes ~60$)' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
+    'Perou': { tip: 'Le Perou c\'est bien plus que Lima — Cuzco et le Machu Picchu sont un must!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
+    'Bogota': { tip: 'Le quartier La Candelaria est superbe, et le Museo del Oro est gratuit!', nearby: [{ city: 'Cartagena', reason: 'la vieille ville coloniale' }, { city: 'Medellin', reason: 'le climat eternel printemps' }] },
+    'Colombie': { tip: 'La Colombie c\'est incroyable — Cartagena, Medellin, le cafe...', nearby: [{ city: 'Cartagena', reason: 'la cote Caraibe' }, { city: 'Medellin', reason: 'la ville de l\'innovation' }] },
+    'Paris': { tip: 'Evite les restos touristiques pres de la Tour Eiffel — mange dans le Marais!', nearby: [{ city: 'Bruxelles', reason: 'a 1h20 en TGV' }, { city: 'Amsterdam', reason: 'a 3h15 en Thalys' }] },
+    'Londres': { tip: 'La plupart des musees sont GRATUITS — British Museum, Tate Modern, etc.', nearby: [{ city: 'Paris', reason: 'a 2h15 en Eurostar' }, { city: 'Edinburgh', reason: 'vols internes ~30 GBP' }] },
+    'Lisbonne': { tip: 'Prends le tram 28 pour traverser les plus beaux quartiers!', nearby: [{ city: 'Porto', reason: 'a 3h en train' }, { city: 'Sintra', reason: 'palais feeeriques a 40 min' }] },
+    'Barcelone': { tip: 'Reserve la Sagrada Familia en avance — c\'est souvent complet!', nearby: [{ city: 'Madrid', reason: 'a 2h30 en AVE' }, { city: 'Majorque', reason: 'vols internes ~30 EUR' }] },
+    'Rome': { tip: 'Le Vatican est gratuit le dernier dimanche du mois!', nearby: [{ city: 'Florence', reason: 'a 1h30 en train' }, { city: 'Naples', reason: 'pizza originale + Pompei' }] },
+    'Tokyo': { tip: 'Le Japan Rail Pass se rentabilise en 2 jours — achete-le avant de partir!', nearby: [{ city: 'Kyoto', reason: 'temples et geishas a 2h15 en Shinkansen' }, { city: 'Osaka', reason: 'la capitale du street food' }] },
+    'Bangkok': { tip: 'Les temples sont gratuits ou presque — Wat Pho, Wat Arun, incroyable!', nearby: [{ city: 'Chiang Mai', reason: 'temples dans la jungle' }, { city: 'Phuket', reason: 'plages paradisiaques' }] },
+    'Thailande': { tip: 'La Thailande est super abordable — budget 30-50$/jour facilement!', nearby: [{ city: 'Chiang Mai', reason: 'le nord montagneux' }, { city: 'Krabi', reason: 'les iles Phi Phi' }] },
+    'Cancun': { tip: 'Chichen Itza est a 2h en bus — un des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'a 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
+    'Cancún': { tip: 'Chichen Itza est a 2h en bus — un des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'a 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
+    'Mexique': { tip: 'Le Mexique c\'est enorme — combine plage a Cancun et culture a Mexico!', nearby: [{ city: 'Mexico', reason: 'la capitale historique' }, { city: 'Oaxaca', reason: 'gastronomie + culture' }] },
+    'Punta Cana': { tip: 'Les tout-inclus sont parmi les meilleurs rapport qualite-prix des Caraibes!', nearby: [{ city: 'Santo Domingo', reason: 'la plus vieille ville des Ameriques' }] },
+    'La Havane': { tip: 'Apporte du cash — les cartes de credit canadiennes marchent rarement!', nearby: [{ city: 'Varadero', reason: 'la plage a 2h en bus' }, { city: 'Trinidad', reason: 'ville coloniale UNESCO' }] },
+    'Cuba': { tip: 'Apporte du cash CAD ou EUR — les cartes fonctionnent rarement!', nearby: [{ city: 'La Havane', reason: 'autos classiques + culture' }, { city: 'Trinidad', reason: 'ville coloniale UNESCO' }] },
+    'New York': { tip: 'Le ferry de Staten Island est GRATUIT et offre une vue incroyable sur la Statue de la Liberte!', nearby: [{ city: 'Washington', reason: 'a 3h en bus Megabus' }] },
+    'Athenes': { tip: 'L\'Acropole est magique au coucher du soleil — evite midi!', nearby: [{ city: 'Santorin', reason: 'ferry ou vol interne ~40 EUR' }, { city: 'Crete', reason: 'plages + ruines minoennes' }] },
+    'Grece': { tip: 'Les iles grecques sont magiques — combine Athenes + Santorin!', nearby: [{ city: 'Santorin', reason: 'couchers de soleil legendaires' }, { city: 'Mykonos', reason: 'ambiance festive' }] },
+    'Marrakech': { tip: 'Negocie TOUT au souk — commence a 30% du prix demande!', nearby: [{ city: 'Fes', reason: 'la plus ancienne medina' }, { city: 'Essaouira', reason: 'ville cotiere a 3h' }] },
+    'Maroc': { tip: 'Le Maroc est incroyable et tres abordable depuis Montreal!', nearby: [{ city: 'Marrakech', reason: 'les souks et Jemaa el-Fna' }, { city: 'Fes', reason: 'la medina UNESCO' }] },
+    'Istanbul': { tip: 'Sainte-Sophie et la Mosquee Bleue sont cote a cote — prevois une journee!', nearby: [{ city: 'Cappadoce', reason: 'montgolfieres et grottes' }] },
+    'Turquie': { tip: 'La Turquie offre un mix incroyable de culture et plages!', nearby: [{ city: 'Istanbul', reason: 'histoire millénaire' }, { city: 'Cappadoce', reason: 'paysages lunaires' }] },
+    'Dublin': { tip: 'Le Guiness Storehouse vaut le detour — la vue du rooftop est malade!', nearby: [{ city: 'Galway', reason: 'la cote ouest sauvage' }, { city: 'Belfast', reason: 'Titanic Museum + Giant\'s Causeway' }] },
+    'Reykjavik': { tip: 'Le Blue Lagoon c\'est touristique mais magique. Reserve en avance!', nearby: [{ city: 'Cercle d\'Or', reason: 'geysers + cascades en 1 jour' }] },
+    'San José': { tip: 'Le Costa Rica c\'est la nature pure — forets, volcans, plages!', nearby: [{ city: 'Monteverde', reason: 'foret de nuages' }, { city: 'Manuel Antonio', reason: 'parc national + plage' }] },
+    'Costa Rica': { tip: 'Pura Vida! Le Costa Rica c\'est nature, aventure et plages!', nearby: [{ city: 'Monteverde', reason: 'tyroliennes dans la canopee' }, { city: 'La Fortuna', reason: 'volcan Arenal + sources chaudes' }] },
+    'Montego Bay': { tip: 'Les chutes de la riviere Dunn sont un incontournable!', nearby: [{ city: 'Negril', reason: 'Seven Mile Beach' }, { city: 'Ocho Rios', reason: 'plages et cascades' }] },
+    'Jamaique': { tip: 'La Jamaique c\'est reggae, plages et jerk chicken!', nearby: [{ city: 'Montego Bay', reason: 'la capitale touristique' }, { city: 'Kingston', reason: 'le musee Bob Marley' }] },
+    'Vancouver': { tip: 'Stanley Park et Granville Island sont des musts — et c\'est gratuit!', nearby: [{ city: 'Victoria', reason: 'ferry scenic de 90 min' }, { city: 'Whistler', reason: 'montagnes a 2h' }] },
+    'Calgary': { tip: 'Banff et Lake Louise sont a 1h30 — paysages de carte postale!', nearby: [{ city: 'Banff', reason: 'Rocheuses canadiennes' }, { city: 'Jasper', reason: 'Icefields Parkway' }] },
+    'Toronto': { tip: 'Le quartier Kensington Market est super pour la bouffe de rue!', nearby: [{ city: 'Chutes Niagara', reason: 'a 1h30 en bus' }, { city: 'Ottawa', reason: 'la capitale a 4h' }] },
+    'Varadero': { tip: 'La plage de Varadero fait 20 km de sable blanc!', nearby: [{ city: 'La Havane', reason: 'a 2h en bus' }] },
+    'Porto': { tip: 'Le port est obligatoire — visite les caves de Vila Nova de Gaia!', nearby: [{ city: 'Lisbonne', reason: 'a 3h en train' }, { city: 'Vallee du Douro', reason: 'vignobles en bateau' }] },
+    'Madrid': { tip: 'Le Musee du Prado est gratuit les 2 dernieres heures chaque jour!', nearby: [{ city: 'Tolede', reason: 'ville medievale a 30 min en train' }, { city: 'Seville', reason: 'a 2h30 en AVE' }] },
+    'Amsterdam': { tip: 'Loue un velo — c\'est LE moyen de transport a Amsterdam!', nearby: [{ city: 'Bruges', reason: 'a 3h en train' }, { city: 'Rotterdam', reason: 'architecture futuriste a 40 min' }] },
+    'Prague': { tip: 'La biere est moins chere que l\'eau — et elle est excellente!', nearby: [{ city: 'Vienne', reason: 'a 4h en train' }, { city: 'Cesky Krumlov', reason: 'village medieval UNESCO' }] },
+    'Budapest': { tip: 'Les bains thermaux Szechenyi sont un must — surtout en hiver!', nearby: [{ city: 'Vienne', reason: 'a 2h40 en train' }, { city: 'Bratislava', reason: 'a 2h30 en bus' }] },
+    'Bali': { tip: 'Ubud pour la culture, Seminyak pour la plage, Nusa Penida pour l\'aventure!', nearby: [{ city: 'Nusa Penida', reason: 'falaises et manta rays' }, { city: 'Gili Islands', reason: 'plongee + tortues' }] },
+    'Japon': { tip: 'Le JR Pass est indispensable — Shinkansen illimite!', nearby: [{ city: 'Tokyo', reason: 'la megalopole' }, { city: 'Kyoto', reason: 'les temples millénaires' }] },
+    'Inde': { tip: 'Le Taj Mahal au lever du soleil c\'est inoubliable!', nearby: [{ city: 'Delhi', reason: 'porte d\'entree' }, { city: 'Jaipur', reason: 'la ville rose du Rajasthan' }] },
+    'Vietnam': { tip: 'Ha Long Bay en bateau c\'est feerique — prevois 2 jours!', nearby: [{ city: 'Hanoi', reason: 'street food legendaire' }, { city: 'Ho Chi Minh', reason: 'la ville dynamique du sud' }] },
+};
 
 function formatDateFr(dateStr: string): string {
     if (!dateStr) return '';
@@ -66,6 +120,44 @@ function getTripNights(dep: string, ret: string): number {
     return Math.round((new Date(ret).getTime() - new Date(dep).getTime()) / 86400000);
 }
 
+// ── GeAI mascot quote for popup ──
+function getGeaiPopupQuote(
+    destination: string,
+    bestPrice: number,
+    medianPrice: number,
+    avgPrice: number,
+    historyCount: number,
+    dealLevel?: string
+): { savings: string; tip: string | null; nearby: { city: string; reason: string }[] } {
+    const refPrice = medianPrice > 0 ? medianPrice : avgPrice;
+    const dollarSaved = refPrice > bestPrice ? Math.round(refPrice - bestPrice) : 0;
+
+    // Savings message
+    let savings = '';
+    if (dollarSaved > 0 && historyCount >= 3) {
+        if (dealLevel === 'lowest_ever') {
+            savings = `AYOYE! A ${Math.round(bestPrice)}$, tu sauves ${dollarSaved}$ vs le prix habituel! C'est le prix le plus bas que j'ai JAMAIS scanne!`;
+        } else if (dealLevel === 'incredible') {
+            savings = `Wow! A ce prix-la tu sauves ${dollarSaved}$ par rapport a la mediane de ${Math.round(refPrice)}$! J'ai analyse ${historyCount} prix en 90 jours — c'est un deal en OR!`;
+        } else if (dealLevel === 'great') {
+            savings = `Beau deal! Tu sauves ${dollarSaved}$ vs le prix habituel de ${Math.round(refPrice)}$. Mon scan de ${historyCount} prix confirme que c'est legit!`;
+        } else {
+            savings = `Pas pire! Tu sauves ${dollarSaved}$ par rapport au prix median de ${Math.round(refPrice)}$. Basé sur ${historyCount} prix scannes.`;
+        }
+    } else if (historyCount >= 3) {
+        savings = `Prix actuel: ${Math.round(bestPrice)}$ (mediane: ${Math.round(refPrice)}$ sur ${historyCount} scans). Pas de rabais fou, mais c'est un prix honnete!`;
+    } else {
+        savings = `Prix actuel: ${Math.round(bestPrice)}$. J'ai pas encore assez de data pour comparer — je continue de scanner!`;
+    }
+
+    // Destination-specific tip
+    const tips = DESTINATION_TIPS[destination];
+    const tip = tips?.tip || null;
+    const nearby = tips?.nearby || [];
+
+    return { savings, tip, nearby };
+}
+
 type SortMode = 'date' | 'price';
 
 export default function DestinationPopup({
@@ -76,6 +168,9 @@ export default function DestinationPopup({
     bestPrice,
     dealLevel,
     discount,
+    medianPrice: propMedianPrice,
+    avgPrice: propAvgPrice,
+    historyCount: propHistoryCount,
 }: DestinationPopupProps) {
     const [deals, setDeals] = useState<DestinationDeal[]>([]);
     const [loading, setLoading] = useState(false);
@@ -83,6 +178,8 @@ export default function DestinationPopup({
     const [error, setError] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('date');
     const [avgPrice, setAvgPrice] = useState(0);
+    const [medianPrice, setMedianPrice] = useState(0);
+    const [historyCount, setHistoryCount] = useState(0);
     const [popupToast, setPopupToast] = useState('');
     const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -102,6 +199,8 @@ export default function DestinationPopup({
         setDeals([]);
         setError('');
         setAvgPrice(0);
+        setMedianPrice(0);
+        setHistoryCount(0);
         setSortMode('date');
     }, [isOpen]);
 
@@ -134,6 +233,8 @@ export default function DestinationPopup({
 
                 const dbDeals: DestinationDeal[] = data.deals || [];
                 if (data.avgPrice) setAvgPrice(data.avgPrice);
+                if (data.medianPrice) setMedianPrice(data.medianPrice);
+                if (data.historyCount) setHistoryCount(data.historyCount);
 
                 if (dbDeals.length > 0) {
                     setDeals(dbDeals);
@@ -472,6 +573,128 @@ export default function DestinationPopup({
                                 </div>
                             </div>
                         )}
+
+                        {/* ═══ GeAI MASCOT ═══ */}
+                        {bestPrice != null && bestPrice > 0 && !loading && deals.length > 0 && (() => {
+                            const effMedian = medianPrice || propMedianPrice || 0;
+                            const effAvg = avgPrice || propAvgPrice || 0;
+                            const effHistory = historyCount || propHistoryCount || 0;
+                            const geai = getGeaiPopupQuote(destination, bestPrice, effMedian, effAvg, effHistory, dealLevel);
+
+                            return (
+                                <div style={{
+                                    marginBottom: 16, padding: '14px 16px', borderRadius: 16,
+                                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                                    border: '1px solid rgba(14,165,233,0.15)',
+                                    animation: 'geaiBounce 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both',
+                                }}>
+                                    {/* Header */}
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10,
+                                    }}>
+                                        <div style={{
+                                            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            position: 'relative',
+                                            animation: 'geaiBob 3s ease-in-out infinite',
+                                            boxShadow: '0 2px 12px rgba(14,165,233,0.4)',
+                                        }}>
+                                            <img src="/logo_geai.png" alt="GeAI" width={26} height={26} style={{ borderRadius: '50%' }} />
+                                            <span style={{
+                                                position: 'absolute', bottom: -3, right: -6,
+                                                fontSize: 7, fontWeight: 800, padding: '1px 5px',
+                                                borderRadius: 4, background: '#F59E0B', color: '#fff',
+                                                fontFamily: "'Fredoka', sans-serif",
+                                                boxShadow: '0 1px 4px rgba(245,158,11,0.4)',
+                                            }}>IA</span>
+                                        </div>
+                                        <div>
+                                            <div style={{
+                                                fontSize: 12, fontWeight: 700, color: '#0EA5E9',
+                                                fontFamily: "'Fredoka', sans-serif",
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                            }}>
+                                                Le Geai dit :
+                                                {effHistory >= 3 && (
+                                                    <span style={{
+                                                        fontSize: 9, fontWeight: 600, padding: '1px 7px',
+                                                        borderRadius: 100, background: 'rgba(14,165,233,0.15)',
+                                                        color: 'rgba(14,165,233,0.7)', fontFamily: "'Outfit', sans-serif",
+                                                    }}>
+                                                        {effHistory} prix analyses
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Savings message */}
+                                    <div style={{
+                                        fontSize: 13, color: 'rgba(255,255,255,0.9)',
+                                        fontFamily: "'Outfit', sans-serif", lineHeight: 1.5,
+                                        marginBottom: (geai.tip || geai.nearby.length > 0) ? 12 : 0,
+                                    }}>
+                                        {geai.savings}
+                                    </div>
+
+                                    {/* Travel tip */}
+                                    {geai.tip && (
+                                        <div style={{
+                                            padding: '10px 12px', borderRadius: 10,
+                                            background: 'rgba(14,165,233,0.08)',
+                                            border: '1px solid rgba(14,165,233,0.12)',
+                                            marginBottom: geai.nearby.length > 0 ? 10 : 0,
+                                        }}>
+                                            <div style={{
+                                                fontSize: 10, fontWeight: 700, color: '#0EA5E9',
+                                                fontFamily: "'Fredoka', sans-serif", marginBottom: 4,
+                                                display: 'flex', alignItems: 'center', gap: 4,
+                                            }}>
+                                                <span style={{ fontSize: 13 }}>&#128161;</span> Conseil du Geai
+                                            </div>
+                                            <div style={{
+                                                fontSize: 12, color: 'rgba(255,255,255,0.8)',
+                                                fontFamily: "'Outfit', sans-serif", lineHeight: 1.45,
+                                            }}>
+                                                {geai.tip}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Nearby destinations */}
+                                    {geai.nearby.length > 0 && (
+                                        <div style={{
+                                            padding: '10px 12px', borderRadius: 10,
+                                            background: 'rgba(245,158,11,0.06)',
+                                            border: '1px solid rgba(245,158,11,0.12)',
+                                        }}>
+                                            <div style={{
+                                                fontSize: 10, fontWeight: 700, color: '#F59E0B',
+                                                fontFamily: "'Fredoka', sans-serif", marginBottom: 6,
+                                                display: 'flex', alignItems: 'center', gap: 4,
+                                            }}>
+                                                <span style={{ fontSize: 12 }}>&#9992;&#65039;</span> A proximite
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                {geai.nearby.map((n, idx) => (
+                                                    <div key={idx} style={{
+                                                        fontSize: 12, color: 'rgba(255,255,255,0.8)',
+                                                        fontFamily: "'Outfit', sans-serif", lineHeight: 1.4,
+                                                        display: 'flex', alignItems: 'flex-start', gap: 6,
+                                                    }}>
+                                                        <span style={{
+                                                            fontSize: 8, color: '#F59E0B', marginTop: 4, flexShrink: 0,
+                                                        }}>&#9679;</span>
+                                                        <span><strong style={{ color: '#F59E0B' }}>{n.city}</strong> — {n.reason}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* Error */}
                         {error && (
@@ -929,6 +1152,16 @@ export default function DestinationPopup({
                 @keyframes destShimmer {
                     0% { background-position: 200% 0; }
                     100% { background-position: -200% 0; }
+                }
+                @keyframes geaiBounce {
+                    0% { transform: scale(0.85) translateX(-6px); opacity: 0; }
+                    50% { transform: scale(1.02) translateX(1px); }
+                    100% { transform: scale(1) translateX(0); opacity: 1; }
+                }
+                @keyframes geaiBob {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    25% { transform: translateY(-2px) rotate(2deg); }
+                    75% { transform: translateY(1px) rotate(-1deg); }
                 }
             `}</style>
         </>
