@@ -1,8 +1,24 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
+
+const CartoonGlobe = dynamic(() => import('@/components/map/CartoonGlobe'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ width: '100%', height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="lp-globe-preview">
+        <div className="lp-globe-dots">
+          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '28%', left: '55%', animationDelay: '0s' }} />
+          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '42%', left: '60%', animationDelay: '1s' }} />
+          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '50%', left: '35%', animationDelay: '2s' }} />
+        </div>
+      </div>
+    </div>
+  ),
+});
 import LandingHeader from '@/components/LandingHeader';
 import DestinationPopup from '@/components/map/DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
@@ -2056,17 +2072,21 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             Explore les destinations en temps reel sur notre carte interactive.
             Chaque point represente un deal actif au depart de Montreal.
           </p>
-          <div className="lp-globe-preview">
-            <div className="lp-globe-dots">
-              <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '28%', left: '55%', animationDelay: '0s' }} />
-              <div className="lp-globe-dot" style={{ width: 5, height: 5, top: '35%', left: '48%', animationDelay: '0.5s' }} />
-              <div className="lp-globe-dot" style={{ width: 7, height: 7, top: '42%', left: '60%', animationDelay: '1s' }} />
-              <div className="lp-globe-dot" style={{ width: 5, height: 5, top: '22%', left: '42%', animationDelay: '1.5s' }} />
-              <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '50%', left: '35%', animationDelay: '2s' }} />
-              <div className="lp-globe-dot" style={{ width: 8, height: 8, top: '38%', left: '68%', animationDelay: '0.8s' }} />
-              <div className="lp-globe-dot" style={{ width: 5, height: 5, top: '55%', left: '52%', animationDelay: '2.5s' }} />
-              <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '30%', left: '72%', animationDelay: '1.2s' }} />
-            </div>
+          <div className="lp-globe-container">
+            <CartoonGlobe
+              deals={allDeals}
+              mapView="world"
+              isMobile={false}
+              onRegionSelect={() => {}}
+              onHoverDeal={() => {}}
+              onLeaveDeal={() => {}}
+              onSelectDeal={(deal) => {
+                if (deal) {
+                  const match = allDeals.find(d => d.city === (deal.destination || deal.city));
+                  if (match) openDealPopup(match);
+                }
+              }}
+            />
           </div>
           <div style={{ marginTop: 48 }}>
             <Link href="/explore" className="lp-btn-light">

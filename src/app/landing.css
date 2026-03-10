@@ -2011,6 +2011,29 @@
   50% { opacity: 1; transform: scale(1.3); }
 }
 
+.lp-globe-container {
+  margin: 48px auto 0;
+  width: 100%;
+  max-width: 700px;
+  height: 500px;
+  border-radius: 24px;
+  overflow: hidden;
+  position: relative;
+  background: radial-gradient(ellipse at 50% 50%, #0a1628 0%, #020810 100%);
+  box-shadow: 0 0 80px rgba(6, 182, 212, 0.12), 0 8px 32px rgba(0,0,0,0.4);
+  border: 1px solid rgba(6, 182, 212, 0.1);
+}
+
+.lp-globe-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+}
+
+.lp-globe-container canvas:active {
+  cursor: grabbing;
+}
+
 .lp-btn-light {
   display: inline-flex;
   align-items: center;
@@ -2527,6 +2550,11 @@
   .lp-globe-preview {
     width: 240px;
     height: 240px;
+  }
+
+  .lp-globe-container {
+    height: 350px;
+    border-radius: 16px;
   }
 
   .lp-footer-top {
