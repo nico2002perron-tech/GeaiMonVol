@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -109,6 +109,15 @@ function formatScannedAgo(scannedAt: string): string {
   return `scanne il y a ${days}j`;
 }
 
+function getViewerCount(city: string, discount: number): number {
+  // Deterministic pseudo-random based on city name
+  let hash = 0;
+  for (let i = 0; i < city.length; i++) hash = ((hash << 5) - hash) + city.charCodeAt(i);
+  const base = Math.abs(hash % 20) + 5; // 5-24
+  const bonus = discount >= 40 ? 15 : discount >= 25 ? 8 : 0;
+  return base + bonus;
+}
+
 type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
 type SortMode = 'deal' | 'price' | 'discount';
 
@@ -199,6 +208,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const [maxBudget, setMaxBudget] = useState(0);
   const [shareToast, setShareToast] = useState('');
   const [alertsEnabled, setAlertsEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const filtersRef = useRef<HTMLDivElement>(null);
 
   // Favorites (localStorage) — using Record instead of Set to avoid useMemo issues
@@ -745,6 +755,29 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 ))}
               </select>
 
+              {/* View toggle */}
+              <div style={{
+                display: 'flex', border: '1px solid #E2E8F0', borderRadius: 10,
+                overflow: 'hidden', flexShrink: 0,
+              }}>
+                <button onClick={() => setViewMode('grid')} style={{
+                  padding: '7px 10px', border: 'none', cursor: 'pointer',
+                  background: viewMode === 'grid' ? '#0EA5E9' : 'white',
+                  color: viewMode === 'grid' ? '#fff' : '#94A3B8',
+                  display: 'flex', alignItems: 'center', transition: 'all 0.2s',
+                }} title="Grille">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </button>
+                <button onClick={() => setViewMode('list')} style={{
+                  padding: '7px 10px', border: 'none', borderLeft: '1px solid #E2E8F0', cursor: 'pointer',
+                  background: viewMode === 'list' ? '#0EA5E9' : 'white',
+                  color: viewMode === 'list' ? '#fff' : '#94A3B8',
+                  display: 'flex', alignItems: 'center', transition: 'all 0.2s',
+                }} title="Liste">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </button>
+              </div>
+
               {/* Budget presets + custom */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap' }}>
                 {BUDGET_PRESETS.map(amount => {
@@ -1036,223 +1069,372 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </div>
           )}
 
-          {/* ── DEALS GRID ── */}
-          {rest.length > 0 && (
+          {/* ── DEALS GRID / LIST ── */}
+          {rest.length > 0 && viewMode === 'grid' && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: 20,
             }}>
               {visibleRest.map((deal, idx) => {
-                const rank = idx + 2; // #1 is featured
+                const rank = idx + 2;
                 const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
+                const viewers = getViewerCount(deal.city, deal.discount);
 
                 return (
-                  <div
-                    key={`${deal.code}-${deal.city}`}
-                    onClick={() => openDealPopup(deal)}
-                    style={{
-                      background: 'white',
-                      borderRadius: 20,
-                      overflow: 'hidden',
-                      border: '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                      transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                      animation: `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-6px)';
-                      e.currentTarget.style.boxShadow = '0 16px 48px rgba(15,23,42,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    {/* Image */}
-                    <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
-                      <Image
-                        src={deal.image}
-                        alt={deal.city}
-                        fill
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                      />
-
-                      {/* Rank badge */}
-                      <div style={{
-                        position: 'absolute', top: 12, left: 12,
-                        width: 32, height: 32, borderRadius: '50%',
-                        background: rankColor
-                          ? `linear-gradient(135deg, ${rankColor}, ${rankColor}CC)`
-                          : 'rgba(0,0,0,0.4)',
-                        backdropFilter: rankColor ? 'none' : 'blur(8px)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: rankColor ? `0 2px 8px ${rankColor}66` : 'none',
-                      }}>
-                        <span style={{
-                          fontFamily: "'Fredoka', sans-serif",
-                          fontSize: 12, fontWeight: 700, color: '#fff',
-                        }}>#{rank}</span>
-                      </div>
-
-                      {/* Deal badge */}
-                      {level && (
-                        <div style={{
-                          position: 'absolute', top: 12, right: 12,
-                          padding: '4px 10px', borderRadius: 100,
-                          background: level.bg, color: '#fff',
-                          fontSize: 10, fontWeight: 700,
-                          fontFamily: "'Outfit', sans-serif",
-                          display: 'flex', alignItems: 'center', gap: 3,
-                          boxShadow: `0 2px 8px ${level.bg}66`,
+                  <React.Fragment key={`${deal.code}-${deal.city}`}>
+                    {/* CTA Alerts card at position 4 */}
+                    {idx === 3 && !alertsEnabled && (
+                      <div
+                        style={{
+                          background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                          borderRadius: 20, overflow: 'hidden',
+                          border: '1px solid rgba(14,165,233,0.2)',
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center',
+                          padding: '36px 28px', textAlign: 'center',
+                          animation: `dealFadeIn 0.5s ease-out 0.24s both`,
+                        }}
+                      >
+                        <div style={{ fontSize: 36, marginBottom: 12 }}>🔔</div>
+                        <h3 style={{
+                          fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700,
+                          color: '#fff', margin: '0 0 8px', lineHeight: 1.2,
+                        }}>Ne rate aucun deal</h3>
+                        <p style={{
+                          fontFamily: "'Outfit', sans-serif", fontSize: 13, color: '#94A3B8',
+                          margin: '0 0 20px', lineHeight: 1.5,
                         }}>
-                          {level.icon} {level.label}
-                        </div>
-                      )}
-
-                      {/* Direct flight badge */}
-                      {deal.stops === 0 && (
-                        <div style={{
-                          position: 'absolute', top: level ? 40 : 12, right: 12,
-                          padding: '3px 10px', borderRadius: 100,
-                          background: '#10B981', color: '#fff',
-                          fontSize: 10, fontWeight: 700,
-                          fontFamily: "'Outfit', sans-serif",
-                          display: 'flex', alignItems: 'center', gap: 3,
-                          boxShadow: '0 2px 8px rgba(16,185,129,0.4)',
-                        }}>
-                          ✈ Direct
-                        </div>
-                      )}
-
-                      {/* Discount */}
-                      {deal.discount > 0 && (
-                        <div style={{
-                          position: 'absolute', bottom: 12, right: 12,
-                          padding: '3px 10px', borderRadius: 100,
-                          background: '#10B981', color: '#fff',
-                          fontSize: 12, fontWeight: 700,
-                          fontFamily: "'Fredoka', sans-serif",
-                        }}>
-                          -{deal.discount}%
-                        </div>
-                      )}
-
-                      {/* Favorite + Share */}
-                      <div style={{
-                        position: 'absolute', bottom: 12, left: 12,
-                        display: 'flex', gap: 6,
-                      }}>
+                          Recois une alerte quand un prix chute sur tes destinations preferees.
+                        </p>
                         <button
-                          onClick={(e) => toggleFavorite(deal.city, e)}
+                          onClick={enableAlerts}
                           style={{
-                            width: 32, height: 32, borderRadius: '50%', border: 'none',
-                            background: favorites[deal.city] ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
-                            backdropFilter: 'blur(8px)',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.2s', fontSize: 14,
-                            color: '#fff',
-                          }}
-                        >
-                          {favorites[deal.city] ? '❤️' : '🤍'}
-                        </button>
-                        <button
-                          onClick={(e) => shareDeal(deal, e)}
-                          style={{
-                            width: 32, height: 32, borderRadius: '50%', border: 'none',
-                            background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
-                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: '10px 24px', borderRadius: 100, border: 'none',
+                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                            color: '#fff', fontSize: 13, fontWeight: 700,
+                            fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                            boxShadow: '0 4px 16px rgba(14,165,233,0.3)',
                             transition: 'all 0.2s',
                           }}
                         >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                          Activer les alertes
                         </button>
                       </div>
-                    </div>
+                    )}
+                    <div
+                      onClick={() => openDealPopup(deal)}
+                      style={{
+                        background: 'white',
+                        borderRadius: 20,
+                        overflow: 'hidden',
+                        border: '1px solid #E2E8F0',
+                        cursor: 'pointer',
+                        transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                        animation: `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-6px)';
+                        e.currentTarget.style.boxShadow = '0 16px 48px rgba(15,23,42,0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {/* Image */}
+                      <div style={{ position: 'relative', height: 180, overflow: 'hidden' }}>
+                        <Image
+                          src={deal.image}
+                          alt={deal.city}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          style={{ objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        />
 
-                    {/* Body */}
-                    <div style={{ padding: '16px 20px 18px' }}>
-                      {/* City + Country */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <h3 style={{
-                          fontFamily: "'Fredoka', sans-serif",
-                          fontSize: 20, fontWeight: 700, color: '#0F172A',
-                          margin: 0, lineHeight: 1.2,
-                        }}>{deal.city}</h3>
-                        <span style={{
-                          fontFamily: "'Fredoka', sans-serif",
-                          fontSize: 11, fontWeight: 700, color: '#0EA5E9',
-                          background: 'rgba(14,165,233,0.06)', padding: '2px 8px', borderRadius: 6,
-                        }}>YUL → {deal.code}</span>
+                        {/* Rank badge */}
+                        <div style={{
+                          position: 'absolute', top: 12, left: 12,
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: rankColor
+                            ? `linear-gradient(135deg, ${rankColor}, ${rankColor}CC)`
+                            : 'rgba(0,0,0,0.4)',
+                          backdropFilter: rankColor ? 'none' : 'blur(8px)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: rankColor ? `0 2px 8px ${rankColor}66` : 'none',
+                        }}>
+                          <span style={{
+                            fontFamily: "'Fredoka', sans-serif",
+                            fontSize: 12, fontWeight: 700, color: '#fff',
+                          }}>#{rank}</span>
+                        </div>
+
+                        {/* Deal badge */}
+                        {level && (
+                          <div style={{
+                            position: 'absolute', top: 12, right: 12,
+                            padding: '4px 10px', borderRadius: 100,
+                            background: level.bg, color: '#fff',
+                            fontSize: 10, fontWeight: 700,
+                            fontFamily: "'Outfit', sans-serif",
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            boxShadow: `0 2px 8px ${level.bg}66`,
+                          }}>
+                            {level.icon} {level.label}
+                          </div>
+                        )}
+
+                        {/* Direct flight badge */}
+                        {deal.stops === 0 && (
+                          <div style={{
+                            position: 'absolute', top: level ? 40 : 12, right: 12,
+                            padding: '3px 10px', borderRadius: 100,
+                            background: '#10B981', color: '#fff',
+                            fontSize: 10, fontWeight: 700,
+                            fontFamily: "'Outfit', sans-serif",
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            boxShadow: '0 2px 8px rgba(16,185,129,0.4)',
+                          }}>
+                            ✈ Direct
+                          </div>
+                        )}
+
+                        {/* Discount */}
+                        {deal.discount > 0 && (
+                          <div style={{
+                            position: 'absolute', bottom: 12, right: 12,
+                            padding: '3px 10px', borderRadius: 100,
+                            background: '#10B981', color: '#fff',
+                            fontSize: 12, fontWeight: 700,
+                            fontFamily: "'Fredoka', sans-serif",
+                          }}>
+                            -{deal.discount}%
+                          </div>
+                        )}
+
+                        {/* Favorite + Share */}
+                        <div style={{
+                          position: 'absolute', bottom: 12, left: 12,
+                          display: 'flex', gap: 6,
+                        }}>
+                          <button
+                            onClick={(e) => toggleFavorite(deal.city, e)}
+                            style={{
+                              width: 32, height: 32, borderRadius: '50%', border: 'none',
+                              background: favorites[deal.city] ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
+                              backdropFilter: 'blur(8px)',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.2s', fontSize: 14,
+                              color: '#fff',
+                            }}
+                          >
+                            {favorites[deal.city] ? '❤️' : '🤍'}
+                          </button>
+                          <button
+                            onClick={(e) => shareDeal(deal, e)}
+                            style={{
+                              width: 32, height: 32, borderRadius: '50%', border: 'none',
+                              background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
+                              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Country + stops */}
-                      <span style={{
-                        fontSize: 12, color: '#94A3B8', display: 'block',
-                        fontFamily: "'Outfit', sans-serif", marginBottom: 10,
-                      }}>
-                        {deal.country}
-                        {deal.airline ? ` · ${deal.airline}` : ''}
-                        {deal.stops > 0 ? ` · ${deal.stops} esc.` : ''}
-                      </span>
-
-                      {/* Date badge */}
-                      {deal.departureDate && (
-                        <div style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '3px 10px', borderRadius: 8,
-                          background: '#E0F2FE',
-                          fontSize: 11, fontWeight: 600, color: '#0284C7',
-                          fontFamily: "'Outfit', sans-serif", marginBottom: 10,
-                        }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                          {formatDateRange(deal.departureDate, deal.returnDate)}
-                          {(() => {
-                            const nights = getTripNights(deal.departureDate, deal.returnDate);
-                            return nights > 0 ? (
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
-                                {nights} nuits
-                              </span>
-                            ) : null;
-                          })()}
+                      {/* Body */}
+                      <div style={{ padding: '16px 20px 18px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <h3 style={{
+                            fontFamily: "'Fredoka', sans-serif",
+                            fontSize: 20, fontWeight: 700, color: '#0F172A',
+                            margin: 0, lineHeight: 1.2,
+                          }}>{deal.city}</h3>
+                          <span style={{
+                            fontFamily: "'Fredoka', sans-serif",
+                            fontSize: 11, fontWeight: 700, color: '#0EA5E9',
+                            background: 'rgba(14,165,233,0.06)', padding: '2px 8px', borderRadius: 6,
+                          }}>YUL → {deal.code}</span>
                         </div>
-                      )}
 
-                      {/* Price + CTA row */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                            {deal.oldPrice > deal.price && (
-                              <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
-                            )}
-                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
-                            <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
-                          </div>
-                          {deal.scannedAt && (
-                            <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                              {formatScannedAgo(deal.scannedAt)}
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <span style={{
+                            fontSize: 12, color: '#94A3B8',
+                            fontFamily: "'Outfit', sans-serif",
+                          }}>
+                            {deal.country}
+                            {deal.airline ? ` · ${deal.airline}` : ''}
+                            {deal.stops > 0 ? ` · ${deal.stops} esc.` : ''}
+                          </span>
+                          {deal.isLive && viewers > 10 && (
+                            <span style={{
+                              fontSize: 10, color: '#F59E0B', fontWeight: 600,
+                              fontFamily: "'Outfit', sans-serif",
+                              display: 'flex', alignItems: 'center', gap: 3,
+                            }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                              {viewers} regardent
+                            </span>
                           )}
                         </div>
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          padding: '8px 16px', borderRadius: 12,
-                          background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                          color: '#fff', fontSize: 12, fontWeight: 700,
-                          fontFamily: "'Outfit', sans-serif",
-                          transition: 'all 0.2s',
-                          whiteSpace: 'nowrap',
-                        }}>
-                          Voir les dates
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+
+                        {deal.departureDate && (
+                          <div style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 10px', borderRadius: 8,
+                            background: '#E0F2FE',
+                            fontSize: 11, fontWeight: 600, color: '#0284C7',
+                            fontFamily: "'Outfit', sans-serif", marginBottom: 10,
+                          }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                            {formatDateRange(deal.departureDate, deal.returnDate)}
+                            {(() => {
+                              const nights = getTripNights(deal.departureDate, deal.returnDate);
+                              return nights > 0 ? (
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
+                                  {nights} nuits
+                                </span>
+                              ) : null;
+                            })()}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                              {deal.oldPrice > deal.price && (
+                                <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
+                              )}
+                              <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
+                              <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
+                            </div>
+                            {deal.scannedAt && (
+                              <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+                                {formatScannedAgo(deal.scannedAt)}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '8px 16px', borderRadius: 12,
+                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                            color: '#fff', fontSize: 12, fontWeight: 700,
+                            fontFamily: "'Outfit', sans-serif",
+                            transition: 'all 0.2s',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            Voir les dates
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+                          </div>
                         </div>
                       </div>
                     </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── DEALS LIST VIEW ── */}
+          {rest.length > 0 && viewMode === 'list' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {visibleRest.map((deal, idx) => {
+                const rank = idx + 2;
+                const level = DEAL_LEVELS[deal.dealLevel];
+                const nights = getTripNights(deal.departureDate, deal.returnDate);
+                const viewers = getViewerCount(deal.city, deal.discount);
+
+                return (
+                  <div
+                    key={`list-${deal.code}-${deal.city}`}
+                    onClick={() => openDealPopup(deal)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      background: 'white', borderRadius: 14,
+                      border: '1px solid #E2E8F0', padding: '12px 16px',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      animation: `dealFadeIn 0.3s ease-out ${Math.min(idx * 0.03, 0.3)}s both`,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#0EA5E9';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(14,165,233,0.08)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {/* Rank */}
+                    <span style={{
+                      fontFamily: "'Fredoka', sans-serif", fontSize: 12, fontWeight: 700,
+                      color: rank <= 3 ? RANK_COLORS[rank - 1] : '#94A3B8',
+                      minWidth: 28, textAlign: 'center',
+                    }}>#{rank}</span>
+
+                    {/* Image thumbnail */}
+                    <div style={{ position: 'relative', width: 56, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+                      <Image src={deal.image} alt={deal.city} fill sizes="56px" style={{ objectFit: 'cover' }} />
+                    </div>
+
+                    {/* City + route */}
+                    <div style={{ flex: '1 1 120px', minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 15, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{deal.city}</span>
+                        {level && (
+                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 100, background: level.bg, color: '#fff', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap' }}>
+                            {level.icon} {level.label}
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                        {deal.country}{deal.airline ? ` · ${deal.airline}` : ''}
+                      </span>
+                    </div>
+
+                    {/* Badges */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      {deal.stops === 0 && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(16,185,129,0.1)', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>Direct</span>
+                      )}
+                      {deal.departureDate && (
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: '#E0F2FE', color: '#0284C7', fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap' }}>
+                          {formatDateRange(deal.departureDate, deal.returnDate)}
+                          {nights > 0 ? ` · ${nights}n` : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Social proof */}
+                    {deal.isLive && viewers > 10 && (
+                      <span style={{ fontSize: 10, color: '#F59E0B', fontWeight: 600, fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        {viewers}
+                      </span>
+                    )}
+
+                    {/* Price */}
+                    <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 80 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end' }}>
+                        {deal.oldPrice > deal.price && (
+                          <span style={{ fontSize: 11, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)}$</span>
+                        )}
+                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)}$</span>
+                      </div>
+                      {deal.discount > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>-{deal.discount}%</span>
+                      )}
+                    </div>
+
+                    {/* Arrow */}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
                   </div>
                 );
               })}
