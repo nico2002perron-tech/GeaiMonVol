@@ -1961,77 +1961,85 @@
   margin-right: auto;
 }
 
-.lp-globe-preview {
+/* ── Static 3D Globe ── */
+.lp-globe-static {
   margin: 48px auto 0;
-  width: 320px;
-  height: 320px;
+  width: 340px;
+  height: 340px;
+  position: relative;
+  perspective: 800px;
+}
+
+.lp-globe-sphere {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: radial-gradient(ellipse at 35% 35%, #1E3A5F 0%, #0F2440 40%, #081830 70%, #040E20 100%);
-  box-shadow: 0 0 80px rgba(6, 182, 212, 0.15), 0 0 160px rgba(6, 182, 212, 0.05), inset 0 0 60px rgba(0,0,0,0.3);
   position: relative;
   overflow: hidden;
+  background: radial-gradient(circle at 38% 35%, #1a3a5c 0%, #122a48 25%, #0c1e38 50%, #06142a 75%, #030c1a 100%);
+  box-shadow:
+    0 0 60px rgba(6, 182, 212, 0.12),
+    0 0 120px rgba(6, 182, 212, 0.06),
+    inset -30px -20px 60px rgba(0, 0, 0, 0.5),
+    inset 10px 10px 40px rgba(30, 80, 130, 0.15);
+  animation: globeSpin 60s linear infinite;
 }
 
-.lp-globe-preview::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  background: conic-gradient(from 180deg, rgba(6,182,212,0.2), rgba(14,165,233,0.1), rgba(6,182,212,0.05), rgba(14,165,233,0.1), rgba(6,182,212,0.2));
-  z-index: -1;
-}
-
-.lp-globe-preview::after {
-  content: '';
-  position: absolute;
-  top: 8%;
-  left: 12%;
-  width: 45%;
-  height: 40%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
-  transform: rotate(-20deg);
-}
-
-.lp-globe-dots {
+/* Continent-like shapes via layered gradients that shift with rotation */
+.lp-globe-land {
   position: absolute;
   inset: 0;
-}
-
-.lp-globe-dot {
-  position: absolute;
   border-radius: 50%;
-  background: #00D4FF;
-  box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
-  animation: globePulse 3s ease-in-out infinite;
+  background:
+    radial-gradient(ellipse 18% 22% at 55% 32%, rgba(20, 80, 60, 0.35) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 30% at 62% 50%, rgba(20, 80, 60, 0.3) 0%, transparent 100%),
+    radial-gradient(ellipse 25% 15% at 38% 28%, rgba(25, 85, 65, 0.3) 0%, transparent 100%),
+    radial-gradient(ellipse 10% 12% at 70% 60%, rgba(20, 75, 55, 0.25) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 18% at 30% 55%, rgba(22, 78, 58, 0.28) 0%, transparent 100%),
+    radial-gradient(ellipse 8% 10% at 48% 70%, rgba(18, 70, 50, 0.2) 0%, transparent 100%),
+    radial-gradient(ellipse 15% 8% at 25% 42%, rgba(25, 90, 70, 0.22) 0%, transparent 100%);
+  animation: globeSpin 60s linear infinite;
 }
 
-@keyframes globePulse {
-  0%, 100% { opacity: 0.4; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.3); }
+/* Specular highlight / atmosphere shine */
+.lp-globe-shine {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 50% 50% at 32% 30%, rgba(255,255,255,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 100% at 50% 50%, transparent 45%, rgba(6, 182, 212, 0.06) 70%, rgba(6, 182, 212, 0.12) 90%, transparent 100%);
+  pointer-events: none;
 }
 
-.lp-globe-container {
-  margin: 48px auto 0;
-  width: 100%;
-  max-width: 700px;
-  height: 500px;
-  border-radius: 24px;
-  overflow: hidden;
-  position: relative;
-  background: radial-gradient(ellipse at 50% 50%, #0a1628 0%, #020810 100%);
-  box-shadow: 0 0 80px rgba(6, 182, 212, 0.12), 0 8px 32px rgba(0,0,0,0.4);
-  border: 1px solid rgba(6, 182, 212, 0.1);
+/* Atmospheric glow ring */
+.lp-globe-static::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, rgba(6,182,212,0.15), rgba(14,165,233,0.06), transparent 40%, transparent 60%, rgba(14,165,233,0.06), rgba(6,182,212,0.15));
+  z-index: -1;
+  filter: blur(2px);
 }
 
-.lp-globe-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-  cursor: grab;
+/* Subtle ambient glow underneath */
+.lp-globe-static::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 20px;
+  background: radial-gradient(ellipse, rgba(6, 182, 212, 0.15), transparent 70%);
+  border-radius: 50%;
+  filter: blur(8px);
 }
 
-.lp-globe-container canvas:active {
-  cursor: grabbing;
+@keyframes globeSpin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
 }
 
 .lp-btn-light {
@@ -2552,9 +2560,9 @@
     height: 240px;
   }
 
-  .lp-globe-container {
-    height: 350px;
-    border-radius: 16px;
+  .lp-globe-static {
+    width: 260px;
+    height: 260px;
   }
 
   .lp-footer-top {
@@ -2671,7 +2679,8 @@
   .lp-ticker-right,
   .lp-live-dot,
   .lp-live-dot > span,
-  .lp-globe-dot,
+  .lp-globe-sphere,
+  .lp-globe-land,
   .lp-typing-dot,
   .lp-plane-fly,
   .lp details p {

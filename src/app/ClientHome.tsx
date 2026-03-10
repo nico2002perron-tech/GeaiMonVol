@@ -1,24 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';
-
-const CartoonGlobe = dynamic(() => import('@/components/map/CartoonGlobe'), {
-  ssr: false,
-  loading: () => (
-    <div style={{ width: '100%', height: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="lp-globe-preview">
-        <div className="lp-globe-dots">
-          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '28%', left: '55%', animationDelay: '0s' }} />
-          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '42%', left: '60%', animationDelay: '1s' }} />
-          <div className="lp-globe-dot" style={{ width: 6, height: 6, top: '50%', left: '35%', animationDelay: '2s' }} />
-        </div>
-      </div>
-    </div>
-  ),
-});
 import LandingHeader from '@/components/LandingHeader';
 import DestinationPopup from '@/components/map/DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
@@ -2072,21 +2056,11 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             Explore les destinations en temps reel sur notre carte interactive.
             Chaque point represente un deal actif au depart de Montreal.
           </p>
-          <div className="lp-globe-container">
-            <CartoonGlobe
-              deals={allDeals}
-              mapView="world"
-              isMobile={false}
-              onRegionSelect={() => {}}
-              onHoverDeal={() => {}}
-              onLeaveDeal={() => {}}
-              onSelectDeal={(deal) => {
-                if (deal) {
-                  const match = allDeals.find(d => d.city === (deal.destination || deal.city));
-                  if (match) openDealPopup(match);
-                }
-              }}
-            />
+          <div className="lp-globe-static">
+            <div className="lp-globe-sphere">
+              <div className="lp-globe-land" />
+              <div className="lp-globe-shine" />
+            </div>
           </div>
           <div style={{ marginTop: 48 }}>
             <Link href="/explore" className="lp-btn-light">
