@@ -1961,175 +1961,43 @@
   margin-right: auto;
 }
 
-/* ── Realistic 3D Globe ── */
-.lp-globe-static {
+/* ── Landing Globe (real Canvas) ── */
+.lp-globe-canvas {
   margin: 48px auto 0;
-  width: 380px;
-  height: 380px;
-  position: relative;
-}
-
-/* Star field behind globe */
-.lp-globe-static::before {
-  content: '';
-  position: absolute;
-  inset: -80px;
-  border-radius: 20px;
-  background:
-    radial-gradient(1.2px 1.2px at 28px 35px, rgba(255,255,255,0.7), transparent 2px),
-    radial-gradient(1px 1px at 115px 12px, rgba(255,255,255,0.45), transparent 2px),
-    radial-gradient(1.5px 1.5px at 205px 75px, rgba(255,255,255,0.6), transparent 2px),
-    radial-gradient(1px 1px at 310px 45px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 55px 145px, rgba(255,255,255,0.55), transparent 2px),
-    radial-gradient(1.3px 1.3px at 175px 185px, rgba(255,255,255,0.35), transparent 2px),
-    radial-gradient(1px 1px at 258px 128px, rgba(255,255,255,0.6), transparent 2px),
-    radial-gradient(1px 1px at 388px 155px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1.2px 1.2px at 425px 28px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1.5px 1.5px at 95px 305px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 355px 275px, rgba(255,255,255,0.55), transparent 2px),
-    radial-gradient(1px 1px at 465px 218px, rgba(255,255,255,0.3), transparent 2px),
-    radial-gradient(1px 1px at 68px 405px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1.3px 1.3px at 285px 355px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 445px 385px, rgba(255,255,255,0.6), transparent 2px),
-    radial-gradient(1px 1px at 18px 248px, rgba(255,255,255,0.35), transparent 2px),
-    radial-gradient(1.2px 1.2px at 505px 98px, rgba(255,255,255,0.45), transparent 2px),
-    radial-gradient(1px 1px at 325px 425px, rgba(255,255,255,0.4), transparent 2px),
-    radial-gradient(1px 1px at 490px 320px, rgba(255,255,255,0.3), transparent 2px),
-    radial-gradient(1.4px 1.4px at 140px 440px, rgba(255,255,255,0.5), transparent 2px),
-    radial-gradient(1px 1px at 410px 460px, rgba(255,255,255,0.35), transparent 2px),
-    radial-gradient(1px 1px at 230px 480px, rgba(255,255,255,0.45), transparent 2px);
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Atmosphere glow — brighter on the sun-facing (left) side */
-.lp-globe-static::after {
-  content: '';
-  position: absolute;
-  inset: -16px;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 28% 32%, rgba(80, 160, 255, 0.18) 44%, rgba(60, 140, 255, 0.08) 52%, transparent 62%),
-    radial-gradient(circle at 50% 50%, transparent 43%, rgba(60, 140, 255, 0.09) 50%, rgba(60, 140, 255, 0.05) 58%, transparent 68%);
-  z-index: 3;
-  pointer-events: none;
-}
-
-/* Globe sphere — deep ocean base */
-.lp-globe-sphere {
   width: 100%;
-  height: 100%;
-  border-radius: 50%;
+  max-width: 600px;
+  height: 480px;
+  border-radius: 20px;
   overflow: hidden;
   position: relative;
-  z-index: 1;
-  background: radial-gradient(circle at 38% 38%, #0f2a50 0%, #0a1e3c 40%, #061528 70%, #030b18 100%);
-  box-shadow:
-    0 0 50px rgba(60, 140, 255, 0.14),
-    0 0 100px rgba(60, 140, 255, 0.06),
-    0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-/* Continents layer — scrolls left to simulate rotation */
-.lp-globe-continents {
-  position: absolute;
-  inset: 0;
+.lp-globe-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Loading placeholder while canvas loads */
+.lp-globe-loading {
+  width: 100%;
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-globe-loading-sphere {
+  width: 280px;
+  height: 280px;
   border-radius: 50%;
-  background:
-    /* ── Europe ── */
-    radial-gradient(ellipse 45px 55px at 100px 105px, rgba(45, 165, 95, 0.75) 0%, rgba(40, 150, 85, 0.4) 50%, transparent 100%),
-    radial-gradient(ellipse 28px 32px at 85px 90px, rgba(50, 170, 100, 0.6) 0%, transparent 100%),
-    radial-gradient(ellipse 35px 20px at 115px 95px, rgba(48, 160, 95, 0.55) 0%, transparent 100%),
-    /* ── Africa ── */
-    radial-gradient(ellipse 38px 85px at 108px 185px, rgba(55, 170, 92, 0.7) 0%, rgba(45, 155, 80, 0.35) 55%, transparent 100%),
-    radial-gradient(ellipse 25px 40px at 95px 160px, rgba(50, 160, 88, 0.55) 0%, transparent 100%),
-    /* ── Asia (large mass) ── */
-    radial-gradient(ellipse 90px 50px at 175px 105px, rgba(48, 165, 90, 0.7) 0%, rgba(42, 150, 82, 0.35) 55%, transparent 100%),
-    radial-gradient(ellipse 45px 35px at 200px 130px, rgba(44, 158, 86, 0.6) 0%, transparent 100%),
-    radial-gradient(ellipse 30px 25px at 225px 110px, rgba(46, 162, 90, 0.5) 0%, transparent 100%),
-    radial-gradient(ellipse 20px 20px at 185px 80px, rgba(50, 168, 94, 0.5) 0%, transparent 100%),
-    /* ── India ── */
-    radial-gradient(ellipse 20px 30px at 200px 155px, rgba(52, 170, 95, 0.6) 0%, transparent 100%),
-    /* ── North America ── */
-    radial-gradient(ellipse 50px 48px at 510px 105px, rgba(50, 172, 96, 0.72) 0%, rgba(44, 155, 85, 0.35) 55%, transparent 100%),
-    radial-gradient(ellipse 30px 35px at 495px 130px, rgba(46, 165, 90, 0.6) 0%, transparent 100%),
-    radial-gradient(ellipse 22px 25px at 530px 90px, rgba(48, 168, 92, 0.5) 0%, transparent 100%),
-    /* ── Central America ── */
-    radial-gradient(ellipse 12px 20px at 490px 160px, rgba(52, 172, 95, 0.55) 0%, transparent 100%),
-    /* ── South America ── */
-    radial-gradient(ellipse 35px 72px at 480px 215px, rgba(55, 175, 98, 0.7) 0%, rgba(45, 158, 85, 0.35) 55%, transparent 100%),
-    radial-gradient(ellipse 22px 35px at 472px 190px, rgba(50, 168, 92, 0.55) 0%, transparent 100%),
-    /* ── Australia ── */
-    radial-gradient(ellipse 32px 22px at 260px 240px, rgba(55, 172, 95, 0.65) 0%, rgba(45, 155, 82, 0.3) 60%, transparent 100%),
-    /* ── Greenland ── */
-    radial-gradient(ellipse 28px 18px at 465px 52px, rgba(200, 220, 240, 0.4) 0%, rgba(180, 205, 225, 0.15) 60%, transparent 100%),
-    /* ── Antarctica ── */
-    radial-gradient(ellipse 140px 18px at 285px 355px, rgba(200, 220, 240, 0.3) 0%, rgba(180, 205, 225, 0.1) 60%, transparent 100%);
-  background-size: 570px 380px;
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  animation: globeContinents 55s linear infinite;
+  background: radial-gradient(circle at 38% 35%, #0f2a50 0%, #0a1e3c 50%, #030b18 100%);
+  box-shadow: 0 0 60px rgba(60, 140, 255, 0.12);
+  animation: globeLoadPulse 2s ease-in-out infinite;
 }
 
-/* Grid lines — longitude rotates, latitude stays */
-.lp-globe-grid {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    repeating-linear-gradient(90deg,
-      transparent 0px, transparent 56px,
-      rgba(80, 180, 255, 0.06) 56px, rgba(80, 180, 255, 0.06) 57px),
-    repeating-linear-gradient(0deg,
-      transparent 0px, transparent 38px,
-      rgba(80, 180, 255, 0.04) 38px, rgba(80, 180, 255, 0.04) 39px);
-  background-size: 570px 100%, 100% 100%;
-  background-repeat: repeat-x, repeat;
-  animation: globeGrid 55s linear infinite;
-}
-
-/* Static 3D shading + latitude grid — never moves, creates the sphere illusion */
-.lp-globe-shade {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background:
-    /* Specular highlight — small bright sun reflection */
-    radial-gradient(circle at 30% 26%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.06) 10%, transparent 22%),
-    /* Secondary diffuse glow */
-    radial-gradient(circle at 36% 36%, rgba(100, 180, 255, 0.07) 0%, transparent 35%),
-    /* Terminator — the light/dark boundary, angled from top-left to bottom-right */
-    linear-gradient(112deg,
-      transparent 30%,
-      rgba(0,0,0,0.08) 42%,
-      rgba(0,0,0,0.22) 52%,
-      rgba(0,0,0,0.42) 62%,
-      rgba(0,0,0,0.62) 75%,
-      rgba(0,0,0,0.82) 90%),
-    /* Limb darkening — sphere edges are always darker */
-    radial-gradient(circle at 40% 40%,
-      transparent 30%,
-      rgba(0,0,0,0.08) 50%,
-      rgba(0,0,0,0.25) 65%,
-      rgba(0,0,0,0.5) 80%,
-      rgba(0,0,0,0.78) 92%,
-      rgba(0,0,0,0.92) 100%),
-    /* Latitude grid lines — static horizontal rings */
-    repeating-linear-gradient(0deg,
-      transparent 0px, transparent 39px,
-      rgba(80, 180, 255, 0.04) 39px, rgba(80, 180, 255, 0.04) 40px);
-  pointer-events: none;
-  z-index: 2;
-}
-
-@keyframes globeContinents {
-  from { background-position: 0 0; }
-  to { background-position: 570px 0; }
-}
-
-@keyframes globeGrid {
-  from { background-position: 0 0, 0 0; }
-  to { background-position: 570px 0, 0 0; }
+@keyframes globeLoadPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1); }
 }
 
 .lp-btn-light {
@@ -2650,13 +2518,8 @@
     height: 240px;
   }
 
-  .lp-globe-static {
-    width: 280px;
-    height: 280px;
-  }
-
-  .lp-globe-static::before {
-    inset: -40px;
+  .lp-globe-canvas {
+    height: 340px;
   }
 
   .lp-footer-top {
@@ -2773,8 +2636,7 @@
   .lp-ticker-right,
   .lp-live-dot,
   .lp-live-dot > span,
-  .lp-globe-continents,
-  .lp-globe-grid,
+  .lp-globe-loading-sphere,
   .lp-typing-dot,
   .lp-plane-fly,
   .lp details p {
