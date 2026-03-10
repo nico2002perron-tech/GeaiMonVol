@@ -562,76 +562,80 @@ export default function CartoonGlobe({
 
         // Skip all event listeners in minimal mode — pure decoration
         if (minimal) {
+            // Pre-cache ocean gradient (never changes)
+            const oceanGrad = ctx.createRadialGradient(
+                cx - radius * 0.2, cy - radius * 0.15, radius * 0.1,
+                cx, cy, radius
+            );
+            oceanGrad.addColorStop(0, '#1a4a7a');
+            oceanGrad.addColorStop(0.45, '#0f3460');
+            oceanGrad.addColorStop(1, '#0a2340');
+
+            // Pre-cache shine gradient
+            const shine = ctx.createRadialGradient(
+                cx - radius * 0.3, cy - radius * 0.3, 0,
+                cx - radius * 0.3, cy - radius * 0.3, radius * 0.5
+            );
+            shine.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+            shine.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
+            shine.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            // Pre-cache edge shadow gradient
+            const edge = ctx.createRadialGradient(cx, cy, radius * 0.7, cx, cy, radius);
+            edge.addColorStop(0, 'rgba(5, 20, 50, 0)');
+            edge.addColorStop(0.85, 'rgba(5, 20, 50, 0.15)');
+            edge.addColorStop(1, 'rgba(5, 20, 50, 0.4)');
+
+            const dotSize = isMobile ? 1.8 : 2.2;
+            const halfDot = dotSize / 2;
+            const rSq = radius * radius;
+
             const animate = () => {
-                timeRef.current += 1;
-                if (!isDraggingRef.current && !isMouseOnGlobeRef.current) {
-                    rotationRef.current = [
-                        rotationRef.current[0] - 0.12,
-                        rotationRef.current[1],
-                        rotationRef.current[2],
-                    ];
-                }
-                const visibleRadius = radius;
-                const ctx2 = ctx;
-                ctx2.clearRect(0, 0, width, height);
+                rotationRef.current[0] -= 0.1;
+                ctx.clearRect(0, 0, width, height);
 
-                // Ocean sphere — dark navy blue
-                const oceanGrad = ctx2.createRadialGradient(
-                    cx - visibleRadius * 0.25, cy - visibleRadius * 0.2, 0,
-                    cx, cy, visibleRadius
-                );
-                oceanGrad.addColorStop(0, '#0d2847');
-                oceanGrad.addColorStop(0.5, '#091e3a');
-                oceanGrad.addColorStop(1, '#051530');
-                ctx2.fillStyle = oceanGrad;
-                ctx2.beginPath();
-                ctx2.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-                ctx2.fill();
+                // Cartoon ocean
+                ctx.fillStyle = oceanGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
 
-                // Dot-matrix continents
+                // Dot-matrix continents — fillRect (max perf)
                 const rotLng = -rotationRef.current[0];
                 const rotLat = -rotationRef.current[1];
                 const dots = landDotsRef.current;
-                const t = timeRef.current;
+                ctx.fillStyle = '#8AD0F5';
                 for (let i = 0; i < dots.length; i++) {
                     const d = dots[i];
-                    const p = projectOrtho(d.lng, d.lat, rotLng, rotLat, cx, cy, visibleRadius);
+                    const p = projectOrtho(d.lng, d.lat, rotLng, rotLat, cx, cy, radius);
                     if (!p) continue;
                     const dx = p[0] - cx, dy = p[1] - cy;
-                    const distRatio = Math.sqrt(dx * dx + dy * dy) / visibleRadius;
-                    const edgeFade = Math.max(0, 1 - distRatio * distRatio * 1.1);
-                    // Subtle shimmer per dot
-                    const shimmer = 0.85 + 0.15 * Math.sin(t * 0.02 + d.lng * 0.1 + d.lat * 0.1);
-                    const dotSize = isMobile ? 1.6 : 2.0;
-                    ctx2.globalAlpha = d.brightness * edgeFade * shimmer;
-                    // Cyan-tinted dots
-                    ctx2.fillStyle = '#7dd8f0';
-                    ctx2.beginPath();
-                    ctx2.arc(p[0], p[1], dotSize / 2, 0, Math.PI * 2);
-                    ctx2.fill();
+                    const distSq = dx * dx + dy * dy;
+                    const edgeFade = 1 - distSq / rSq;
+                    if (edgeFade <= 0) continue;
+                    ctx.globalAlpha = d.brightness * edgeFade;
+                    ctx.fillRect(p[0] - halfDot, p[1] - halfDot, dotSize, dotSize);
                 }
-                ctx2.globalAlpha = 1;
+                ctx.globalAlpha = 1;
 
-                // Subtle atmosphere rim glow
-                const atmoGrad = ctx2.createRadialGradient(cx, cy, visibleRadius * 0.92, cx, cy, visibleRadius * 1.08);
-                atmoGrad.addColorStop(0, 'rgba(0, 180, 255, 0)');
-                atmoGrad.addColorStop(0.5, 'rgba(0, 180, 255, 0.06)');
-                atmoGrad.addColorStop(1, 'rgba(0, 180, 255, 0)');
-                ctx2.fillStyle = atmoGrad;
-                ctx2.beginPath();
-                ctx2.arc(cx, cy, visibleRadius * 1.08, 0, Math.PI * 2);
-                ctx2.fill();
+                // Cartoon shine
+                ctx.fillStyle = shine;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
 
-                // Limb darkening — lighter to keep navy visible
-                const limbGrad = ctx2.createRadialGradient(cx, cy, visibleRadius * 0.4, cx, cy, visibleRadius);
-                limbGrad.addColorStop(0, 'rgba(3, 12, 30, 0)');
-                limbGrad.addColorStop(0.65, 'rgba(3, 12, 30, 0)');
-                limbGrad.addColorStop(0.88, 'rgba(3, 12, 30, 0.3)');
-                limbGrad.addColorStop(1, 'rgba(3, 12, 30, 0.7)');
-                ctx2.fillStyle = limbGrad;
-                ctx2.beginPath();
-                ctx2.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-                ctx2.fill();
+                // Edge shadow
+                ctx.fillStyle = edge;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Thin cartoon outline
+                ctx.strokeStyle = 'rgba(100, 180, 230, 0.2)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.stroke();
 
                 animFrameRef.current = requestAnimationFrame(animate);
             };
