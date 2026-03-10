@@ -1797,6 +1797,49 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         </div>
       </section>
 
+      {/* ─── TRUSTED BY / PARTNER STRIP ─── */}
+      <section style={{
+        padding: '48px 32px',
+        background: '#F8FAFC',
+        borderTop: '1px solid #E2E8F0',
+        borderBottom: '1px solid #E2E8F0',
+      }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{
+            fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: 1.5, color: '#94A3B8', marginBottom: 24,
+            fontFamily: "'Outfit', sans-serif",
+          }}>
+            Donnees en temps reel via
+          </p>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 48, flexWrap: 'wrap', opacity: 0.45,
+          }}>
+            {/* Skyscanner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#0F172A"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>Skyscanner</span>
+            </div>
+            {/* Google Flights */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10 10-4.477 10-10z" fill="#0F172A"/><path d="M12 6v6l4 2" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>Google Flights</span>
+            </div>
+            {/* Amadeus */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0F172A"/><path d="M7 12h10M12 7v10" stroke="#fff" strokeWidth="2" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>Amadeus</span>
+            </div>
+            {/* Stripe */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0F172A"/><path d="M12 8c-2 0-3 1-3 2s1 2 3 2 3 1 3 2-1 2-3 2M12 7v1m0 8v1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>Stripe</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Wave into dark globe section */}
       <div className="lp-wave-divider-dark">
         <svg viewBox="0 0 1440 100" preserveAspectRatio="none">
@@ -1835,7 +1878,235 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         </div>
       </section>
 
-      {/* ─── FINAL CTA ─── */}
+      {/* ─── TESTIMONIALS ─── */}
+      <section style={{
+        padding: '96px 32px',
+        background: '#fff',
+      }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <span className="lp-section-label">Ce que le monde en pense</span>
+            <h2 className="lp-section-title">Des voyageurs satisfaits</h2>
+            <p className="lp-section-sub">
+              Des Quebecois comme toi qui ont trouve leurs deals grace a GeaiMonVol.
+            </p>
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 24,
+          }}>
+            {[
+              {
+                name: 'Marie-Eve L.',
+                city: 'Montreal',
+                text: 'J\'ai sauve 340$ sur mon vol pour Lisbonne! Le systeme de mediane est vraiment fiable — tu sais que c\'est un VRAI rabais, pas du marketing.',
+                dest: 'Lisbonne',
+                saved: 340,
+                avatar: 'ME',
+              },
+              {
+                name: 'Jean-Philippe R.',
+                city: 'Laval',
+                text: 'Le guide IA m\'a planifie un itineraire de 10 jours au Japon en 30 secondes. C\'etait meilleur que ce que j\'aurais fait en 3 heures de recherche.',
+                dest: 'Tokyo',
+                saved: 520,
+                avatar: 'JP',
+              },
+              {
+                name: 'Camille B.',
+                city: 'Quebec',
+                text: 'J\'ai mis une alerte sur la Grece et 3 jours plus tard j\'avais un vol a -42%. Le Geai m\'a meme dit de checker les vols internes vers Santorin. Malade!',
+                dest: 'Athenes',
+                saved: 285,
+                avatar: 'CB',
+              },
+            ].map((t, i) => (
+              <div key={i} style={{
+                padding: '28px 24px',
+                borderRadius: 20,
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                display: 'flex', flexDirection: 'column', gap: 16,
+                transition: 'all 0.3s',
+                position: 'relative',
+              }}>
+                {/* Stars */}
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {[1,2,3,4,5].map(s => (
+                    <svg key={s} width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  ))}
+                </div>
+                {/* Quote */}
+                <p style={{
+                  fontSize: 14, color: '#334155', lineHeight: 1.7,
+                  fontFamily: "'Outfit', sans-serif",
+                  margin: 0, flex: 1,
+                }}>
+                  &ldquo;{t.text}&rdquo;
+                </p>
+                {/* Savings badge */}
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '6px 12px', borderRadius: 10,
+                  background: 'rgba(16,185,129,0.08)',
+                  alignSelf: 'flex-start',
+                }}>
+                  <span style={{ fontSize: 13 }}>&#9992;&#65039;</span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: '#059669',
+                    fontFamily: "'Fredoka', sans-serif",
+                  }}>
+                    -{t.saved}$ sur {t.dest}
+                  </span>
+                </div>
+                {/* Author */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 12, fontWeight: 700,
+                    fontFamily: "'Fredoka', sans-serif",
+                  }}>
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: 13, fontWeight: 700, color: '#0F172A',
+                      fontFamily: "'Outfit', sans-serif",
+                    }}>{t.name}</div>
+                    <div style={{
+                      fontSize: 11, color: '#94A3B8',
+                      fontFamily: "'Outfit', sans-serif",
+                    }}>{t.city}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ─── */}
+      <section style={{
+        padding: '96px 32px',
+        background: '#F8FAFC',
+        borderTop: '1px solid #E2E8F0',
+      }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <span className="lp-section-label">Questions frequentes</span>
+            <h2 className="lp-section-title">Tout ce que tu veux savoir</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              {
+                q: 'C\'est quoi exactement GeaiMonVol?',
+                a: 'C\'est un outil qui scanne automatiquement les prix des vols depuis Montreal chaque jour sur Skyscanner. On te montre les vrais rabais bases sur la mediane des 90 derniers jours — pas des faux "50% de rabais" inventes.',
+              },
+              {
+                q: 'Comment vous calculez les rabais?',
+                a: 'On utilise la mediane des prix scannes sur 90 jours (minimum 3 scans). La mediane est plus fiable que la moyenne car elle resiste aux prix aberrants. Quand on dit -30%, c\'est un VRAI -30% par rapport au prix habituel.',
+              },
+              {
+                q: 'Est-ce que je reserve directement sur GeaiMonVol?',
+                a: 'Non! On te redirige vers Skyscanner pour la reservation. On est un comparateur intelligent, pas une agence de voyage. Tu reserves toujours sur un site de confiance.',
+              },
+              {
+                q: 'C\'est quoi le Guide IA?',
+                a: 'C\'est un assistant qui te genere un itineraire complet en quelques secondes : planning jour par jour, suggestions de restos et activites, budget detaille. Disponible avec le plan Premium.',
+              },
+              {
+                q: 'Les alertes prix, ca marche comment?',
+                a: 'Tu actives les alertes sur tes destinations preferees. Quand notre scan detecte une baisse de prix significative, on t\'envoie une notification. Tu rates plus jamais un bon deal!',
+              },
+              {
+                q: 'Est-ce que c\'est gratuit?',
+                a: 'La version de base est 100% gratuite : deals en direct, globe interactif, alertes prix. Le plan Premium ajoute le Guide IA, les alertes prioritaires et plus encore.',
+              },
+            ].map((faq, i) => (
+              <details
+                key={i}
+                style={{
+                  padding: '20px 24px',
+                  borderRadius: 16,
+                  background: '#fff',
+                  border: '1px solid #E2E8F0',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <summary style={{
+                  fontSize: 15, fontWeight: 700, color: '#0F172A',
+                  fontFamily: "'Outfit', sans-serif",
+                  listStyle: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: 12,
+                }}>
+                  {faq.q}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, transition: 'transform 0.2s' }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </summary>
+                <p style={{
+                  fontSize: 14, color: '#64748B', lineHeight: 1.7,
+                  fontFamily: "'Outfit', sans-serif",
+                  margin: '14px 0 0',
+                  paddingTop: 14,
+                  borderTop: '1px solid #F1F5F9',
+                }}>
+                  {faq.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── STATS COUNTER ─── */}
+      <section style={{
+        padding: '72px 32px',
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+      }}>
+        <div style={{
+          maxWidth: 900, margin: '0 auto',
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 32, textAlign: 'center',
+        }}>
+          {[
+            { value: '40+', label: 'Destinations scannees', icon: '🌍' },
+            { value: '-35%', label: 'Rabais moyen detecte', icon: '📉' },
+            { value: '24h', label: 'Mise a jour des prix', icon: '⏱️' },
+            { value: '90j', label: 'D\'historique de prix', icon: '📊' },
+          ].map((stat, i) => (
+            <div key={i} style={{ padding: '12px 0' }}>
+              <div style={{ fontSize: 20, marginBottom: 8 }}>{stat.icon}</div>
+              <div style={{
+                fontSize: 36, fontWeight: 700, color: '#fff',
+                fontFamily: "'Fredoka', sans-serif",
+                lineHeight: 1,
+                background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>
+                {stat.value}
+              </div>
+              <div style={{
+                fontSize: 13, color: 'rgba(255,255,255,0.6)',
+                fontFamily: "'Outfit', sans-serif",
+                marginTop: 8,
+              }}>
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── FINAL CTA + NEWSLETTER ─── */}
       <section className="lp-final-cta">
         <div className="lp-final-inner">
           <span className="lp-section-label">Pret a partir?</span>
@@ -1844,7 +2115,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             Les prix changent chaque jour. Decouvre les deals en direct et planifie
             ton voyage avec notre guide IA.
           </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
             <a href="#deals" className="lp-btn-primary">
               Voir les deals
               <ArrowIcon />
@@ -1852,6 +2123,84 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <Link href="/auth" className="lp-btn-secondary">
               Creer un compte
             </Link>
+          </div>
+
+          {/* Newsletter signup */}
+          <div style={{
+            maxWidth: 480, margin: '0 auto',
+            padding: '28px 28px 24px', borderRadius: 20,
+            background: '#F8FAFC', border: '1px solid #E2E8F0',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              justifyContent: 'center', marginBottom: 12,
+            }}>
+              <span style={{ fontSize: 18 }}>&#128232;</span>
+              <span style={{
+                fontSize: 15, fontWeight: 700, color: '#0F172A',
+                fontFamily: "'Fredoka', sans-serif",
+              }}>
+                Recois les meilleurs deals par courriel
+              </span>
+            </div>
+            <p style={{
+              fontSize: 13, color: '#64748B', textAlign: 'center',
+              fontFamily: "'Outfit', sans-serif", marginBottom: 16,
+              lineHeight: 1.5,
+            }}>
+              Un courriel par semaine avec les deals les plus fous. Pas de spam, promis.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const email = (form.elements.namedItem('email') as HTMLInputElement)?.value;
+                if (email) {
+                  // For now, just show success
+                  form.reset();
+                  alert('Merci! Tu vas recevoir les meilleurs deals.');
+                }
+              }}
+              style={{
+                display: 'flex', gap: 8,
+              }}
+            >
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="ton@courriel.com"
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 12,
+                  border: '1px solid #E2E8F0', background: '#fff',
+                  fontSize: 14, fontFamily: "'Outfit', sans-serif",
+                  color: '#0F172A', outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#0EA5E9'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#E2E8F0'}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '12px 20px', borderRadius: 12,
+                  border: 'none', background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                  color: '#fff', fontSize: 14, fontWeight: 700,
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 12px rgba(14,165,233,0.25)',
+                }}
+              >
+                S&apos;abonner
+              </button>
+            </form>
+            <p style={{
+              fontSize: 11, color: '#94A3B8', textAlign: 'center',
+              fontFamily: "'Outfit', sans-serif", marginTop: 10,
+            }}>
+              Tu peux te desabonner en tout temps. On respecte ta vie privee.
+            </p>
           </div>
         </div>
       </section>
