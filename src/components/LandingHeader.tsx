@@ -50,7 +50,7 @@ export default function LandingHeader() {
               <span className="lp-live-dot" aria-hidden="true"><span /></span>
             </Link>
             <a href={h('#guide')} className="lp-nav-link">Guide GeaiAI</a>
-            <a href={h('#how')} className="lp-nav-link">Comment ca marche</a>
+            <a href={h('#how')} className="lp-nav-link">Comment ça marche</a>
           </div>
         </nav>
 
@@ -88,7 +88,7 @@ export default function LandingHeader() {
                     Guide GeaiAI
                   </a>
                   <div className="lp-h-drop-sep" />
-                  <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se deconnecter</button>
+                  <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se déconnecter</button>
                 </div>
               )}
             </div>
@@ -106,7 +106,7 @@ export default function LandingHeader() {
             Globe 3D <span className="lp-live-dot" aria-hidden="true"><span /></span>
           </Link>
           <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide GeaiAI</a>
-          <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ca marche</a>
+          <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
           <div className="lp-mob-sep" />
           {!user ? (
             <>
@@ -122,7 +122,7 @@ export default function LandingHeader() {
                   <span>{user.email}</span>
                 </div>
               </div>
-              <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="lp-mob-logout">Se deconnecter</button>
+              <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="lp-mob-logout">Se déconnecter</button>
             </>
           )}
         </div>

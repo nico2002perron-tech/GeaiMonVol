@@ -26,7 +26,7 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                 <li><Link href="#deals">Aubaines</Link></li>
                 <li>
                     <button onClick={(e) => { e.preventDefault(); onOpenHowItWorks?.(); }} className="nav-link-btn">
-                        Comment ca marche
+                        Comment ça marche
                     </button>
                 </li>
                 <li><Link href="/explore">Globe</Link></li>
@@ -50,7 +50,7 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                     <Link href="/" onClick={() => setMenuOpen(false)}>Carte interactive</Link>
                     <Link href="#deals" onClick={() => setMenuOpen(false)}>Aubaines</Link>
                     <button onClick={() => { onOpenHowItWorks?.(); setMenuOpen(false); }} className="nav-link-btn">
-                        Comment ca marche
+                        Comment ça marche
                     </button>
                     <Link href="/explore" onClick={() => setMenuOpen(false)}>Globe</Link>
                     <Link href="/auth" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>

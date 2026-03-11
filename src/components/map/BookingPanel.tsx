@@ -5,14 +5,14 @@ const HOTELS: { city: string; name: string; stars: number; price: number; img: s
 
 // Activity preference categories
 const PREF_CATEGORIES = [
-    { id: "culture", icon: "🏛", label: "Culture et histoire", desc: "Musees, monuments, sites historiques" },
-    { id: "food", icon: "🍽", label: "Gastronomie", desc: "Restaurants locaux, street food, marches" },
-    { id: "adventure", icon: "🤿", label: "Aventure et sport", desc: "Randonnee, plongee, velo, escalade" },
+    { id: "culture", icon: "🏛", label: "Culture et histoire", desc: "Musées, monuments, sites historiques" },
+    { id: "food", icon: "🍽", label: "Gastronomie", desc: "Restaurants locaux, street food, marchés" },
+    { id: "adventure", icon: "🤿", label: "Aventure et sport", desc: "Randonnée, plongée, vélo, escalade" },
     { id: "nature", icon: "🌿", label: "Nature et paysages", desc: "Parcs, plages, points de vue" },
     { id: "nightlife", icon: "🌙", label: "Vie nocturne", desc: "Bars, rooftops, spectacles" },
-    { id: "shopping", icon: "🛍", label: "Shopping", desc: "Marches locaux, boutiques, souvenirs" },
-    { id: "relax", icon: "🧘", label: "Detente et bien-etre", desc: "Spas, hammams, journees tranquilles" },
-    { id: "photo", icon: "📸", label: "Spots photo", desc: "Les meilleurs endroits pour des photos memorables" },
+    { id: "shopping", icon: "🛍", label: "Shopping", desc: "Marchés locaux, boutiques, souvenirs" },
+    { id: "relax", icon: "🧘", label: "Détente et bien-être", desc: "Spas, hammams, journées tranquilles" },
+    { id: "photo", icon: "📸", label: "Spots photo", desc: "Les meilleurs endroits pour des photos mémorables" },
 ];
 
 interface BookingPanelProps {
@@ -57,7 +57,7 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
             if (guideWanted && prefs.length > 0) {
                 sendGuideRequest();
             } else {
-                alert('Reservation confirmee ! Bon voyage a ' + selectedFlight.city + ' !');
+                alert('Réservation confirmée ! Bon voyage à ' + selectedFlight.city + ' !');
                 onClose();
             }
         }
@@ -77,21 +77,21 @@ export default function BookingPanel({ isOpen, onClose, selectedFlight }: Bookin
             'Nouvelle commande de Guide GeaiAI\n\n' +
             'Destination : ' + f.city + ', ' + f.country + '\n' +
             'Vol : ' + f.route + ' | ' + f.dates + ' | ' + f.price + ' $\n' +
-            (h ? 'Hotel : ' + h.name + ' (' + h.stars + ' etoiles, ' + h.price + ' $/nuit)\n' : 'Hotel : Non selectionne\n') +
-            'Duree : ' + tripDays + ' jours\n' +
+            (h ? 'Hôtel : ' + h.name + ' (' + h.stars + ' étoiles, ' + h.price + ' $/nuit)\n' : 'Hôtel : Non sélectionné\n') +
+            'Durée : ' + tripDays + ' jours\n' +
             'Jours de repos : ' + restDays + '\n' +
-            'Preferences : ' + prefsText + '\n' +
+            'Préférences : ' + prefsText + '\n' +
             'Email client : ' + email + '\n\n' +
             'Montant guide : 10 $\n' +
             '---\n' +
-            'A generer par l\'IA :\n' +
-            '- Plan jour par jour optimise\n' +
-            '- Meilleures activites touristiques incontournables\n' +
-            '- Reservations necessaires (sites, liens, quand reserver)\n' +
+            'À générer par l\'IA :\n' +
+            '- Plan jour par jour optimisé\n' +
+            '- Meilleures activités touristiques incontournables\n' +
+            '- Réservations nécessaires (sites, liens, quand réserver)\n' +
             '- Conseils pratiques et astuces locales'
         );
         window.open('mailto:votre@email.com?subject=' + subject + '&body=' + body, '_blank');
-        alert('Merci ! Votre guide personnalise pour ' + f.city + ' sera pret sous 24h. Verifiez vos courriels !');
+        alert('Merci ! Votre guide personnalisé pour ' + f.city + ' sera prêt sous 24h. Vérifiez vos courriels !');
         onClose();
     };
 

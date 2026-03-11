@@ -43,53 +43,53 @@ interface DestinationPopupProps {
 
 // ── Destination travel tips & nearby connections ──
 const DESTINATION_TIPS: Record<string, { tip: string; nearby?: { city: string; reason: string }[] }> = {
-    'Le Caire': { tip: 'Les pyramides de Gizeh et le Sphinx sont a 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallee des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongee en mer Rouge' }] },
-    'Cairo': { tip: 'Les pyramides de Gizeh et le Sphinx sont a 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallee des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongee en mer Rouge' }] },
-    'Egypte': { tip: 'Les pyramides de Gizeh sont incontournables, et Louxor est magique!', nearby: [{ city: 'Le Caire', reason: 'les pyramides' }, { city: 'Louxor', reason: 'la Vallee des Rois' }] },
-    'Lima': { tip: 'La gastronomie peruvienne est legendaire — ceviche, lomo saltado!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu (vols internes ~60$)' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
-    'Perou': { tip: 'Le Perou c\'est bien plus que Lima — Cuzco et le Machu Picchu sont un must!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
-    'Bogota': { tip: 'Le quartier La Candelaria est superbe, et le Museo del Oro est gratuit!', nearby: [{ city: 'Cartagena', reason: 'la vieille ville coloniale' }, { city: 'Medellin', reason: 'le climat eternel printemps' }] },
-    'Colombie': { tip: 'La Colombie c\'est incroyable — Cartagena, Medellin, le cafe...', nearby: [{ city: 'Cartagena', reason: 'la cote Caraibe' }, { city: 'Medellin', reason: 'la ville de l\'innovation' }] },
-    'Paris': { tip: 'Evite les restos touristiques pres de la Tour Eiffel — mange dans le Marais!', nearby: [{ city: 'Bruxelles', reason: 'a 1h20 en TGV' }, { city: 'Amsterdam', reason: 'a 3h15 en Thalys' }] },
-    'Londres': { tip: 'La plupart des musees sont GRATUITS — British Museum, Tate Modern, etc.', nearby: [{ city: 'Paris', reason: 'a 2h15 en Eurostar' }, { city: 'Edinburgh', reason: 'vols internes ~30 GBP' }] },
-    'Lisbonne': { tip: 'Prends le tram 28 pour traverser les plus beaux quartiers!', nearby: [{ city: 'Porto', reason: 'a 3h en train' }, { city: 'Sintra', reason: 'palais feeeriques a 40 min' }] },
-    'Barcelone': { tip: 'Reserve la Sagrada Familia en avance — c\'est souvent complet!', nearby: [{ city: 'Madrid', reason: 'a 2h30 en AVE' }, { city: 'Majorque', reason: 'vols internes ~30 EUR' }] },
-    'Rome': { tip: 'Le Vatican est gratuit le dernier dimanche du mois!', nearby: [{ city: 'Florence', reason: 'a 1h30 en train' }, { city: 'Naples', reason: 'pizza originale + Pompei' }] },
-    'Tokyo': { tip: 'Le Japan Rail Pass se rentabilise en 2 jours — achete-le avant de partir!', nearby: [{ city: 'Kyoto', reason: 'temples et geishas a 2h15 en Shinkansen' }, { city: 'Osaka', reason: 'la capitale du street food' }] },
+    'Le Caire': { tip: 'Les pyramides de Gizeh et le Sphinx sont à 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallée des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongée en mer Rouge' }] },
+    'Cairo': { tip: 'Les pyramides de Gizeh et le Sphinx sont à 20 min du centre-ville!', nearby: [{ city: 'Louxor', reason: 'la Vallée des Rois' }, { city: 'Charm el-Cheikh', reason: 'plongée en mer Rouge' }] },
+    'Egypte': { tip: 'Les pyramides de Gizeh sont incontournables, et Louxor est magique!', nearby: [{ city: 'Le Caire', reason: 'les pyramides' }, { city: 'Louxor', reason: 'la Vallée des Rois' }] },
+    'Lima': { tip: 'La gastronomie péruvienne est légendaire — ceviche, lomo saltado!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu (vols internes ~60$)' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
+    'Perou': { tip: 'Le Pérou c\'est bien plus que Lima — Cuzco et le Machu Picchu sont un must!', nearby: [{ city: 'Cuzco', reason: 'le Machu Picchu' }, { city: 'Arequipa', reason: 'le canyon de Colca' }] },
+    'Bogota': { tip: 'Le quartier La Candelaria est superbe, et le Museo del Oro est gratuit!', nearby: [{ city: 'Cartagena', reason: 'la vieille ville coloniale' }, { city: 'Medellin', reason: 'le climat éternel printemps' }] },
+    'Colombie': { tip: 'La Colombie c\'est incroyable — Cartagena, Medellin, le café...', nearby: [{ city: 'Cartagena', reason: 'la côte Caraïbe' }, { city: 'Medellin', reason: 'la ville de l\'innovation' }] },
+    'Paris': { tip: 'Évite les restos touristiques près de la Tour Eiffel — mange dans le Marais!', nearby: [{ city: 'Bruxelles', reason: 'à 1h20 en TGV' }, { city: 'Amsterdam', reason: 'à 3h15 en Thalys' }] },
+    'Londres': { tip: 'La plupart des musées sont GRATUITS — British Museum, Tate Modern, etc.', nearby: [{ city: 'Paris', reason: 'à 2h15 en Eurostar' }, { city: 'Edinburgh', reason: 'vols internes ~30 GBP' }] },
+    'Lisbonne': { tip: 'Prends le tram 28 pour traverser les plus beaux quartiers!', nearby: [{ city: 'Porto', reason: 'à 3h en train' }, { city: 'Sintra', reason: 'palais féeriques à 40 min' }] },
+    'Barcelone': { tip: 'Réserve la Sagrada Familia en avance — c\'est souvent complet!', nearby: [{ city: 'Madrid', reason: 'à 2h30 en AVE' }, { city: 'Majorque', reason: 'vols internes ~30 EUR' }] },
+    'Rome': { tip: 'Le Vatican est gratuit le dernier dimanche du mois!', nearby: [{ city: 'Florence', reason: 'à 1h30 en train' }, { city: 'Naples', reason: 'pizza originale + Pompéi' }] },
+    'Tokyo': { tip: 'Le Japan Rail Pass se rentabilise en 2 jours — achète-le avant de partir!', nearby: [{ city: 'Kyoto', reason: 'temples et geishas à 2h15 en Shinkansen' }, { city: 'Osaka', reason: 'la capitale du street food' }] },
     'Bangkok': { tip: 'Les temples sont gratuits ou presque — Wat Pho, Wat Arun, incroyable!', nearby: [{ city: 'Chiang Mai', reason: 'temples dans la jungle' }, { city: 'Phuket', reason: 'plages paradisiaques' }] },
-    'Thailande': { tip: 'La Thailande est super abordable — budget 30-50$/jour facilement!', nearby: [{ city: 'Chiang Mai', reason: 'le nord montagneux' }, { city: 'Krabi', reason: 'les iles Phi Phi' }] },
-    'Cancun': { tip: 'Chichen Itza est a 2h en bus — un des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'a 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
-    'Cancún': { tip: 'Chichen Itza est a 2h en bus — un des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'a 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
-    'Mexique': { tip: 'Le Mexique c\'est enorme — combine plage a Cancun et culture a Mexico!', nearby: [{ city: 'Mexico', reason: 'la capitale historique' }, { city: 'Oaxaca', reason: 'gastronomie + culture' }] },
-    'Punta Cana': { tip: 'Les tout-inclus sont parmi les meilleurs rapport qualite-prix des Caraibes!', nearby: [{ city: 'Santo Domingo', reason: 'la plus vieille ville des Ameriques' }] },
-    'La Havane': { tip: 'Apporte du cash — les cartes de credit canadiennes marchent rarement!', nearby: [{ city: 'Varadero', reason: 'la plage a 2h en bus' }, { city: 'Trinidad', reason: 'ville coloniale UNESCO' }] },
+    'Thailande': { tip: 'La Thaïlande est super abordable — budget 30-50$/jour facilement!', nearby: [{ city: 'Chiang Mai', reason: 'le nord montagneux' }, { city: 'Krabi', reason: 'les îles Phi Phi' }] },
+    'Cancun': { tip: 'Chichen Itza est à 2h en bus — une des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'à 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
+    'Cancún': { tip: 'Chichen Itza est à 2h en bus — une des 7 merveilles du monde!', nearby: [{ city: 'Playa del Carmen', reason: 'à 1h en bus' }, { city: 'Tulum', reason: 'ruines mayas sur la plage' }] },
+    'Mexique': { tip: 'Le Mexique c\'est énorme — combine plage à Cancun et culture à Mexico!', nearby: [{ city: 'Mexico', reason: 'la capitale historique' }, { city: 'Oaxaca', reason: 'gastronomie + culture' }] },
+    'Punta Cana': { tip: 'Les tout-inclus sont parmi les meilleurs rapport qualité-prix des Caraïbes!', nearby: [{ city: 'Santo Domingo', reason: 'la plus vieille ville des Amériques' }] },
+    'La Havane': { tip: 'Apporte du cash — les cartes de crédit canadiennes marchent rarement!', nearby: [{ city: 'Varadero', reason: 'la plage à 2h en bus' }, { city: 'Trinidad', reason: 'ville coloniale UNESCO' }] },
     'Cuba': { tip: 'Apporte du cash CAD ou EUR — les cartes fonctionnent rarement!', nearby: [{ city: 'La Havane', reason: 'autos classiques + culture' }, { city: 'Trinidad', reason: 'ville coloniale UNESCO' }] },
-    'New York': { tip: 'Le ferry de Staten Island est GRATUIT et offre une vue incroyable sur la Statue de la Liberte!', nearby: [{ city: 'Washington', reason: 'a 3h en bus Megabus' }] },
-    'Athenes': { tip: 'L\'Acropole est magique au coucher du soleil — evite midi!', nearby: [{ city: 'Santorin', reason: 'ferry ou vol interne ~40 EUR' }, { city: 'Crete', reason: 'plages + ruines minoennes' }] },
-    'Grece': { tip: 'Les iles grecques sont magiques — combine Athenes + Santorin!', nearby: [{ city: 'Santorin', reason: 'couchers de soleil legendaires' }, { city: 'Mykonos', reason: 'ambiance festive' }] },
-    'Marrakech': { tip: 'Negocie TOUT au souk — commence a 30% du prix demande!', nearby: [{ city: 'Fes', reason: 'la plus ancienne medina' }, { city: 'Essaouira', reason: 'ville cotiere a 3h' }] },
-    'Maroc': { tip: 'Le Maroc est incroyable et tres abordable depuis Montreal!', nearby: [{ city: 'Marrakech', reason: 'les souks et Jemaa el-Fna' }, { city: 'Fes', reason: 'la medina UNESCO' }] },
-    'Istanbul': { tip: 'Sainte-Sophie et la Mosquee Bleue sont cote a cote — prevois une journee!', nearby: [{ city: 'Cappadoce', reason: 'montgolfieres et grottes' }] },
+    'New York': { tip: 'Le ferry de Staten Island est GRATUIT et offre une vue incroyable sur la Statue de la Liberté!', nearby: [{ city: 'Washington', reason: 'à 3h en bus Megabus' }] },
+    'Athenes': { tip: 'L\'Acropole est magique au coucher du soleil — évite midi!', nearby: [{ city: 'Santorin', reason: 'ferry ou vol interne ~40 EUR' }, { city: 'Crète', reason: 'plages + ruines minoennes' }] },
+    'Grece': { tip: 'Les îles grecques sont magiques — combine Athènes + Santorin!', nearby: [{ city: 'Santorin', reason: 'couchers de soleil légendaires' }, { city: 'Mykonos', reason: 'ambiance festive' }] },
+    'Marrakech': { tip: 'Négocie TOUT au souk — commence à 30% du prix demandé!', nearby: [{ city: 'Fès', reason: 'la plus ancienne médina' }, { city: 'Essaouira', reason: 'ville côtière à 3h' }] },
+    'Maroc': { tip: 'Le Maroc est incroyable et très abordable depuis Montréal!', nearby: [{ city: 'Marrakech', reason: 'les souks et Jemaa el-Fna' }, { city: 'Fès', reason: 'la médina UNESCO' }] },
+    'Istanbul': { tip: 'Sainte-Sophie et la Mosquée Bleue sont côte à côte — prévois une journée!', nearby: [{ city: 'Cappadoce', reason: 'montgolfières et grottes' }] },
     'Turquie': { tip: 'La Turquie offre un mix incroyable de culture et plages!', nearby: [{ city: 'Istanbul', reason: 'histoire millénaire' }, { city: 'Cappadoce', reason: 'paysages lunaires' }] },
-    'Dublin': { tip: 'Le Guiness Storehouse vaut le detour — la vue du rooftop est malade!', nearby: [{ city: 'Galway', reason: 'la cote ouest sauvage' }, { city: 'Belfast', reason: 'Titanic Museum + Giant\'s Causeway' }] },
-    'Reykjavik': { tip: 'Le Blue Lagoon c\'est touristique mais magique. Reserve en avance!', nearby: [{ city: 'Cercle d\'Or', reason: 'geysers + cascades en 1 jour' }] },
-    'San José': { tip: 'Le Costa Rica c\'est la nature pure — forets, volcans, plages!', nearby: [{ city: 'Monteverde', reason: 'foret de nuages' }, { city: 'Manuel Antonio', reason: 'parc national + plage' }] },
-    'Costa Rica': { tip: 'Pura Vida! Le Costa Rica c\'est nature, aventure et plages!', nearby: [{ city: 'Monteverde', reason: 'tyroliennes dans la canopee' }, { city: 'La Fortuna', reason: 'volcan Arenal + sources chaudes' }] },
-    'Montego Bay': { tip: 'Les chutes de la riviere Dunn sont un incontournable!', nearby: [{ city: 'Negril', reason: 'Seven Mile Beach' }, { city: 'Ocho Rios', reason: 'plages et cascades' }] },
-    'Jamaique': { tip: 'La Jamaique c\'est reggae, plages et jerk chicken!', nearby: [{ city: 'Montego Bay', reason: 'la capitale touristique' }, { city: 'Kingston', reason: 'le musee Bob Marley' }] },
-    'Vancouver': { tip: 'Stanley Park et Granville Island sont des musts — et c\'est gratuit!', nearby: [{ city: 'Victoria', reason: 'ferry scenic de 90 min' }, { city: 'Whistler', reason: 'montagnes a 2h' }] },
-    'Calgary': { tip: 'Banff et Lake Louise sont a 1h30 — paysages de carte postale!', nearby: [{ city: 'Banff', reason: 'Rocheuses canadiennes' }, { city: 'Jasper', reason: 'Icefields Parkway' }] },
-    'Toronto': { tip: 'Le quartier Kensington Market est super pour la bouffe de rue!', nearby: [{ city: 'Chutes Niagara', reason: 'a 1h30 en bus' }, { city: 'Ottawa', reason: 'la capitale a 4h' }] },
-    'Varadero': { tip: 'La plage de Varadero fait 20 km de sable blanc!', nearby: [{ city: 'La Havane', reason: 'a 2h en bus' }] },
-    'Porto': { tip: 'Le port est obligatoire — visite les caves de Vila Nova de Gaia!', nearby: [{ city: 'Lisbonne', reason: 'a 3h en train' }, { city: 'Vallee du Douro', reason: 'vignobles en bateau' }] },
-    'Madrid': { tip: 'Le Musee du Prado est gratuit les 2 dernieres heures chaque jour!', nearby: [{ city: 'Tolede', reason: 'ville medievale a 30 min en train' }, { city: 'Seville', reason: 'a 2h30 en AVE' }] },
-    'Amsterdam': { tip: 'Loue un velo — c\'est LE moyen de transport a Amsterdam!', nearby: [{ city: 'Bruges', reason: 'a 3h en train' }, { city: 'Rotterdam', reason: 'architecture futuriste a 40 min' }] },
-    'Prague': { tip: 'La biere est moins chere que l\'eau — et elle est excellente!', nearby: [{ city: 'Vienne', reason: 'a 4h en train' }, { city: 'Cesky Krumlov', reason: 'village medieval UNESCO' }] },
-    'Budapest': { tip: 'Les bains thermaux Szechenyi sont un must — surtout en hiver!', nearby: [{ city: 'Vienne', reason: 'a 2h40 en train' }, { city: 'Bratislava', reason: 'a 2h30 en bus' }] },
-    'Bali': { tip: 'Ubud pour la culture, Seminyak pour la plage, Nusa Penida pour l\'aventure!', nearby: [{ city: 'Nusa Penida', reason: 'falaises et manta rays' }, { city: 'Gili Islands', reason: 'plongee + tortues' }] },
-    'Japon': { tip: 'Le JR Pass est indispensable — Shinkansen illimite!', nearby: [{ city: 'Tokyo', reason: 'la megalopole' }, { city: 'Kyoto', reason: 'les temples millénaires' }] },
-    'Inde': { tip: 'Le Taj Mahal au lever du soleil c\'est inoubliable!', nearby: [{ city: 'Delhi', reason: 'porte d\'entree' }, { city: 'Jaipur', reason: 'la ville rose du Rajasthan' }] },
-    'Vietnam': { tip: 'Ha Long Bay en bateau c\'est feerique — prevois 2 jours!', nearby: [{ city: 'Hanoi', reason: 'street food legendaire' }, { city: 'Ho Chi Minh', reason: 'la ville dynamique du sud' }] },
+    'Dublin': { tip: 'Le Guiness Storehouse vaut le détour — la vue du rooftop est malade!', nearby: [{ city: 'Galway', reason: 'la côte ouest sauvage' }, { city: 'Belfast', reason: 'Titanic Museum + Giant\'s Causeway' }] },
+    'Reykjavik': { tip: 'Le Blue Lagoon c\'est touristique mais magique. Réserve en avance!', nearby: [{ city: 'Cercle d\'Or', reason: 'geysers + cascades en 1 jour' }] },
+    'San José': { tip: 'Le Costa Rica c\'est la nature pure — forêts, volcans, plages!', nearby: [{ city: 'Monteverde', reason: 'forêt de nuages' }, { city: 'Manuel Antonio', reason: 'parc national + plage' }] },
+    'Costa Rica': { tip: 'Pura Vida! Le Costa Rica c\'est nature, aventure et plages!', nearby: [{ city: 'Monteverde', reason: 'tyroliennes dans la canopée' }, { city: 'La Fortuna', reason: 'volcan Arenal + sources chaudes' }] },
+    'Montego Bay': { tip: 'Les chutes de la rivière Dunn sont un incontournable!', nearby: [{ city: 'Negril', reason: 'Seven Mile Beach' }, { city: 'Ocho Rios', reason: 'plages et cascades' }] },
+    'Jamaique': { tip: 'La Jamaïque c\'est reggae, plages et jerk chicken!', nearby: [{ city: 'Montego Bay', reason: 'la capitale touristique' }, { city: 'Kingston', reason: 'le musée Bob Marley' }] },
+    'Vancouver': { tip: 'Stanley Park et Granville Island sont des musts — et c\'est gratuit!', nearby: [{ city: 'Victoria', reason: 'ferry scenic de 90 min' }, { city: 'Whistler', reason: 'montagnes à 2h' }] },
+    'Calgary': { tip: 'Banff et Lake Louise sont à 1h30 — paysages de carte postale!', nearby: [{ city: 'Banff', reason: 'Rocheuses canadiennes' }, { city: 'Jasper', reason: 'Icefields Parkway' }] },
+    'Toronto': { tip: 'Le quartier Kensington Market est super pour la bouffe de rue!', nearby: [{ city: 'Chutes Niagara', reason: 'à 1h30 en bus' }, { city: 'Ottawa', reason: 'la capitale à 4h' }] },
+    'Varadero': { tip: 'La plage de Varadero fait 20 km de sable blanc!', nearby: [{ city: 'La Havane', reason: 'à 2h en bus' }] },
+    'Porto': { tip: 'Le port est obligatoire — visite les caves de Vila Nova de Gaia!', nearby: [{ city: 'Lisbonne', reason: 'à 3h en train' }, { city: 'Vallée du Douro', reason: 'vignobles en bateau' }] },
+    'Madrid': { tip: 'Le Musée du Prado est gratuit les 2 dernières heures chaque jour!', nearby: [{ city: 'Tolède', reason: 'ville médiévale à 30 min en train' }, { city: 'Séville', reason: 'à 2h30 en AVE' }] },
+    'Amsterdam': { tip: 'Loue un vélo — c\'est LE moyen de transport à Amsterdam!', nearby: [{ city: 'Bruges', reason: 'à 3h en train' }, { city: 'Rotterdam', reason: 'architecture futuriste à 40 min' }] },
+    'Prague': { tip: 'La bière est moins chère que l\'eau — et elle est excellente!', nearby: [{ city: 'Vienne', reason: 'à 4h en train' }, { city: 'Cesky Krumlov', reason: 'village médiéval UNESCO' }] },
+    'Budapest': { tip: 'Les bains thermaux Szechenyi sont un must — surtout en hiver!', nearby: [{ city: 'Vienne', reason: 'à 2h40 en train' }, { city: 'Bratislava', reason: 'à 2h30 en bus' }] },
+    'Bali': { tip: 'Ubud pour la culture, Seminyak pour la plage, Nusa Penida pour l\'aventure!', nearby: [{ city: 'Nusa Penida', reason: 'falaises et manta rays' }, { city: 'Gili Islands', reason: 'plongée + tortues' }] },
+    'Japon': { tip: 'Le JR Pass est indispensable — Shinkansen illimité!', nearby: [{ city: 'Tokyo', reason: 'la mégalopole' }, { city: 'Kyoto', reason: 'les temples millénaires' }] },
+    'Inde': { tip: 'Le Taj Mahal au lever du soleil c\'est inoubliable!', nearby: [{ city: 'Delhi', reason: 'porte d\'entrée' }, { city: 'Jaipur', reason: 'la ville rose du Rajasthan' }] },
+    'Vietnam': { tip: 'Ha Long Bay en bateau c\'est féerique — prévois 2 jours!', nearby: [{ city: 'Hanoi', reason: 'street food légendaire' }, { city: 'Ho Chi Minh', reason: 'la ville dynamique du sud' }] },
 };
 
 function formatDateFr(dateStr: string): string {
@@ -136,16 +136,16 @@ function getGeaiPopupQuote(
     let savings = '';
     if (dollarSaved > 0 && historyCount >= 3) {
         if (dealLevel === 'lowest_ever') {
-            savings = `AYOYE! A ${Math.round(bestPrice)}$, tu sauves ${dollarSaved}$ vs le prix habituel! C'est le prix le plus bas que j'ai JAMAIS scanne!`;
+            savings = `AYOYE! À ${Math.round(bestPrice)}$, tu sauves ${dollarSaved}$ vs le prix habituel! C'est le prix le plus bas que j'ai JAMAIS scanné!`;
         } else if (dealLevel === 'incredible') {
-            savings = `Wow! A ce prix-la tu sauves ${dollarSaved}$ par rapport a la mediane de ${Math.round(refPrice)}$! J'ai analyse ${historyCount} prix en 90 jours — c'est un deal en OR!`;
+            savings = `Wow! À ce prix-là tu sauves ${dollarSaved}$ par rapport à la médiane de ${Math.round(refPrice)}$! J'ai analysé ${historyCount} prix en 90 jours — c'est un deal en OR!`;
         } else if (dealLevel === 'great') {
             savings = `Beau deal! Tu sauves ${dollarSaved}$ vs le prix habituel de ${Math.round(refPrice)}$. Mon scan de ${historyCount} prix confirme que c'est legit!`;
         } else {
-            savings = `Pas pire! Tu sauves ${dollarSaved}$ par rapport au prix median de ${Math.round(refPrice)}$. Basé sur ${historyCount} prix scannes.`;
+            savings = `Pas pire! Tu sauves ${dollarSaved}$ par rapport au prix médian de ${Math.round(refPrice)}$. Basé sur ${historyCount} prix scannés.`;
         }
     } else if (historyCount >= 3) {
-        savings = `Prix actuel: ${Math.round(bestPrice)}$ (mediane: ${Math.round(refPrice)}$ sur ${historyCount} scans). Pas de rabais fou, mais c'est un prix honnete!`;
+        savings = `Prix actuel: ${Math.round(bestPrice)}$ (médiane: ${Math.round(refPrice)}$ sur ${historyCount} scans). Pas de rabais fou, mais c'est un prix honnête!`;
     } else {
         savings = `Prix actuel: ${Math.round(bestPrice)}$. J'ai pas encore assez de data pour comparer — je continue de scanner!`;
     }
@@ -303,7 +303,7 @@ export default function DestinationPopup({
     const cheapestPrice = deals.length > 0 ? Math.min(...deals.map(d => d.price)) : 0;
 
     const shareDestination = () => {
-        const text = `Vol Montreal → ${destination} des ${cheapestPrice}$ A/R sur GeaiMonVol`;
+        const text = `Vol Montréal → ${destination} dès ${cheapestPrice}$ A/R sur GeaiMonVol`;
         const url = window.location.href;
         if (navigator.share) {
             navigator.share({ title: `Deal GeaiMonVol - ${destination}`, text, url }).catch(() => {});
@@ -622,7 +622,7 @@ export default function DestinationPopup({
                                                         borderRadius: 100, background: 'rgba(14,165,233,0.15)',
                                                         color: 'rgba(14,165,233,0.7)', fontFamily: "'Outfit', sans-serif",
                                                     }}>
-                                                        {effHistory} prix analyses
+                                                        {effHistory} prix analysés
                                                     </span>
                                                 )}
                                             </div>
@@ -1048,10 +1048,10 @@ export default function DestinationPopup({
                             }}>
                                 <div style={{ fontSize: 40, marginBottom: 12 }}>&#9992;</div>
                                 <div style={{ fontSize: 15, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                                    Pas encore de dates scannees
+                                    Pas encore de dates scannées
                                 </div>
                                 <div style={{ fontSize: 13, marginBottom: 20, lineHeight: 1.5, maxWidth: 320, margin: '0 auto 20px' }}>
-                                    Les prix sont mis a jour automatiquement.
+                                    Les prix sont mis à jour automatiquement.
                                     Cherche directement sur Skyscanner en attendant.
                                 </div>
                                 <a

@@ -7,7 +7,7 @@ const getRegionForCountry = (name: string) => name || null;
 import { PRIORITY_DESTINATIONS } from '@/lib/services/flights';
 
 /* ═══════════════════════════════════════════════════════════════
-   GLOBE 3D — Cartoon Globe (light theme, pale blue gradient)
+   GLOBE 3D — Dark Ocean Globe (deep navy + turquoise continents)
    ═══════════════════════════════════════════════════════════════ */
 
 const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
@@ -87,17 +87,18 @@ const BADGE_COLORS: Record<string, string> = {
     normal: '#0EA5E9',
 };
 
-// Continent color palette — vibrant cartoon for light theme
+// Continent color palette — dark ocean theme with turquoise/cyan tones
+const TURQUOISE_CONTINENT = { base: '#0b3d4f', deal: '#0d7a8a', stroke: '#0099b8', dealStroke: '#00b4d8', hover: '#12607a', hoverDeal: '#00d4ff' };
 const CONTINENT_COLORS: Record<string, { base: string; deal: string; stroke: string; dealStroke: string; hover: string; hoverDeal: string }> = {
-    amerique_nord: { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' },
-    amerique_sud:  { base: '#FADCB8', deal: '#F5C898', stroke: '#E8C8A8', dealStroke: '#E0B890', hover: '#FDE8D0', hoverDeal: '#F8D4A8' },
-    caraibes:      { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' },
-    europe:        { base: '#CCBAFF', deal: '#B0A0F0', stroke: '#B8A8E0', dealStroke: '#9888D8', hover: '#DDD0FF', hoverDeal: '#C0B0F8' },
-    asie:          { base: '#FAE898', deal: '#F5DC78', stroke: '#E8D890', dealStroke: '#E0CC70', hover: '#FDF0B8', hoverDeal: '#F8E488' },
-    afrique:       { base: '#F8C4B8', deal: '#F0ACA0', stroke: '#E0B8B0', dealStroke: '#D8A098', hover: '#FAD8D0', hoverDeal: '#F5BCA8' },
-    oceanie:       { base: '#F8C0D0', deal: '#F0A8C0', stroke: '#E0B0C0', dealStroke: '#D8A0B0', hover: '#FAD4E0', hoverDeal: '#F5B8D0' },
+    amerique_nord: TURQUOISE_CONTINENT,
+    amerique_sud:  TURQUOISE_CONTINENT,
+    caraibes:      TURQUOISE_CONTINENT,
+    europe:        TURQUOISE_CONTINENT,
+    asie:          TURQUOISE_CONTINENT,
+    afrique:       TURQUOISE_CONTINENT,
+    oceanie:       TURQUOISE_CONTINENT,
 };
-const DEFAULT_CONTINENT = { base: '#B8EDCE', deal: '#8CE0B0', stroke: '#98D8B8', dealStroke: '#70CCA0', hover: '#D0F4E0', hoverDeal: '#A0E8C0' };
+const DEFAULT_CONTINENT = TURQUOISE_CONTINENT;
 
 // Module-level cache for world atlas
 let worldAtlasCache: any = null;
@@ -222,14 +223,14 @@ interface ShootingStar {
 
 function generateStars(width: number, height: number): Star[] {
     const stars: Star[] = [];
-    const starColors = ['#E0F8FF', '#D4F0FF', '#FFE8F0', '#E8E0FF', '#D4FFE8', '#FFF0D4', '#FFFFFF'];
-    for (let i = 0; i < 160; i++) {
+    const starColors = ['#C0E8FF', '#A0D8F0', '#E0F0FF', '#80C8E8', '#FFFFFF', '#B0E0FF'];
+    for (let i = 0; i < 120; i++) {
         stars.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            size: 0.3 + Math.random() * 1.8,
-            baseOpacity: 0.25 + Math.random() * 0.65,
-            twinkleSpeed: 0.008 + Math.random() * 0.03,
+            size: 0.3 + Math.random() * 1.2,
+            baseOpacity: 0.2 + Math.random() * 0.55,
+            twinkleSpeed: 0.01 + Math.random() * 0.035,
             phase: Math.random() * Math.PI * 2,
             color: starColors[Math.floor(Math.random() * starColors.length)],
         });
@@ -567,55 +568,92 @@ export default function CartoonGlobe({
                 cx - radius * 0.15, cy - radius * 0.1, radius * 0.05,
                 cx, cy, radius
             );
-            oceanGrad.addColorStop(0, '#5bb8e8');
-            oceanGrad.addColorStop(0.5, '#3a8fd4');
-            oceanGrad.addColorStop(1, '#1b5fa0');
+            oceanGrad.addColorStop(0, '#0f2942');
+            oceanGrad.addColorStop(0.5, '#0a1e35');
+            oceanGrad.addColorStop(1, '#061525');
 
             const shine = ctx.createRadialGradient(
                 cx - radius * 0.3, cy - radius * 0.35, 0,
-                cx - radius * 0.3, cy - radius * 0.35, radius * 0.55
+                cx - radius * 0.3, cy - radius * 0.35, radius * 0.5
             );
-            shine.addColorStop(0, 'rgba(255, 255, 255, 0.25)');
-            shine.addColorStop(0.4, 'rgba(255, 255, 255, 0.06)');
-            shine.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            shine.addColorStop(0, 'rgba(0, 180, 216, 0.06)');
+            shine.addColorStop(0.4, 'rgba(0, 180, 216, 0.02)');
+            shine.addColorStop(1, 'rgba(0, 180, 216, 0)');
 
-            const edge = ctx.createRadialGradient(cx, cy, radius * 0.75, cx, cy, radius);
-            edge.addColorStop(0, 'rgba(10, 40, 80, 0)');
-            edge.addColorStop(0.85, 'rgba(10, 40, 80, 0.12)');
-            edge.addColorStop(1, 'rgba(10, 40, 80, 0.35)');
+            const edge = ctx.createRadialGradient(cx, cy, radius * 0.8, cx, cy, radius);
+            edge.addColorStop(0, 'rgba(0, 10, 25, 0)');
+            edge.addColorStop(1, 'rgba(0, 10, 25, 0.3)');
 
             const projection = d3.geoOrthographic()
                 .scale(radius).translate([cx, cy]).clipAngle(90);
             const pathGen = d3.geoPath().projection(projection).context(ctx);
+
+            // Pre-generate small stars for minimal mode
+            const miniStars: { x: number; y: number; r: number; a: number; sp: number; ph: number }[] = [];
+            for (let i = 0; i < 80; i++) {
+                const sx = Math.random() * width;
+                const sy = Math.random() * height;
+                const dx = sx - cx, dy = sy - cy;
+                if (dx * dx + dy * dy < (radius + 6) * (radius + 6)) continue;
+                miniStars.push({ x: sx, y: sy, r: 0.3 + Math.random() * 1.0, a: 0.2 + Math.random() * 0.5, sp: 0.01 + Math.random() * 0.03, ph: Math.random() * Math.PI * 2 });
+            }
 
             const animate = () => {
                 rotationRef.current[0] -= 0.1;
                 projection.rotate(rotationRef.current);
                 ctx.clearRect(0, 0, width, height);
 
-                // Cartoon ocean sphere
+                // Twinkling stars
+                const t = rotationRef.current[0] * 0.1;
+                ctx.fillStyle = '#B0E0FF';
+                for (const s of miniStars) {
+                    ctx.globalAlpha = s.a * (0.4 + 0.6 * Math.abs(Math.sin(t * s.sp + s.ph)));
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                // Even blue glow behind globe
+                ctx.save();
+                const glR = radius * 1.35;
+                const glowGrad = ctx.createRadialGradient(cx, cy, radius * 0.85, cx, cy, glR);
+                glowGrad.addColorStop(0, 'rgba(0, 180, 216, 0.18)');
+                glowGrad.addColorStop(0.4, 'rgba(0, 160, 210, 0.08)');
+                glowGrad.addColorStop(0.7, 'rgba(0, 140, 200, 0.03)');
+                glowGrad.addColorStop(1, 'rgba(0, 120, 180, 0)');
+                ctx.fillStyle = glowGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, glR, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // Dark ocean sphere
                 ctx.fillStyle = oceanGrad;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Solid cartoon continents — pale blue
+                // Turquoise continents with neon strokes
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.clip();
-                ctx.fillStyle = '#b8e2f8';
-                ctx.strokeStyle = 'rgba(80, 160, 210, 0.4)';
-                ctx.lineWidth = 0.6;
+                ctx.fillStyle = '#0b3d4f';
                 for (const country of countries) {
                     ctx.beginPath();
                     pathGen(country);
                     ctx.fill();
+                    ctx.strokeStyle = '#0099b8';
+                    ctx.shadowColor = '#0099b8';
+                    ctx.shadowBlur = 3;
+                    ctx.lineWidth = 0.6;
                     ctx.stroke();
+                    ctx.shadowBlur = 0;
                 }
                 ctx.restore();
 
-                // Cartoon shine highlight
+                // Subtle shine
                 ctx.fillStyle = shine;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -627,9 +665,9 @@ export default function CartoonGlobe({
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Thin cartoon outline
-                ctx.strokeStyle = 'rgba(100, 180, 230, 0.3)';
-                ctx.lineWidth = 1.5;
+                // Thin cyan outline
+                ctx.strokeStyle = 'rgba(0, 180, 216, 0.2)';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.stroke();
@@ -904,55 +942,59 @@ export default function CartoonGlobe({
                 .scale(visibleRadius).translate([cx, cy]).rotate(rotationRef.current).clipAngle(90);
             const path = d3.geoPath().projection(projection).context(ctx);
 
-            // ─── CLEAR CANVAS (transparent — shows page gradient behind) ───
+            // ─── CLEAR CANVAS ───
             ctx.clearRect(0, 0, width, height);
 
-            // ─── DROP SHADOW (floating effect) ───
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.14)';
-            ctx.shadowBlur = 50;
-            ctx.shadowOffsetY = 16;
-            ctx.fillStyle = 'rgba(0,0,0,0)';
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.restore();
-
-            // ─── OCEAN (flat pale blue) ───
-            ctx.fillStyle = '#8AD0F5';
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // ─── OCEAN WAVE SHIMMER ───
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.globalAlpha = 0.06;
-            const waveTime = timeRef.current * 0.008;
-            for (let wy = -visibleRadius; wy < visibleRadius; wy += 18) {
-                ctx.beginPath();
-                for (let wx = -visibleRadius; wx < visibleRadius; wx += 3) {
-                    const dx = wx, dy = wy;
-                    if (dx * dx + dy * dy > visibleRadius * visibleRadius) continue;
-                    const waveY = cy + dy + Math.sin(wx * 0.02 + waveTime + wy * 0.01) * 3;
-                    if (wx === -visibleRadius) ctx.moveTo(cx + dx, waveY);
-                    else ctx.lineTo(cx + dx, waveY);
+            // ─── TWINKLING STARS ───
+            const stars = starsRef.current;
+            if (stars.length > 0) {
+                for (let i = 0; i < stars.length; i++) {
+                    const s = stars[i];
+                    const dx = s.x - cx, dy = s.y - cy;
+                    // Skip stars behind the globe
+                    if (dx * dx + dy * dy < (visibleRadius + 4) * (visibleRadius + 4)) continue;
+                    const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(timeRef.current * s.twinkleSpeed + s.phase));
+                    ctx.globalAlpha = s.baseOpacity * twinkle;
+                    ctx.fillStyle = s.color;
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    ctx.fill();
                 }
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                ctx.lineWidth = 0.6;
-                ctx.stroke();
+                ctx.globalAlpha = 1;
             }
+
+            // ─── EVEN BLUE GLOW BEHIND THE GLOBE ───
+            ctx.save();
+            const glowRadius = visibleRadius * 1.35;
+            const evenGlow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.85, cx, cy, glowRadius);
+            evenGlow.addColorStop(0, 'rgba(0, 180, 216, 0.20)');
+            evenGlow.addColorStop(0.4, 'rgba(0, 160, 210, 0.10)');
+            evenGlow.addColorStop(0.7, 'rgba(0, 140, 200, 0.04)');
+            evenGlow.addColorStop(1, 'rgba(0, 120, 180, 0)');
+            ctx.fillStyle = evenGlow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
 
-            // ─── GRATICULE (subtle cartoon grid) ───
+            // ─── OCEAN (deep dark navy) ───
+            const oceanGrad = ctx.createRadialGradient(
+                cx - visibleRadius * 0.15, cy - visibleRadius * 0.1, visibleRadius * 0.05,
+                cx, cy, visibleRadius
+            );
+            oceanGrad.addColorStop(0, '#0f2942');
+            oceanGrad.addColorStop(0.5, '#0a1e35');
+            oceanGrad.addColorStop(1, '#061525');
+            ctx.fillStyle = oceanGrad;
+            ctx.beginPath();
+            ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // ─── GRATICULE (very subtle dark grid) ───
             ctx.save();
-            ctx.globalAlpha = 0.1;
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 0.4;
+            ctx.globalAlpha = 0.06;
+            ctx.strokeStyle = 'rgba(0, 180, 216, 0.4)';
+            ctx.lineWidth = 0.3;
             ctx.beginPath();
             path(graticule);
             ctx.stroke();
@@ -991,21 +1033,24 @@ export default function CartoonGlobe({
                 ctx.fill();
                 ctx.globalAlpha = 1;
 
-                // Cartoon-style outline matching region
+                // Neon outline with glow
                 if (hasDeal) {
                     ctx.strokeStyle = isHovered ? cc.hoverDeal : cc.dealStroke;
                 } else {
                     ctx.strokeStyle = isHovered ? cc.hover : cc.stroke;
                 }
-                ctx.lineWidth = isHovered ? 1.8 : 0.8;
+                ctx.shadowColor = cc.stroke;
+                ctx.shadowBlur = isHovered ? 8 : 3;
+                ctx.lineWidth = isHovered ? 1.4 : 0.7;
                 ctx.stroke();
+                ctx.shadowBlur = 0;
 
-                // Glow effect on hovered deal countries
+                // Extra glow on hovered deal countries
                 if (isHovered && hasDeal) {
                     ctx.save();
-                    ctx.globalAlpha = 0.3;
-                    ctx.shadowColor = cc.deal;
-                    ctx.shadowBlur = 24;
+                    ctx.globalAlpha = 0.35;
+                    ctx.shadowColor = cc.dealStroke;
+                    ctx.shadowBlur = 28;
                     ctx.beginPath();
                     path(country);
                     ctx.fill();
@@ -1014,55 +1059,22 @@ export default function CartoonGlobe({
             }
             ctx.restore();
 
-            // ─── INNER EDGE SHADOW (spherical depth) ───
+            // ─── INNER EDGE SHADOW (spherical depth — darker for dark theme) ───
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.clip();
             const innerShadow = ctx.createRadialGradient(cx, cy, visibleRadius * 0.7, cx, cy, visibleRadius);
             innerShadow.addColorStop(0, 'rgba(0, 0, 0, 0)');
-            innerShadow.addColorStop(0.85, 'rgba(0, 40, 80, 0)');
-            innerShadow.addColorStop(1, 'rgba(0, 40, 80, 0.12)');
+            innerShadow.addColorStop(0.85, 'rgba(0, 10, 25, 0)');
+            innerShadow.addColorStop(1, 'rgba(0, 10, 25, 0.25)');
             ctx.fillStyle = innerShadow;
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            // ─── CLOUD WISPS (animated semi-transparent) ───
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, visibleRadius * 0.98, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.globalAlpha = 0.18;
-            const cloudRotation = timeRef.current * 0.002;
-            const cloudPatches = [
-                { lat: 35, lng: 20, size: 50 },
-                { lat: -15, lng: -60, size: 40 },
-                { lat: 50, lng: -110, size: 55 },
-                { lat: 10, lng: 80, size: 45 },
-                { lat: -40, lng: 140, size: 35 },
-                { lat: 60, lng: 60, size: 42 },
-                { lat: -25, lng: 30, size: 38 },
-                { lat: 25, lng: -30, size: 48 },
-            ];
-            for (const cloud of cloudPatches) {
-                const cloudLng = cloud.lng + cloudRotation * (180 / Math.PI);
-                const projected = projection([cloudLng, cloud.lat]);
-                if (!projected) continue;
-                const [px, py] = projected;
-                const cloudGrad = ctx.createRadialGradient(px, py, 0, px, py, cloud.size);
-                cloudGrad.addColorStop(0, 'rgba(255,255,255,0.7)');
-                cloudGrad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
-                cloudGrad.addColorStop(1, 'rgba(255,255,255,0)');
-                ctx.fillStyle = cloudGrad;
-                ctx.beginPath();
-                ctx.ellipse(px, py, cloud.size, cloud.size * 0.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.restore();
-
-            // ─── SPECULAR HIGHLIGHT (subtle 3D shine, top-left) ───
+            // ─── SUBTLE SPECULAR (very faint blue-white top-left shine) ───
             ctx.save();
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
@@ -1071,16 +1083,16 @@ export default function CartoonGlobe({
                 cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, 0,
                 cx - visibleRadius * 0.35, cy - visibleRadius * 0.35, visibleRadius * 0.55
             );
-            specular.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-            specular.addColorStop(0.3, 'rgba(255, 255, 255, 0.12)');
-            specular.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            specular.addColorStop(0, 'rgba(0, 200, 255, 0.08)');
+            specular.addColorStop(0.3, 'rgba(0, 200, 255, 0.03)');
+            specular.addColorStop(1, 'rgba(0, 200, 255, 0)');
             ctx.fillStyle = specular;
             ctx.fillRect(cx - visibleRadius, cy - visibleRadius, visibleRadius * 2, visibleRadius * 2);
             ctx.restore();
 
-            // ─── THIN BORDER (crisp edge) ───
+            // ─── THIN CYAN BORDER ───
             ctx.save();
-            ctx.strokeStyle = 'rgba(0, 50, 100, 0.1)';
+            ctx.strokeStyle = 'rgba(0, 180, 216, 0.15)';
             ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.arc(cx, cy, visibleRadius, 0, Math.PI * 2);
@@ -1337,7 +1349,7 @@ export default function CartoonGlobe({
                 ctx.shadowBlur = 0;
                 ctx.restore();
 
-                // White glass pill label
+                // Dark glass pill label
                 ctx.save();
                 const yulLabel = 'YUL Montr\u00e9al';
                 ctx.font = `700 ${isMobile ? 8 : 9}px 'Outfit', sans-serif`;
@@ -1346,14 +1358,14 @@ export default function CartoonGlobe({
                 const pillH = isMobile ? 14 : 16;
                 const pillX = yulProjected[0] - pillW / 2;
                 const pillY = yulProjected[1] - 20;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+                ctx.fillStyle = 'rgba(6, 21, 37, 0.85)';
                 ctx.beginPath();
                 ctx.roundRect(pillX, pillY - pillH / 2, pillW, pillH, pillH / 2);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(14, 165, 233, 0.25)';
+                ctx.strokeStyle = 'rgba(0, 180, 216, 0.35)';
                 ctx.lineWidth = 0.5;
                 ctx.stroke();
-                ctx.fillStyle = '#0F172A';
+                ctx.fillStyle = '#00D4FF';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(yulLabel, yulProjected[0], pillY);
@@ -1379,11 +1391,11 @@ export default function CartoonGlobe({
                     const cityName = deal.destination || deal.city || '';
                     if (!cityName) continue;
                     const labelY = projected[1] + 10;
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                    ctx.fillStyle = 'rgba(6, 21, 37, 0.85)';
                     for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as [number, number][]) {
                         ctx.fillText(cityName, projected[0] + ox, labelY + oy);
                     }
-                    ctx.fillStyle = '#0F172A';
+                    ctx.fillStyle = '#00D4FF';
                     ctx.fillText(cityName, projected[0], labelY);
                 }
                 ctx.restore();
@@ -1435,13 +1447,13 @@ export default function CartoonGlobe({
                 alignItems: 'center',
                 gap: 4,
                 zIndex: 20,
-                background: 'rgba(255,255,255,0.82)',
+                background: 'rgba(6, 21, 37, 0.75)',
                 backdropFilter: 'blur(16px) saturate(1.5)',
                 WebkitBackdropFilter: 'blur(16px) saturate(1.5)',
                 borderRadius: 100,
                 padding: 5,
-                border: '1px solid rgba(255,255,255,0.6)',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.07), 0 0 0 1px rgba(14,165,233,0.04)',
+                border: '1px solid rgba(0, 180, 216, 0.2)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,180,216,0.06)',
             }}>
                 {/* Rotate left */}
                 <button
@@ -1492,22 +1504,22 @@ export default function CartoonGlobe({
                         width: 36px; height: 36px; border-radius: 50%; border: none;
                         background: transparent; cursor: pointer;
                         display: flex; align-items: center; justify-content: center;
-                        color: #334155; transition: all 0.2s ease;
+                        color: rgba(0, 212, 255, 0.7); transition: all 0.2s ease;
                     }
                     .globe-ctrl-btn:hover {
-                        background: rgba(14,165,233,0.1);
-                        color: #0EA5E9;
+                        background: rgba(0, 180, 216, 0.15);
+                        color: #00D4FF;
                     }
                     .globe-ctrl-btn:active {
                         transform: scale(0.9);
                     }
                     .globe-ctrl-reset {
                         width: 40px; height: 40px;
-                        background: rgba(14,165,233,0.08);
-                        color: #0EA5E9;
+                        background: rgba(0, 180, 216, 0.1);
+                        color: #00D4FF;
                     }
                     .globe-ctrl-reset:hover {
-                        background: rgba(14,165,233,0.18) !important;
+                        background: rgba(0, 180, 216, 0.22) !important;
                     }
                 `}</style>
             </div>}
@@ -1521,13 +1533,13 @@ export default function CartoonGlobe({
                         top: tooltip.y - 10,
                         zIndex: 100,
                         pointerEvents: 'none',
-                        background: 'rgba(255, 255, 255, 0.92)',
+                        background: 'rgba(6, 21, 37, 0.92)',
                         backdropFilter: 'blur(20px) saturate(1.6)',
                         WebkitBackdropFilter: 'blur(20px) saturate(1.6)',
                         borderRadius: 14,
                         padding: '12px 16px',
-                        border: '1px solid rgba(255, 255, 255, 0.5)',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                        border: '1px solid rgba(0, 180, 216, 0.25)',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2)',
                         minWidth: 160,
                         maxWidth: 240,
                         fontFamily: "'Outfit', sans-serif",
@@ -1537,7 +1549,7 @@ export default function CartoonGlobe({
                     <div style={{
                         fontSize: 13,
                         fontWeight: 800,
-                        color: '#0F172A',
+                        color: '#E0F8FF',
                         marginBottom: 6,
                         display: 'flex',
                         alignItems: 'center',
@@ -1556,7 +1568,7 @@ export default function CartoonGlobe({
                             }}>
                                 <span style={{
                                     fontSize: 11,
-                                    color: '#64748B',
+                                    color: '#94A3B8',
                                 }}>
                                     ✈️ {tooltip.bestDeal.destination || tooltip.bestDeal.city}
                                 </span>

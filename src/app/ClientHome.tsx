@@ -122,12 +122,12 @@ function getTripNights(dep: string, ret: string): number {
 function formatScannedAgo(scannedAt: string): string {
   if (!scannedAt) return '';
   const mins = Math.round((Date.now() - new Date(scannedAt).getTime()) / 60000);
-  if (mins < 1) return 'scanne a l\'instant';
-  if (mins < 60) return `scanne il y a ${mins} min`;
+  if (mins < 1) return 'scanné à l\'instant';
+  if (mins < 60) return `scanné il y a ${mins} min`;
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `scanne il y a ${hours}h`;
+  if (hours < 24) return `scanné il y a ${hours}h`;
   const days = Math.round(hours / 24);
-  return `scanne il y a ${days}j`;
+  return `scanné il y a ${days}j`;
 }
 
 function getViewerCount(city: string, discount: number): number {
@@ -173,9 +173,9 @@ function AnimatedStats() {
   }, [visible]);
 
   const stats = [
-    { value: `${counts[0]}+`, label: 'Destinations scannees', icon: '🌍' },
-    { value: `-${counts[1]}%`, label: 'Rabais moyen detecte', icon: '📉' },
-    { value: `${counts[2]}h`, label: 'Mise a jour des prix', icon: '⏱️' },
+    { value: `${counts[0]}+`, label: 'Destinations scannées', icon: '🌍' },
+    { value: `-${counts[1]}%`, label: 'Rabais moyen détecté', icon: '📉' },
+    { value: `${counts[2]}h`, label: 'Mise à jour des prix', icon: '⏱️' },
     { value: `${counts[3]}j`, label: 'D\'historique de prix', icon: '📊' },
   ];
 
@@ -326,6 +326,41 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const [shareToast, setShareToast] = useState('');
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [guideTab, setGuideTab] = useState(0);
+  const [guideFade, setGuideFade] = useState(true); // true = visible
+  const guideAutoRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const transitionTo = (next: number | ((p: number) => number)) => {
+    setGuideFade(false); // fade out
+    setTimeout(() => {
+      setGuideTab(next as number); // works with functional updater too
+      setGuideFade(true); // fade in
+    }, 400);
+  };
+
+  const startAutoRotate = () => {
+    if (guideAutoRef.current) clearInterval(guideAutoRef.current);
+    guideAutoRef.current = setInterval(() => {
+      setGuideFade(false);
+      setTimeout(() => {
+        setGuideTab(prev => (prev + 1) % 4);
+        setGuideFade(true);
+      }, 400);
+    }, 8000);
+  };
+
+  useEffect(() => {
+    startAutoRotate();
+    return () => { if (guideAutoRef.current) clearInterval(guideAutoRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleGuideTab = (i: number) => {
+    if (i === guideTab) return;
+    transitionTo(i);
+    startAutoRotate(); // reset timer
+  };
+
   const filtersRef = useRef<HTMLDivElement>(null);
   const heroVisualRef = useRef<HTMLDivElement>(null);
 
@@ -376,7 +411,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
   const shareDeal = useCallback((deal: DealItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = `Vol Montreal → ${deal.city} a ${Math.round(deal.price)}$ A/R${deal.discount > 0 ? ` (-${deal.discount}%)` : ''}`;
+    const text = `Vol Montréal → ${deal.city} à ${Math.round(deal.price)}$ A/R${deal.discount > 0 ? ` (-${deal.discount}%)` : ''}`;
     const url = window.location.href;
     if (navigator.share) {
       navigator.share({ title: `Deal GeaiMonVol - ${deal.city}`, text, url }).catch(() => {});
@@ -541,7 +576,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode, maxBudget]);
 
   const featured = filteredDeals[0];
-  const rest = filteredDeals.slice(1);
+  const topDeals = filteredDeals.slice(0, 3); // top 3 spotlight
+  const rest = filteredDeals.slice(3); // rest starts at #4
   const visibleRest = rest.slice(0, visibleCount);
   const hasMore = rest.length > visibleCount;
   const remainingCount = rest.length - visibleCount;
@@ -566,6 +602,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         @keyframes rankShine{0%{left:-100%}100%{left:200%}}
         @keyframes topDealGlow{0%,100%{box-shadow:0 0 15px var(--glow-color,rgba(124,58,237,0.15)),0 4px 20px rgba(0,0,0,0.06)}50%{box-shadow:0 0 30px var(--glow-color,rgba(124,58,237,0.3)),0 8px 32px rgba(0,0,0,0.08)}}
         @keyframes topBannerShine{0%{background-position:200% center}100%{background-position:-200% center}}
+        @media(max-width:640px){.deal-featured{grid-template-columns:1fr !important;}.deal-featured>div:first-child{min-height:160px !important;}}
+        .deal-top3-span{grid-column:1/-1;}
       `}</style>
 
       {/* ─── HEADER ─── */}
@@ -614,7 +652,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </h1>
             <p className="lp-hero-sub">
               On detecte les baisses de prix sur les vols au depart de Montreal
-              et GeaiAI te cree un itineraire complet en quelques secondes.
+              et GeaiAI te crée un itinéraire complet en quelques secondes.
             </p>
             <div className="lp-hero-actions">
               <a href="#deals" className="lp-btn-ocean">
@@ -623,7 +661,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 <ArrowIcon />
               </a>
               <a href="#how" className="lp-btn-glass">
-                Comment ca marche
+                Comment ça marche
               </a>
             </div>
             <div className="lp-hero-proof">
@@ -631,7 +669,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 <span className="lp-hero-proof-icon">📡</span>
                 <div>
                   <strong>40+</strong>
-                  <span>destinations scannees</span>
+                  <span>destinations scannées</span>
                 </div>
               </div>
               <div className="lp-hero-proof-sep" />
@@ -647,7 +685,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 <span className="lp-hero-proof-icon">⚡</span>
                 <div>
                   <strong>24h</strong>
-                  <span>mise a jour</span>
+                  <span>mise à jour</span>
                 </div>
               </div>
             </div>
@@ -801,7 +839,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               fontFamily: "'Outfit', sans-serif",
               fontSize: 16, color: '#64748B', margin: '0 0 16px',
             }}>
-              {allDeals.length} destination{allDeals.length > 1 ? 's' : ''} scannee{allDeals.length > 1 ? 's' : ''} · Prix via Skyscanner
+              {allDeals.length} destination{allDeals.length > 1 ? 's' : ''} scannée{allDeals.length > 1 ? 's' : ''} · Prix via Skyscanner
             </p>
             <button
               onClick={enableAlerts}
@@ -1133,196 +1171,112 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             </div>
           )}
 
-          {/* ── FEATURED DEAL #1 ── */}
-          {featured && (() => {
-            const featTopColor = featured.dealLevel === 'lowest_ever' ? '#7C3AED'
-              : featured.dealLevel === 'incredible' ? '#DC2626'
-              : featured.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
-            const featLevel = DEAL_LEVELS[featured.dealLevel];
-            const featIsTop = ['lowest_ever', 'incredible', 'great'].includes(featured.dealLevel);
-            return (
-            <div
-              onClick={() => openDealPopup(featured)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(featured); } }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Deal #1 : ${featured.city} a ${Math.round(featured.price)}$${featured.discount > 0 ? `, -${featured.discount}%` : ''}`}
-              className="deal-featured"
-              style={{
-                position: 'relative',
-                borderRadius: 24, overflow: 'hidden',
-                background: 'white',
-                border: featIsTop ? `2px solid ${featTopColor}50` : '1.5px solid rgba(14,165,233,0.15)',
-                marginBottom: 28,
-                cursor: 'pointer',
-                transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                animation: featIsTop ? 'topDealGlow 3s ease-in-out 0.3s infinite' : undefined,
-                ...(featIsTop ? { ['--glow-color' as any]: `${featTopColor}25` } : {}),
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = `0 20px 60px ${featTopColor}18`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'none';
-                e.currentTarget.style.boxShadow = '';
-              }}
-            >
-              {/* ── TOP DEAL BANNER — Featured ── */}
-              {featIsTop && featLevel && (
-                <div style={{
-                  background: `linear-gradient(135deg, ${featTopColor}, ${featTopColor}CC)`,
-                  padding: '8px 20px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 13, fontWeight: 800, color: '#fff',
-                    fontFamily: "'Fredoka', sans-serif",
-                    letterSpacing: 0.5,
-                  }}>
-                    {featLevel.icon} {featLevel.label}
-                  </span>
-                  <span style={{
-                    fontSize: 14, fontWeight: 800, color: '#fff',
-                    fontFamily: "'Fredoka', sans-serif",
-                    background: 'rgba(255,255,255,0.2)',
-                    padding: '3px 14px', borderRadius: 100,
-                  }}>
-                    Economise {featured.discount}%
-                  </span>
-                </div>
-              )}
+          {/* ── TOP 3 SPOTLIGHT — En vedette ── */}
+          {topDeals.length > 0 && (
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <span style={{ fontSize: 22, fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#0F172A' }}>En vedette</span>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff', fontFamily: "'Fredoka', sans-serif", letterSpacing: 0.5 }}>TOP 3</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="spotlight-grid">
+                {topDeals.map((deal, idx) => {
+                  const rank = idx + 1;
+                  const rankBg = rank === 1 ? 'linear-gradient(135deg, #F59E0B, #FBBF24)' : rank === 2 ? 'linear-gradient(135deg, #94A3B8, #CBD5E1)' : 'linear-gradient(135deg, #D97706, #F59E0B)';
+                  const rankShadow = rank === 1 ? '0 2px 12px rgba(245,158,11,0.5)' : rank === 2 ? '0 2px 8px rgba(148,163,184,0.4)' : '0 2px 8px rgba(217,119,6,0.4)';
+                  const level = DEAL_LEVELS[deal.dealLevel];
+                  const topColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED' : deal.dealLevel === 'incredible' ? '#DC2626' : deal.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
+                  return (
+                    <div key={`top-${deal.code}-${deal.city}`}
+                      onClick={() => openDealPopup(deal)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
+                      role="button" tabIndex={0}
+                      aria-label={`Deal #${rank} : ${deal.city} à ${Math.round(deal.price)}$`}
+                      style={{
+                        position: 'relative', borderRadius: 20, overflow: 'hidden',
+                        background: '#fff', cursor: 'pointer',
+                        border: rank === 1 ? '2px solid rgba(245,158,11,0.35)' : '1px solid #E2E8F0',
+                        transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                        animation: `dealFadeIn 0.5s ease-out ${idx * 0.12}s both`,
+                        boxShadow: rank === 1 ? '0 4px 24px rgba(245,158,11,0.12)' : undefined,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(15,23,42,0.12)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = rank === 1 ? '0 4px 24px rgba(245,158,11,0.12)' : ''; }}
+                    >
+                      {/* Image */}
+                      <div style={{ position: 'relative', height: rank === 1 ? 200 : 170, overflow: 'hidden' }}>
+                        <Image src={deal.image} alt={deal.city} fill sizes="(max-width:640px) 100vw, 33vw" style={{ objectFit: 'cover', transition: 'transform 0.5s' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                        />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
 
-              {/* Image — full width on mobile, side on desktop */}
-              <div style={{ position: 'relative', height: 220 }}>
-                <Image src={featured.image} alt={featured.city} fill sizes="100vw" style={{ objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)' }} />
+                        {/* Rank badge */}
+                        <div style={{
+                          position: 'absolute', top: 12, left: 12,
+                          padding: '5px 14px', borderRadius: 100,
+                          background: rankBg, color: '#fff',
+                          fontSize: rank === 1 ? 13 : 11, fontWeight: 800,
+                          fontFamily: "'Fredoka', sans-serif",
+                          boxShadow: rankShadow,
+                          display: 'flex', alignItems: 'center', gap: 4,
+                        }}>{rank === 1 ? '👑' : rank === 2 ? '🥈' : '🥉'} #{rank}</div>
 
-                {/* Badges on image */}
-                <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8 }}>
-                  <div style={{
-                    padding: '5px 14px', borderRadius: 100,
-                    background: 'linear-gradient(135deg, #F59E0B, #FBBF24)',
-                    color: '#fff', fontSize: 12, fontWeight: 800,
-                    fontFamily: "'Fredoka', sans-serif",
-                    boxShadow: '0 2px 12px rgba(245,158,11,0.4)',
-                  }}>#1 Deal</div>
-                  {DEAL_LEVELS[featured.dealLevel] && (
-                    <div style={{
-                      padding: '5px 14px', borderRadius: 100,
-                      background: DEAL_LEVELS[featured.dealLevel].bg,
-                      color: '#fff', fontSize: 12, fontWeight: 700,
-                      fontFamily: "'Outfit', sans-serif",
-                      display: 'flex', alignItems: 'center', gap: 4,
-                    }}>
-                      {DEAL_LEVELS[featured.dealLevel].icon} {DEAL_LEVELS[featured.dealLevel].label}
-                    </div>
-                  )}
-                  {featured.stops === 0 && (
-                    <div style={{
-                      padding: '5px 14px', borderRadius: 100,
-                      background: '#10B981', color: '#fff',
-                      fontSize: 12, fontWeight: 700,
-                      fontFamily: "'Outfit', sans-serif",
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      boxShadow: '0 2px 8px rgba(16,185,129,0.3)',
-                    }}>
-                      ✈ Direct
-                    </div>
-                  )}
-                </div>
+                        {/* Discount */}
+                        {deal.discount > 0 && (
+                          <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 10px', borderRadius: 100, background: '#10B981', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", boxShadow: '0 2px 8px rgba(16,185,129,0.4)' }}>-{deal.discount}%</div>
+                        )}
 
-                {/* Price overlay on image */}
-                <div style={{ position: 'absolute', bottom: 16, left: 20, right: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>YUL</span>
-                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>✈</span>
-                      <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{featured.code}</span>
-                    </div>
-                    <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>{featured.city}</h3>
-                    {featured.country && <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontFamily: "'Outfit', sans-serif" }}>{featured.country}</span>}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    {featured.oldPrice > featured.price && <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'line-through', fontFamily: "'Outfit', sans-serif" }}>{Math.round(featured.oldPrice)} $</div>}
-                    <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 700, color: '#fff', lineHeight: 1, textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>{Math.round(featured.price)} $</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>aller-retour</div>
-                    {featured.scannedAt && (
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 2, display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'flex-end' }}>
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                        {formatScannedAgo(featured.scannedAt)}
+                        {/* City overlay */}
+                        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>YUL → {deal.code}</span>
+                            {deal.stops === 0 && <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(16,185,129,0.9)', color: '#fff' }}>Direct</span>}
+                          </div>
+                          <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: rank === 1 ? 24 : 20, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>{deal.city}</h3>
+                          {deal.country && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontFamily: "'Outfit', sans-serif" }}>{deal.country}</span>}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {featured.discount > 0 && (
-                  <div style={{ position: 'absolute', top: 16, right: 16, padding: '5px 12px', borderRadius: 100, background: '#10B981', color: '#fff', fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", boxShadow: '0 2px 10px rgba(16,185,129,0.4)' }}>-{featured.discount}%</div>
-                )}
+                      {/* Body */}
+                      <div style={{ padding: '14px 16px 16px' }}>
+                        {/* Deal level badge */}
+                        {level && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 100, marginBottom: 8, background: `linear-gradient(135deg, ${topColor}, ${topColor}CC)`, fontSize: 10, fontWeight: 800, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
+                            {level.icon} {level.label}
+                          </div>
+                        )}
+                        {/* Price */}
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                          {deal.oldPrice > deal.price && <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>}
+                          <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: rank === 1 ? 30 : 26, fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{Math.round(deal.price)} $</span>
+                          <span style={{ fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
+                        </div>
+                        {/* Tags */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                          {deal.departureDate && (
+                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#E0F2FE', color: '#0284C7', fontFamily: "'Outfit', sans-serif" }}>
+                              {formatDateRange(deal.departureDate, deal.returnDate)}
+                              {(() => { const n = getTripNights(deal.departureDate, deal.returnDate); return n > 0 ? ` · ${n}n` : ''; })()}
+                            </span>
+                          )}
+                          {deal.airline && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#F1F5F9', color: '#334155', fontFamily: "'Outfit', sans-serif" }}>{deal.airline}</span>}
+                        </div>
+                        {/* CTA */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: 10, background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                            Voir ce deal →
+                          </div>
+                          <button onClick={(e) => toggleFavorite(deal.city, e)} aria-label="Favoris" style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: favorites[deal.city] ? 'rgba(239,68,68,0.08)' : '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
+                            {favorites[deal.city] ? '❤️' : '🤍'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-
-              {/* Info bar below image */}
-              <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  {featured.departureDate && (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', padding: '4px 12px', borderRadius: 8, background: '#E0F2FE', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                      {formatDateRange(featured.departureDate, featured.returnDate)}
-                      {(() => {
-                        const nights = getTripNights(featured.departureDate, featured.returnDate);
-                        return nights > 0 ? (
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 6, background: 'rgba(99,102,241,0.1)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
-                            {nights} nuits
-                          </span>
-                        ) : null;
-                      })()}
-                    </span>
-                  )}
-                  {featured.airline && <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', padding: '4px 12px', borderRadius: 8, background: '#F1F5F9', fontFamily: "'Outfit', sans-serif" }}>{featured.airline}</span>}
-                  {featured.stops > 0 && <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.1)', color: '#D97706', fontFamily: "'Outfit', sans-serif" }}>{`${featured.stops} escale${featured.stops > 1 ? 's' : ''}`}</span>}
-                  {/* Baggage */}
-                  {featured.airline && AIRLINE_BAGGAGE[featured.airline] && (
-                    <span style={{
-                      fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 8,
-                      fontFamily: "'Outfit', sans-serif",
-                      background: AIRLINE_BAGGAGE[featured.airline].checked
-                        ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[featured.airline].cabin
-                          ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
-                      color: AIRLINE_BAGGAGE[featured.airline].checked
-                        ? '#059669' : AIRLINE_BAGGAGE[featured.airline].cabin
-                          ? '#0284C7' : '#DC2626',
-                    }}>
-                      {AIRLINE_BAGGAGE[featured.airline].checked ? '🧳 Bagage inclus' : AIRLINE_BAGGAGE[featured.airline].cabin ? '🎒 Cabine seul.' : '⚠️ Pas de bagage'}
-                    </span>
-                  )}
-                  {/* Favorite */}
-                  <button onClick={(e) => toggleFavorite(featured.city, e)} aria-label={favorites[featured.city] ? `Retirer ${featured.city} des favoris` : `Ajouter ${featured.city} aux favoris`} style={{
-                    width: 44, height: 44, borderRadius: '50%', border: 'none',
-                    background: favorites[featured.city] ? 'rgba(239,68,68,0.08)' : '#F1F5F9',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.2s', fontSize: 16,
-                  }}>
-                    {favorites[featured.city] ? '❤️' : '🤍'}
-                  </button>
-                  {/* Share */}
-                  <button onClick={(e) => shareDeal(featured, e)} aria-label={`Partager le deal pour ${featured.city}`} style={{
-                    width: 44, height: 44, borderRadius: '50%', border: 'none',
-                    background: '#F1F5F9', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all 0.2s',
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-                  </button>
-                </div>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', borderRadius: 14, background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'Outfit', sans-serif", boxShadow: '0 4px 16px rgba(14,165,233,0.25)' }}>
-                  Voir les dates et prix
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-                </div>
-              </div>
-
             </div>
-          ); })()}
+          )}
 
           {/* ── DEALS GRID / LIST ── */}
           {rest.length > 0 && viewMode === 'grid' && (
@@ -1332,8 +1286,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               gap: 20,
             }}>
               {visibleRest.map((deal, idx) => {
-                const rank = idx + 2;
-                const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
+                const rank = idx + 4;
+                const rankColor = undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const viewers = getViewerCount(deal.city, deal.discount);
                 const isTopDeal = ['lowest_ever', 'incredible', 'great'].includes(deal.dealLevel);
@@ -1383,12 +1337,13 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         </button>
                       </div>
                     )}
+                    {/* ── REGULAR GRID CARD ── */}
                     <div
                       onClick={() => openDealPopup(deal)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
                       role="button"
                       tabIndex={0}
-                      aria-label={`Deal ${deal.city} a ${Math.round(deal.price)}$${deal.discount > 0 ? `, -${deal.discount}%` : ''}`}
+                      aria-label={`Deal ${deal.city} à ${Math.round(deal.price)}$${deal.discount > 0 ? `, -${deal.discount}%` : ''}`}
                       style={{
                         background: 'white',
                         borderRadius: 20,
@@ -1398,11 +1353,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           : '1px solid #E2E8F0',
                         cursor: 'pointer',
                         transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                        animation: isAnimatedGlow
-                          ? `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both, topDealGlow 3s ease-in-out ${Math.min(idx * 0.06, 0.6) + 0.5}s infinite`
-                          : `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
-                        ...(isAnimatedGlow && topColor ? { ['--glow-color' as any]: `${topColor}25` } : {}),
-                        boxShadow: isTopDeal && topColor && !isAnimatedGlow
+                        animation: `dealFadeIn 0.5s ease-out ${Math.min(idx * 0.06, 0.6)}s both`,
+                        boxShadow: isTopDeal && topColor
                           ? `0 0 16px ${topColor}12, 0 4px 20px rgba(0,0,0,0.06)`
                           : undefined,
                       }}
@@ -1414,7 +1366,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'none';
-                        e.currentTarget.style.boxShadow = isTopDeal && !isAnimatedGlow && topColor
+                        e.currentTarget.style.boxShadow = isTopDeal && topColor
                           ? `0 0 16px ${topColor}12, 0 4px 20px rgba(0,0,0,0.06)` : '';
                       }}
                     >
@@ -1849,7 +1801,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 Scan en cours...
               </div>
               <div style={{ fontSize: 15, color: '#64748B', maxWidth: 420, margin: '0 auto 24px' }}>
-                Les prix sont scannes quotidiennement sur Skyscanner.
+                Les prix sont scannés quotidiennement sur Skyscanner.
                 Les deals apparaitront ici automatiquement apres le premier scan.
               </div>
               <Link href="/explore" style={{
@@ -1878,7 +1830,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 Aucun deal ne correspond
               </div>
               <div style={{ fontSize: 13, marginBottom: 16 }}>
-                {searchQuery ? `Aucun resultat pour "${searchQuery}"` : 'Essaie une autre categorie'}
+                {searchQuery ? `Aucun résultat pour "${searchQuery}"` : 'Essaie une autre catégorie'}
               </div>
               <button
                 onClick={() => { setSearchQuery(''); setActiveFilter('tous'); setMaxBudget(0); }}
@@ -1917,7 +1869,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       <section className="lp-how" id="how">
         <div className="lp-how-header lp-reveal">
           <span className="lp-section-label">Simple comme bonjour</span>
-          <h2 className="lp-section-title">Comment ca marche</h2>
+          <h2 className="lp-section-title">Comment ça marche</h2>
         </div>
         <div className="lp-steps">
           <div className="lp-step lp-reveal lp-reveal-delay-1">
@@ -1939,7 +1891,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <div className="lp-step-content">
               <div className="lp-step-num">02</div>
               <h3 className="lp-step-title">Choisis ta destination</h3>
-              <p className="lp-step-desc">Clique sur un deal pour voir toutes les dates disponibles avec le prix exact. Tu es redirige sur Skyscanner pour reserver.</p>
+              <p className="lp-step-desc">Clique sur un deal pour voir toutes les dates disponibles avec le prix exact. Tu es redirigé sur Skyscanner pour réserver.</p>
             </div>
           </div>
           <div className="lp-step-arrow">
@@ -1953,7 +1905,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             <div className="lp-step-content">
               <div className="lp-step-num">03</div>
               <h3 className="lp-step-title">GeaiAI planifie ton trip</h3>
-              <p className="lp-step-desc">GeaiAI te genere un itineraire complet : activites, restos, budget jour par jour. Tout ce que t&apos;as besoin.</p>
+              <p className="lp-step-desc">GeaiAI te génère un itinéraire complet : activités, restos, budget jour par jour. Tout ce que t&apos;as besoin.</p>
               <span className="lp-step-premium">Premium</span>
             </div>
           </div>
@@ -1961,43 +1913,284 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       </section>
 
       {/* ─── AI GUIDE FEATURE ─── */}
-      <section className="lp-feature" id="guide">
+      <section className="lp-feature lp-feature-premium" id="guide">
         <div className="lp-feature-text lp-reveal-left">
-          <span className="lp-section-label">Guide GeaiAI</span>
-          <h2 className="lp-section-title">Ton guide de voyage, genere par GeaiAI</h2>
+          <span className="lp-section-label gold">Premium — Guide GeaiAI</span>
+          <h2 className="lp-section-title">Zéro casse-tête. Ton voyage est déjà organisé.</h2>
           <p className="lp-section-sub" style={{ marginBottom: 0 }}>
-            Dis-nous ta destination, ton budget et tes preferences.
-            On te genere un itineraire complet en quelques secondes.
+            Donne ta destination et ton budget — GeaiAI te prépare un itinéraire
+            jour par jour avec les meilleurs restos et activités recommandés par les voyageurs avant toi.
           </p>
           <ul className="lp-feature-list">
-            <li><span className="lp-feature-icon-mini">📅</span><span>Planning jour par jour adapte a ta duree de sejour</span></li>
-            <li><span className="lp-feature-icon-mini">🍽️</span><span>Suggestions de restos, activites et spots photo</span></li>
-            <li><span className="lp-feature-icon-mini">💰</span><span>Budget estime detaille pour tout le voyage</span></li>
-            <li><span className="lp-feature-icon-mini">🤖</span><span>Assistant en temps reel pendant ton voyage</span></li>
+            <li><span className="lp-feature-icon-mini">📅</span><span><strong>Horaire clé en main</strong> — Chaque journée est planifiée du matin au soir. Tu suis le plan, c&apos;est tout.</span></li>
+            <li><span className="lp-feature-icon-mini">💰</span><span><strong>Budget clair et réaliste</strong> — Vols, hôtel, repas, activités : tu sais exactement combien ça coûte avant de partir.</span></li>
+            <li><span className="lp-feature-icon-mini">⭐</span><span><strong>Les vrais bons spots</strong> — Restos, bars et activités basés sur les recommandations des utilisateurs précédents.</span></li>
+            <li><span className="lp-feature-icon-mini">⚡</span><span><strong>Prêt en 30 secondes</strong> — Pas besoin de scroller 15 blogs. Un message et ton voyage est organisé.</span></li>
           </ul>
-          <Link href="/explore" className="lp-btn-primary">
-            Essayer le Guide GeaiAI
+          <Link href="/explore" className="lp-btn-gold">
+            Planifier mon voyage
             <ArrowIcon />
           </Link>
         </div>
-        <div className="lp-feature-visual lp-reveal-right">
+        <div className="lp-feature-visual gold-card lp-reveal-right">
           <div className="lp-feature-visual-glow" />
-          <div className="lp-mockup-msg user">
-            <span className="label">Toi</span>
-            Je pars 5 jours a Lisbonne avec 1 500 $ de budget. J&apos;aime la bouffe locale et les quartiers historiques.
+
+          {/* Carousel tabs */}
+          <div style={{ display: 'flex', gap: 0, marginBottom: 16, background: 'rgba(255,190,60,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,190,60,0.1)' }}>
+            {['Planifier', 'Modifier', 'Se rendre', 'Budget'].map((label, i) => (
+              <button key={i} onClick={() => handleGuideTab(i)} style={{
+                flex: 1, padding: '8px 0', fontSize: 12, fontWeight: 600,
+                fontFamily: "'Outfit', sans-serif", border: 'none', cursor: 'pointer',
+                borderRadius: 8, transition: 'all 0.2s',
+                background: guideTab === i ? 'rgba(255,190,60,0.15)' : 'transparent',
+                color: guideTab === i ? '#FFD700' : 'rgba(255,255,255,0.4)',
+              }}>{label}</button>
+            ))}
           </div>
-          <div className="lp-typing">
-            <span className="lp-typing-dot" />
-            <span className="lp-typing-dot" />
-            <span className="lp-typing-dot" />
+
+          {/* Slide content with fade transition */}
+          <div style={{
+            opacity: guideFade ? 1 : 0,
+            transform: guideFade ? 'translateY(0)' : 'translateY(12px)',
+            transition: 'opacity 0.4s cubic-bezier(0.4,0,0.2,1), transform 0.4s cubic-bezier(0.4,0,0.2,1)',
+          }}>
+
+          {/* ═══ TAB 0 — Planifier ═══ */}
+          {guideTab === 0 && <>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '100%' }}>
+              <span className="label">GeaiAI</span>
+              <span>Ton voyage est prêt! Selon tes préférences :</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6 }}>
+                {['🍽️ Bouffe locale', '🏘️ Historique', '😴 Relax', '💰 1 500$', '📅 5 jours'].map((chip, i) => (
+                  <span key={i} style={{
+                    fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+                    background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.2)', color: '#7DD3FC',
+                  }}>{chip}</span>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
+                Restos et activités basés sur les voyageurs avant toi. Modifie ce que tu veux!
+              </div>
+            </div>
+
+            {/* Schedule card */}
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(52,211,153,0.06) 100%)',
+              border: '1px solid rgba(56,189,248,0.15)', borderRadius: 12,
+              padding: '10px 12px 8px', position: 'relative', zIndex: 1, marginBottom: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#38BDF8' }}>Lisbonne — 5 jours</span>
+                <span style={{ fontSize: 10, color: '#34D399', fontWeight: 600 }}>1 409$ / 1 500$</span>
+              </div>
+              {[
+                { day: 'J1', title: 'Alfama + couchers de soleil', spots: 'Miradouro da Graca · Manteigaria', icon: '🌅' },
+                { day: 'J2', title: 'Belem + gastronomie', spots: 'Jeronimos · Dear Breakfast · Ramiro', icon: '🏛️' },
+                { day: 'J3', title: 'Sintra — excursion', spots: 'Palais de Pena · Quinta da Regaleira', icon: '🏰' },
+                { day: 'J4', title: 'Bairro Alto + nightlife', spots: 'LX Factory · Pensao Amor', icon: '🎨' },
+                { day: 'J5', title: 'Marche + dernier festin', spots: 'Feira da Ladra · Taberna das Flores', icon: '🛍️' },
+              ].map((d, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: 8, alignItems: 'center', padding: '5px 0',
+                  borderBottom: i < 4 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <span style={{ fontSize: 16, flexShrink: 0 }}>{d.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#38BDF8', background: 'rgba(56,189,248,0.12)', padding: '1px 5px', borderRadius: 3 }}>{d.day}</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{d.title}</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.spots}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="lp-mockup-msg user" style={{ maxWidth: '70%' }}>
+              <span className="label">Toi</span>
+              Jour 3 j&apos;aimerais rester en ville plutot
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '90%' }}>
+              <span className="label">GeaiAI</span>
+              Parfait! Sintra remplacé par <strong>Baixa + Chiado</strong> : Rossio, Time Out Market, Rua Augusta. Budget mis à jour : 1 365$!
+            </div>
+          </>}
+
+          {/* ═══ TAB 1 — Modifier ═══ */}
+          {guideTab === 1 && <>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '90%' }}>
+              <span className="label">GeaiAI — 13h</span>
+              Prochaine étape : lunch chez <em>Ponto Final</em>! C&apos;est a 12 min a pied.
+            </div>
+            <div className="lp-mockup-msg user" style={{ maxWidth: '70%' }}>
+              <span className="label">Toi</span>
+              Bof ca me tente pas, autre chose?
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '88%' }}>
+              <span className="label">GeaiAI</span>
+              <span style={{ fontSize: 13 }}>Pas de souci! 2 options proches de toi :</span>
+              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 8, padding: '7px 10px', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#34D399' }}>Cervejaria Ramiro</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>Fruits de mer · 4.8 · ~18 EUR</div>
+                  </div>
+                  <span style={{ fontSize: 9, background: 'rgba(52,211,153,0.15)', color: '#34D399', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>Favori</span>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 10px', fontSize: 12 }}>
+                  <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Time Out Market</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>Food court · 4.5 · ~12 EUR</div>
+                </div>
+              </div>
+            </div>
+            <div className="lp-mockup-msg user" style={{ maxWidth: '45%' }}>
+              <span className="label">Toi</span>
+              Ramiro!
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '85%' }}>
+              <span className="label">GeaiAI</span>
+              C&apos;est noté! Ton horaire est mis à jour. Bon appétit! 🦞
+            </div>
+          </>}
+
+          {/* ═══ TAB 2 — Se rendre ═══ */}
+          {guideTab === 2 && <>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '90%' }}>
+              <span className="label">GeaiAI — 12h45</span>
+              C&apos;est l&apos;heure du lunch! Je t&apos;amene chez <strong>Cervejaria Ramiro</strong>.
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '100%' }}>
+              <span className="label">Itineraire</span>
+              <div style={{ background: 'rgba(56,189,248,0.06)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Mini route visualization */}
+                <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#38BDF8', border: '2px solid rgba(56,189,248,0.3)' }} />
+                    <div style={{ width: 2, flex: 1, background: 'linear-gradient(to bottom, #38BDF8, rgba(56,189,248,0.15))', borderRadius: 1 }} />
+                    <div style={{ width: 2, flex: 1, background: 'linear-gradient(to bottom, rgba(56,189,248,0.15), #34D399)', borderRadius: 1 }} />
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#34D399', border: '2px solid rgba(52,211,153,0.3)' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#38BDF8' }}>Ta position</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Mosteiro dos Jeronimos</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', padding: '4px 0' }}>
+                      Tram 15E → Metro Ligne Verte (Cais do Sodre → Intendente)
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#34D399' }}>Cervejaria Ramiro</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Av. Almirante Reis 1-H</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Info row */}
+                <div style={{ display: 'flex', gap: 10, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize: 14 }}>🚋</span>
+                    <span style={{ fontWeight: 600 }}>28 min</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize: 14 }}>💶</span>
+                    <span style={{ fontWeight: 600 }}>1.50 EUR</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 14 }}>🚶</span>
+                    <span>42 min à pied</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="lp-mockup-msg user" style={{ maxWidth: '60%' }}>
+              <span className="label">Toi</span>
+              Je prefere marcher, c&apos;est loin?
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '88%' }}>
+              <span className="label">GeaiAI</span>
+              42 min à pied en longeant le Tage — c&apos;est une belle promenade! Je t&apos;ai ajusté l&apos;horaire, tu pars à 12h15 au lieu de 12h45.
+            </div>
+          </>}
+
+          {/* ═══ TAB 3 — Budget ═══ */}
+          {guideTab === 3 && <>
+            <div className="lp-mockup-msg user" style={{ maxWidth: '65%' }}>
+              <span className="label">Toi</span>
+              Il me reste combien dans mon budget?
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '100%' }}>
+              <span className="label">GeaiAI — Budget voyage</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Progress bar */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                    <span style={{ color: 'rgba(255,255,255,0.5)' }}>Dépensé</span>
+                    <span style={{ color: '#38BDF8', fontWeight: 700 }}>1 089$ / 1 500$</span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 5, height: 6, overflow: 'hidden' }}>
+                    <div style={{ width: '72.6%', height: '100%', borderRadius: 5, background: 'linear-gradient(90deg, #0EA5E9, #34D399)' }} />
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: 10, color: '#34D399', fontWeight: 600, marginTop: 3 }}>411$ restants</div>
+                </div>
+                {/* Breakdown */}
+                <div style={{ background: 'rgba(56,189,248,0.06)', borderRadius: 8, padding: '8px 10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '4px 8px', fontSize: 12, alignItems: 'center' }}>
+                    {[
+                      { icon: '✈️', label: 'Vols', amount: '529$', color: 'rgba(255,255,255,0.8)' },
+                      { icon: '🏨', label: 'Hotel (2/5 nuits)', amount: '168$', color: 'rgba(255,255,255,0.8)' },
+                      { icon: '🍽️', label: 'Repas (Jour 1-2)', amount: '94$', color: 'rgba(255,255,255,0.8)' },
+                      { icon: '🎯', label: 'Activites', amount: '62$', color: 'rgba(255,255,255,0.8)' },
+                      { icon: '🚋', label: 'Transport', amount: '18$', color: 'rgba(255,255,255,0.8)' },
+                    ].map((row, i) => (
+                      <React.Fragment key={i}>
+                        <span style={{ fontSize: 14 }}>{row.icon}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.6)' }}>{row.label}</span>
+                        <span style={{ textAlign: 'right', fontWeight: 700, color: row.color }}>{row.amount}</span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Mise à jour en temps réel selon tes choix.</span>
+              </div>
+            </div>
+            <div className="lp-mockup-msg ai" style={{ maxWidth: '88%' }}>
+              <span className="label">GeaiAI</span>
+              Tu es en bonne voie! Il te reste 411$ pour 3 jours, soit ~137$/jour. Tu veux que j&apos;ajuste les restos pour économiser?
+            </div>
+            <div className="lp-mockup-msg user" style={{ maxWidth: '55%' }}>
+              <span className="label">Toi</span>
+              Non c&apos;est parfait, continue comme ca!
+            </div>
+          </>}
+
+          {/* Fake input bar */}
+          <div style={{
+            marginTop: 10,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(255,190,60,0.03)',
+            border: '1px solid rgba(255,190,60,0.12)',
+            borderRadius: 10, padding: '8px 12px',
+          }}>
+            <span style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif" }}>Écris à GeaiAI...</span>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a1000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </div>
           </div>
-          <div className="lp-mockup-msg ai">
-            <span className="label">GeaiAI</span>
-            Voici ton itineraire pour Lisbonne! Jour 1 : Quartier de l&apos;Alfama, degustation de pasteis de nata chez Manteigaria, coucher de soleil au Miradouro da Graca...
-          </div>
-          <div className="lp-mockup-msg ai" style={{ maxWidth: '70%' }}>
-            <span className="label">Budget estime</span>
-            Vols: 529$ · Hebergement: 420$ · Nourriture: 280$ · Activites: 180$
+
+          </div>{/* end slide transition wrapper */}
+
+          {/* Carousel dots */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+            {[0, 1, 2, 3].map(i => (
+              <button key={i} onClick={() => handleGuideTab(i)} style={{
+                width: guideTab === i ? 20 : 6, height: 6, borderRadius: 3,
+                background: guideTab === i ? '#FFD700' : 'rgba(255,190,60,0.15)',
+                border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0,
+              }} />
+            ))}
           </div>
         </div>
       </section>
@@ -2015,7 +2208,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             letterSpacing: 1.5, color: '#94A3B8', marginBottom: 24,
             fontFamily: "'Outfit', sans-serif",
           }}>
-            Donnees en temps reel via
+            Données en temps réel via
           </p>
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2059,7 +2252,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           <span className="lp-section-label">Globe interactif</span>
           <h2 className="lp-section-title">Visualise les deals sur le globe 3D</h2>
           <p className="lp-section-sub">
-            Explore les destinations en temps reel sur notre carte interactive.
+            Explore les destinations en temps réel sur notre carte interactive.
             Chaque point represente un deal actif au depart de Montreal.
           </p>
           <div className="lp-globe-wrap">
@@ -2073,7 +2266,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               minimal
             />
           </div>
-          <div style={{ marginTop: 48 }}>
+          <div style={{ marginTop: 48, textAlign: 'center' }}>
             <Link href="/explore" className="lp-btn-light">
               Explorer le globe
               <ArrowIcon />
@@ -2104,7 +2297,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               {
                 name: 'Marie-Eve L.',
                 city: 'Montreal',
-                text: 'J\'ai sauve 340$ sur mon vol pour Lisbonne! Le systeme de mediane est vraiment fiable — tu sais que c\'est un VRAI rabais, pas du marketing.',
+                text: 'J\'ai sauvé 340$ sur mon vol pour Lisbonne! Le système de médiane est vraiment fiable — tu sais que c\'est un VRAI rabais, pas du marketing.',
                 dest: 'Lisbonne',
                 saved: 340,
                 avatar: 'ME',
@@ -2112,7 +2305,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               {
                 name: 'Jean-Philippe R.',
                 city: 'Laval',
-                text: 'Le Guide GeaiAI m\'a planifie un itineraire de 10 jours au Japon en 30 secondes. C\'etait meilleur que ce que j\'aurais fait en 3 heures de recherche.',
+                text: 'Le Guide GeaiAI m\'a planifié un itinéraire de 10 jours au Japon en 30 secondes. C\'était meilleur que ce que j\'aurais fait en 3 heures de recherche.',
                 dest: 'Tokyo',
                 saved: 520,
                 avatar: 'JP',
@@ -2120,7 +2313,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               {
                 name: 'Camille B.',
                 city: 'Quebec',
-                text: 'J\'ai mis une alerte sur la Grece et 3 jours plus tard j\'avais un vol a -42%. Le Geai m\'a meme dit de checker les vols internes vers Santorin. Malade!',
+                text: 'J\'ai mis une alerte sur la Grèce et 3 jours plus tard j\'avais un vol à -42%. Le Geai m\'a même dit de checker les vols internes vers Santorin. Malade!',
                 dest: 'Athenes',
                 saved: 285,
                 avatar: 'CB',
@@ -2220,19 +2413,19 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
             {[
               {
                 q: 'C\'est quoi exactement GeaiMonVol?',
-                a: 'C\'est un outil qui scanne automatiquement les prix des vols depuis Montreal chaque jour sur Skyscanner. On te montre les vrais rabais bases sur la mediane des 90 derniers jours — pas des faux "50% de rabais" inventes.',
+                a: 'C\'est un outil qui scanne automatiquement les prix des vols depuis Montréal chaque jour sur Skyscanner. On te montre les vrais rabais basés sur la médiane des 90 derniers jours — pas des faux "50% de rabais" inventés.',
               },
               {
                 q: 'Comment vous calculez les rabais?',
-                a: 'On utilise la mediane des prix scannes sur 90 jours (minimum 3 scans). La mediane est plus fiable que la moyenne car elle resiste aux prix aberrants. Quand on dit -30%, c\'est un VRAI -30% par rapport au prix habituel.',
+                a: 'On utilise la médiane des prix scannés sur 90 jours (minimum 3 scans). La médiane est plus fiable que la moyenne car elle résiste aux prix aberrants. Quand on dit -30%, c\'est un VRAI -30% par rapport au prix habituel.',
               },
               {
                 q: 'Est-ce que je reserve directement sur GeaiMonVol?',
-                a: 'Non! On te redirige vers Skyscanner pour la reservation. On est un comparateur intelligent, pas une agence de voyage. Tu reserves toujours sur un site de confiance.',
+                a: 'Non! On te redirige vers Skyscanner pour la réservation. On est un comparateur intelligent, pas une agence de voyage. Tu réserves toujours sur un site de confiance.',
               },
               {
                 q: 'C\'est quoi le Guide GeaiAI?',
-                a: 'C\'est un assistant qui te genere un itineraire complet en quelques secondes : planning jour par jour, suggestions de restos et activites, budget detaille. Disponible avec le plan Premium.',
+                a: 'C\'est un assistant qui te génère un itinéraire complet en quelques secondes : planning jour par jour, suggestions de restos et activités, budget détaillé. Disponible avec le plan Premium.',
               },
               {
                 q: 'Les alertes prix, ca marche comment?',
@@ -2295,7 +2488,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           <span className="lp-section-label">Pret a partir?</span>
           <h2 className="lp-section-title">Trouve ton prochain vol maintenant</h2>
           <p className="lp-section-sub">
-            Les prix changent chaque jour. Decouvre les deals en direct et planifie
+            Les prix changent chaque jour. Découvre les deals en direct et planifie
             ton voyage avec le Guide GeaiAI.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
@@ -2366,7 +2559,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               </div>
               <p className="lp-footer-brand-desc">
                 Les meilleurs deals de vols au depart de Montreal.
-                Scanne automatique, alertes personnalisees et Guide GeaiAI.
+                Scanne automatique, alertes personnalisées et Guide GeaiAI.
               </p>
             </div>
             <div className="lp-footer-col">
