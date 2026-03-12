@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { FREE_GUIDE_MAX, FREE_MAX_TRIP_DAYS, PREMIUM_MAX_TRIP_DAYS, FREE_MAX_TOKENS, PREMIUM_MAX_TOKENS } from '@/lib/constants/premium';
 
 // ── Helper: build cache key from params ──
 function buildCacheKey(region: string, budget: string, days: number, prefs: string[]): string {
@@ -82,6 +83,16 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id);
 
     const guideCount = count || 0;
+    const isPremium = profile?.plan === 'premium';
+
+    // ── Free tier limit ──
+    if (!isPremium && guideCount >= FREE_GUIDE_MAX) {
+      return NextResponse.json({
+        error: 'Limite atteinte. Passe Premium pour des guides illimités !',
+        upgrade_required: true,
+        guide_count: guideCount,
+      }, { status: 403 });
+    }
 
     // ── Parse body ──
     const body = await req.json();
@@ -96,12 +107,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Destination requise.' }, { status: 400 });
     }
 
+    const maxDays = isPremium ? PREMIUM_MAX_TRIP_DAYS : FREE_MAX_TRIP_DAYS;
     let nights = trip_days || 7;
     if (departure_date && return_date) {
       nights = Math.round(
         (new Date(return_date).getTime() - new Date(departure_date).getTime()) / (1000 * 60 * 60 * 24)
       );
     }
+    nights = Math.min(nights, maxDays);
 
     const isQC = isQuebecDestination(destination);
 
@@ -151,7 +164,7 @@ export async function POST(req: NextRequest) {
           guide: cached.guide_data,
           guide_id: savedGuide?.id || null,
           guide_count: guideCount + 1,
-          is_premium: true,
+          is_premium: isPremium,
           tokens_used: 0,
           cached: true,
         });
@@ -431,7 +444,13 @@ IMPORTANT :
 - Utilise des VRAIS noms de restaurants et lieux qui existent
 - Les costs sont en CAD
 - Chaque "getting_to_*" doit avoir des directions réalistes
-- Le total_cost de chaque jour = somme des costs du jour`;
+- Le total_cost de chaque jour = somme des costs du jour${isPremium ? `
+
+BONUS PREMIUM (ajoute ces éléments) :
+- Pour CHAQUE jour, ajoute un champ "rainy_plan": { "activity": "...", "location": "...", "description": "...", "cost": 0 } comme plan B en cas de pluie
+- Ajoute un champ "insider_tips": ["3-5 tips d'initiés que les touristes ne connaissent pas"]
+- Ajoute un champ "promo_codes": ["codes promo ou rabais disponibles pour les activités/restos"]
+- Ajoute un champ "hidden_gems": ["3-5 expériences cachées locales hors des sentiers battus"]` : ''}`;
 
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     if (!ANTHROPIC_API_KEY) {
@@ -447,7 +466,7 @@ IMPORTANT :
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 16384,
+        max_tokens: isPremium ? PREMIUM_MAX_TOKENS : FREE_MAX_TOKENS,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt },
@@ -524,7 +543,7 @@ IMPORTANT :
       guide,
       guide_id: savedGuide?.id || null,
       guide_count: guideCount + 1,
-      is_premium: true,
+      is_premium: isPremium,
       tokens_used: (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0),
       cached: false,
     });

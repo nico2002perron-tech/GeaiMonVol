@@ -4721,3 +4721,198 @@ a {
   pointer-events: none;
   z-index: 1;
 }
+
+/* ═══ DARK PRICING PAGE ═══ */
+.pricing-dark {
+  min-height: 100vh;
+  background: #020810;
+  padding: 120px 24px 80px;
+  color: #fff;
+}
+.pricing-dark .pricing-title {
+  text-align: center;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.pricing-dark .pricing-subtitle {
+  text-align: center;
+  font-size: 15px;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 48px;
+}
+.pricing-dark .plans {
+  max-width: 760px;
+}
+.pricing-dark .plan {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+}
+.pricing-dark .plan:hover {
+  border-color: rgba(255,255,255,.15);
+  box-shadow: 0 8px 40px rgba(0,212,255,.08);
+}
+.pricing-dark .plan.pro {
+  border-color: #00D4FF;
+  box-shadow: 0 0 30px rgba(0,212,255,.15);
+}
+.pricing-dark .plan.pro::before {
+  background: linear-gradient(135deg, #00D4FF, #0090FF);
+}
+.pricing-dark .plan-name {
+  color: #fff;
+}
+.pricing-dark .plan-price {
+  color: #fff;
+}
+.pricing-dark .plan-price span {
+  color: rgba(255,255,255,.45);
+}
+.pricing-dark .plan-desc {
+  color: rgba(255,255,255,.45);
+}
+.pricing-dark .plan-list li {
+  color: rgba(255,255,255,.7);
+}
+.pricing-dark .plan-list .ck {
+  color: #00D4FF;
+}
+.pricing-dark .plan-list .ck-gold {
+  color: #FFD700;
+}
+.pricing-dark .plan-btn.outline {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.15);
+  color: rgba(255,255,255,.7);
+}
+.pricing-dark .plan-btn.outline:hover {
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.25);
+  color: #fff;
+}
+.pricing-dark .plan-btn.fill {
+  background: linear-gradient(135deg, #00D4FF, #0090FF);
+  box-shadow: 0 4px 20px rgba(0,212,255,.3);
+}
+.pricing-dark .plan-btn.fill:hover {
+  box-shadow: 0 6px 30px rgba(0,212,255,.45);
+  transform: translateY(-2px);
+}
+.pricing-dark .pricing-success {
+  text-align: center;
+  background: rgba(74,222,128,.1);
+  border: 1px solid rgba(74,222,128,.3);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  color: #4ADE80;
+  font-size: 14px;
+}
+.pricing-dark .plan-btn.premium-active {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #020810;
+  cursor: default;
+  font-weight: 800;
+}
+.pricing-dark .manage-link {
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  color: #00D4FF;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+}
+.pricing-dark .manage-link:hover {
+  color: #fff;
+}
+
+/* Premium badge in navbar */
+.premium-badge-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #1a1a2e;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 50px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Premium upsell banner */
+.premium-upsell {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(0,212,255,.2);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.premium-upsell-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+.premium-upsell-body {
+  flex: 1;
+  min-width: 0;
+}
+.premium-upsell-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.premium-upsell-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,.55);
+}
+.premium-upsell-cta {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #00D4FF, #0090FF);
+  color: #fff;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all .2s;
+  text-decoration: none;
+}
+.premium-upsell-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,212,255,.35);
+}
+
+@media (max-width: 768px) {
+  .pricing-dark {
+    padding: 100px 16px 60px;
+  }
+  .pricing-dark .pricing-title {
+    font-size: 28px;
+  }
+  .pricing-dark .plans {
+    grid-template-columns: 1fr;
+  }
+  .premium-upsell {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}

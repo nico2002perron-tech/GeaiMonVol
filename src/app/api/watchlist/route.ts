@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WatchlistService } from "@/features/watchlist/watchlist.service";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { FREE_WATCHLIST_MAX } from "@/lib/constants/premium";
 
 export async function GET(req: NextRequest) {
     const supabase = await createServerSupabase();
@@ -32,6 +33,23 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+        // Check free tier watchlist limit
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.plan !== 'premium') {
+            const existing = await WatchlistService.getUserWatchlist(user.id);
+            if (existing.length >= FREE_WATCHLIST_MAX) {
+                return NextResponse.json({
+                    error: 'Limite de watchlist atteinte. Passe Premium pour un suivi illimité !',
+                    upgrade_required: true,
+                }, { status: 403 });
+            }
+        }
+
         await WatchlistService.addDestination(user.id, destination, targetPrice);
         return NextResponse.json({ success: true });
     } catch (error: any) {

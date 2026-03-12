@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from '@/lib/auth/AuthProvider';
 
 interface NavbarProps {
     onOpenHowItWorks?: () => void;
@@ -10,6 +11,8 @@ interface NavbarProps {
 
 export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const { user, profile } = useAuth();
+    const isPremium = profile?.plan === 'premium';
 
     return (
         <nav className={dark ? 'nav-dark' : ''}>
@@ -19,6 +22,7 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                     <span className="jet">Geai</span>
                     <span className="bleu">MonVol</span>
                 </div>
+                {isPremium && <span className="premium-badge-nav">Premium</span>}
             </Link>
 
             {/* Desktop menu */}
@@ -30,7 +34,12 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                     </button>
                 </li>
                 <li><Link href="/explore">Globe</Link></li>
-                <li><Link href="/auth" className="nav-cta">Se connecter</Link></li>
+                <li><Link href="/pricing">Tarifs</Link></li>
+                {user ? (
+                    <li><Link href="/profile" className="nav-cta">Mon profil</Link></li>
+                ) : (
+                    <li><Link href="/auth" className="nav-cta">Se connecter</Link></li>
+                )}
             </ul>
 
             {/* Mobile hamburger */}
@@ -53,9 +62,16 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                         Comment ça marche
                     </button>
                     <Link href="/explore" onClick={() => setMenuOpen(false)}>Globe</Link>
-                    <Link href="/auth" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
-                        Se connecter
-                    </Link>
+                    <Link href="/pricing" onClick={() => setMenuOpen(false)}>Tarifs</Link>
+                    {user ? (
+                        <Link href="/profile" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
+                            Mon profil
+                        </Link>
+                    ) : (
+                        <Link href="/auth" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
+                            Se connecter
+                        </Link>
+                    )}
                 </div>
             )}
         </nav>

@@ -36,11 +36,12 @@ export async function GET(request: Request) {
             }
         }
 
-        // 2. Récupérer les utilisateurs
+        // 2. Récupérer les utilisateurs — triés premium d'abord
         const { data: users } = await supabase
             .from('profiles')
             .select('*')
-            .eq('email_notifications', true);
+            .eq('email_notifications', true)
+            .order('plan', { ascending: false });
 
         if (!users || users.length === 0) {
             return NextResponse.json({ message: 'No users to notify' });
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
         // 3. Pour chaque utilisateur, filtrer les deals pertinents
         for (const user of users) {
             const userDeals = [];
+            const isPremium = user.plan === 'premium';
 
             for (const [dest, p] of Object.entries(uniqueDeals)) {
                 // Pour chaque destination, calculer le vrai rabais
@@ -63,8 +65,10 @@ export async function GET(request: Request) {
 
                 const discountInfo = calculateRealDiscount((p as any).price, history || []);
 
-                // Ne créer un deal que si c'est vraiment un bon deal
-                if (!discountInfo.isGoodDeal) continue;
+                // Premium: seuil plus bas (alerte sur deals plus petits)
+                // Free: isGoodDeal standard
+                if (!isPremium && !discountInfo.isGoodDeal) continue;
+                if (isPremium && discountInfo.discount < 5) continue;
 
                 // Ajouter le deal
                 userDeals.push({
@@ -83,7 +87,7 @@ export async function GET(request: Request) {
 
             if (userDeals.length > 0) {
                 // Envoyer l'email
-                await sendDealAlert(user.email, user.full_name || user.email, userDeals);
+                await sendDealAlert(user.email, user.full_name || user.email, userDeals, isPremium);
                 totalSent++;
             }
         }
