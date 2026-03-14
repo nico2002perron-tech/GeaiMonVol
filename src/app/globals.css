@@ -4734,6 +4734,33 @@ a {
   position: relative;
 }
 
+/* Header mascot */
+.pr-header-mascot {
+  display: block;
+  margin: 0 auto 16px;
+  animation: pr-mascot-bounce 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(14, 165, 233, 0.2));
+}
+@keyframes pr-mascot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Premium card mascot — top right corner */
+.pr-plan-mascot {
+  position: absolute;
+  top: -28px;
+  right: 20px;
+  z-index: 3;
+  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.15));
+  animation: pr-mascot-wave 2s ease-in-out infinite;
+}
+@keyframes pr-mascot-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(6deg); }
+  75% { transform: rotate(-4deg); }
+}
+
 /* Header */
 .pr-header {
   text-align: center;
