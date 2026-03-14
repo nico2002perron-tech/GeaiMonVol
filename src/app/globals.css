@@ -4723,14 +4723,21 @@ a {
 }
 
 /* ═══ PRICING PAGE ═══ */
+/* ═══════════════════════════════════════════════
+   PRICING PAGE — Light Theme, Gold Premium
+   ═══════════════════════════════════════════════ */
+
 .pr-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 120px 32px 80px;
+  padding: 130px 32px 80px;
+  position: relative;
 }
+
+/* Header */
 .pr-header {
   text-align: center;
-  margin-bottom: 56px;
+  margin-bottom: 60px;
 }
 .pr-header .lp-section-label {
   margin-bottom: 16px;
@@ -4741,7 +4748,7 @@ a {
 .pr-subtitle {
   font-size: 17px;
   color: #64748B;
-  line-height: 1.6;
+  line-height: 1.7;
   max-width: 480px;
   margin: 0 auto;
 }
@@ -4751,7 +4758,7 @@ a {
   max-width: 520px;
   margin: 0 auto 32px;
   padding: 14px 20px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 14px;
   font-weight: 500;
   display: flex;
@@ -4776,79 +4783,170 @@ a {
 /* Plans grid */
 .pr-plans {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
-  max-width: 780px;
-  margin: 0 auto 64px;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 32px;
+  max-width: 860px;
+  margin: 0 auto 72px;
+  align-items: start;
 }
 
-/* Single plan card */
+/* ── Free plan card ── */
 .pr-plan {
   background: #fff;
   border: 1px solid #E2E8F0;
-  border-radius: 20px;
-  padding: 36px 32px 32px;
+  border-radius: 24px;
+  padding: 40px 32px 32px;
   position: relative;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .pr-plan:hover {
-  box-shadow: 0 8px 32px rgba(15,23,42,0.06);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
   transform: translateY(-2px);
 }
 
-/* Pro card highlight */
+/* ── Premium card ── warm cream bg, animated gold border, glow ── */
 .pr-plan-pro {
-  border-color: #0EA5E9;
-  box-shadow: 0 0 0 1px #0EA5E9, 0 8px 32px rgba(14,165,233,0.1);
-}
-.pr-plan-pro:hover {
-  box-shadow: 0 0 0 1px #0EA5E9, 0 12px 40px rgba(14,165,233,0.15);
-}
-.pr-plan-badge {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(135deg, #0EA5E9, #06B6D4);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 16px;
-  border-radius: 100px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  background: linear-gradient(165deg, #FFFDF5 0%, #FFF9E6 100%);
+  border-color: transparent;
+  transform: scale(1.04);
+  padding: 52px 36px 36px;
+  box-shadow:
+    0 12px 48px rgba(255, 190, 60, 0.12),
+    0 0 0 1px rgba(255, 190, 60, 0.2);
 }
 
-/* Plan top area */
+/* Gold glow orb behind premium card */
+.pr-plan-glow {
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(255, 190, 60, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: pr-glow-float 6s ease-in-out infinite;
+}
+@keyframes pr-glow-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-15px, 15px) scale(1.1); }
+}
+
+/* Animated gold gradient border */
+.pr-plan-pro::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 26px;
+  padding: 2.5px;
+  background: linear-gradient(
+    135deg,
+    #FFB800 0%,
+    #FFD700 20%,
+    #FFBE3C 40%,
+    #FFB800 60%,
+    #FFD700 80%,
+    #FFBE3C 100%
+  );
+  background-size: 300% 300%;
+  animation: pr-border-spin 4s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+@keyframes pr-border-spin {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 300% 300%; }
+}
+.pr-plan-pro:hover {
+  transform: scale(1.06) translateY(-4px);
+  box-shadow:
+    0 20px 56px rgba(255, 190, 60, 0.18),
+    0 0 0 1px rgba(255, 190, 60, 0.3);
+}
+
+/* Badge */
+.pr-plan-badge {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #0F172A, #1E293B);
+  color: #FFD700;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 28px;
+  border-radius: 100px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.25);
+  white-space: nowrap;
+  z-index: 2;
+}
+
+/* Plan name */
 .pr-plan-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #0F172A;
-  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #94A3B8;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
 }
+.pr-plan-pro .pr-plan-name {
+  color: #8B6914;
+  font-size: 15px;
+}
+
+/* Price */
 .pr-plan-price {
   font-family: 'Fredoka', sans-serif;
-  font-size: 44px;
+  font-size: 48px;
   font-weight: 800;
   color: #0F172A;
   line-height: 1.1;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+}
+.pr-plan-pro .pr-plan-price {
+  font-size: 56px;
+  background: linear-gradient(135deg, #8B6914, #FFD700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .pr-plan-price span {
   font-family: 'Outfit', sans-serif;
   font-size: 14px;
   font-weight: 500;
   color: #94A3B8;
-  margin-left: 2px;
+  margin-left: 3px;
 }
+.pr-plan-pro .pr-plan-price span {
+  -webkit-text-fill-color: #94A3B8;
+}
+
+/* Per-day price indicator */
+.pr-plan-per-day {
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8B6914;
+  background: rgba(255, 190, 60, 0.1);
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+
 .pr-plan-desc {
   font-size: 14px;
   color: #64748B;
-  line-height: 1.5;
-  margin-bottom: 24px;
+  line-height: 1.6;
+  margin-bottom: 28px;
 }
 
 /* Features list */
@@ -4858,7 +4956,7 @@ a {
   margin: 0 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 13px;
   padding-bottom: 28px;
 }
 .pr-plan-features li {
@@ -4866,11 +4964,35 @@ a {
   color: #334155;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
+.pr-plan-pro .pr-plan-features li {
+  font-weight: 500;
+}
+
+/* Locked features (free plan) */
+.pr-feat-locked {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.pr-x {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FEF2F2;
+  color: #EF4444;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Checkmarks */
 .pr-ck {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #F0FDF4;
   color: #10B981;
@@ -4881,9 +5003,10 @@ a {
   font-weight: 800;
   flex-shrink: 0;
 }
-.pr-ck-gold {
-  background: linear-gradient(135deg, #FFF7ED, #FFFBEB);
-  color: #D97706;
+.pr-ck-pro {
+  background: linear-gradient(135deg, rgba(255,190,60,0.12), rgba(255,215,0,0.06));
+  color: #FFB800;
+  font-size: 13px;
 }
 
 /* Plan bottom / CTA */
@@ -4891,11 +5014,14 @@ a {
   border-top: 1px solid #F1F5F9;
   padding-top: 24px;
 }
+.pr-plan-pro .pr-plan-bottom {
+  border-top-color: rgba(255, 190, 60, 0.15);
+}
 .pr-btn {
   display: block;
   width: 100%;
-  padding: 14px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 14px;
   font-size: 15px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
@@ -4903,7 +5029,7 @@ a {
   cursor: pointer;
   text-align: center;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .pr-btn-outline {
   background: #F8FAFC;
@@ -4923,32 +5049,64 @@ a {
   color: #64748B;
   transform: none;
 }
+
+/* ── Premium CTA — dark + gold shimmer ── */
 .pr-btn-fill {
-  background: #0F172A;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(15,23,42,0.15);
+  background: linear-gradient(135deg, #0F172A, #1E293B);
+  color: #FFD700;
+  font-size: 17px;
+  font-weight: 800;
+  padding: 20px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 6px 28px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(255, 190, 60, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+.pr-btn-fill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.15), transparent);
+  animation: pr-shimmer 2.5s ease-in-out infinite;
+}
+@keyframes pr-shimmer {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
 }
 .pr-btn-fill:hover {
-  background: #1E293B;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(15,23,42,0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 36px rgba(15, 23, 42, 0.3), 0 0 40px rgba(255, 190, 60, 0.1);
 }
 .pr-btn-fill:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
+
+/* Guarantee text under CTA */
+.pr-guarantee {
+  text-align: center;
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
 .pr-btn-active {
-  background: linear-gradient(135deg, #F59E0B, #D97706);
-  color: #fff;
+  background: linear-gradient(135deg, #0F172A, #1E293B);
+  color: #FFD700;
   cursor: default;
   font-weight: 800;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2);
 }
 .pr-manage {
   display: block;
   width: 100%;
   text-align: center;
-  margin-top: 10px;
+  margin-top: 12px;
   color: #0EA5E9;
   font-size: 13px;
   font-weight: 500;
@@ -4965,24 +5123,33 @@ a {
 
 /* Trust section */
 .pr-trust {
-  max-width: 780px;
+  max-width: 860px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: 16px;
 }
 .pr-trust-item {
   display: flex;
   gap: 14px;
   align-items: flex-start;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 20px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.pr-trust-item:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
 }
 .pr-trust-icon {
-  font-size: 24px;
+  font-size: 22px;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  background: #F8FAFC;
+  background: #EFF6FF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5001,9 +5168,10 @@ a {
   margin: 0;
 }
 
+/* Mobile */
 @media (max-width: 768px) {
   .pr-page {
-    padding: 100px 16px 60px;
+    padding: 110px 16px 60px;
   }
   .pr-header .lp-section-title {
     font-size: 28px;
@@ -5011,9 +5179,16 @@ a {
   .pr-plans {
     grid-template-columns: 1fr;
   }
+  .pr-plan-pro {
+    transform: none;
+    order: -1;
+  }
+  .pr-plan-pro:hover {
+    transform: translateY(-4px);
+  }
   .pr-trust {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
 }
 
@@ -5022,7 +5197,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
+  background: linear-gradient(135deg, #C5A200, #FFA500);
   color: #1a1a2e;
   font-size: 10px;
   font-weight: 800;

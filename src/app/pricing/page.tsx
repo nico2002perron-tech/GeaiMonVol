@@ -55,10 +55,10 @@ function PricingContent() {
         {/* Header */}
         <div className="pr-header">
           <span className="lp-section-label">Tarifs</span>
-          <h1 className="lp-section-title">Choisis ton plan</h1>
+          <h1 className="lp-section-title">Passe au niveau supérieur</h1>
           <p className="pr-subtitle">
-            Decouvre les meilleurs deals aeriens du Quebec.<br />
-            Passe Premium pour debloquer tout le potentiel de GeaiMonVol.
+            Découvre les meilleurs deals aériens du Québec.<br />
+            Passe Premium pour débloquer tout le potentiel de GeaiMonVol.
           </p>
         </div>
 
@@ -71,7 +71,7 @@ function PricingContent() {
         )}
         {canceled && (
           <div className="pr-banner pr-banner-cancel">
-            Paiement annule. Tu peux reessayer quand tu veux.
+            Paiement annulé. Tu peux réessayer quand tu veux.
           </div>
         )}
 
@@ -82,14 +82,16 @@ function PricingContent() {
             <div className="pr-plan-top">
               <div className="pr-plan-name">Gratuit</div>
               <div className="pr-plan-price">0$<span>/pour toujours</span></div>
-              <p className="pr-plan-desc">L&apos;essentiel pour commencer a chasser les deals.</p>
+              <p className="pr-plan-desc">L&apos;essentiel pour commencer.</p>
             </div>
             <ul className="pr-plan-features">
               <li><span className="pr-ck">&#10003;</span>3 destinations en watchlist</li>
               <li><span className="pr-ck">&#10003;</span>1 guide IA par compte</li>
               <li><span className="pr-ck">&#10003;</span>Alertes hebdomadaires</li>
-              <li><span className="pr-ck">&#10003;</span>Guides jusqu&apos;a 10 jours</li>
+              <li><span className="pr-ck">&#10003;</span>Guides jusqu&apos;à 10 jours</li>
               <li><span className="pr-ck">&#10003;</span>Carte interactive</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Alertes prioritaires</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Tips d&apos;initiés &amp; codes promo</li>
             </ul>
             <div className="pr-plan-bottom">
               {!user ? (
@@ -104,20 +106,24 @@ function PricingContent() {
 
           {/* PREMIUM */}
           <div className="pr-plan pr-plan-pro">
-            <div className="pr-plan-badge">Populaire</div>
+            <div className="pr-plan-glow" aria-hidden="true" />
+            <div className="pr-plan-badge">Le + populaire</div>
             <div className="pr-plan-top">
               <div className="pr-plan-name">Premium</div>
-              <div className="pr-plan-price">{PREMIUM_PRICE}$<span>/mois CAD</span></div>
-              <p className="pr-plan-desc">Tout illimite. L&apos;experience complete pour les vrais chasseurs de deals.</p>
+              <div className="pr-plan-price">
+                {PREMIUM_PRICE}$<span>/mois CAD</span>
+              </div>
+              <div className="pr-plan-per-day">Moins de 0.17$/jour</div>
+              <p className="pr-plan-desc">Tout illimité. L&apos;expérience complète pour les vrais chasseurs de deals.</p>
             </div>
             <ul className="pr-plan-features">
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Watchlist illimitee</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Guides IA illimites</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Alertes prioritaires</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Guides jusqu&apos;a 21 jours</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Plan B pluie par jour</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Tips d&apos;inities &amp; codes promo</li>
-              <li><span className="pr-ck pr-ck-gold">&#9733;</span>Experiences cachees locales</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Watchlist illimitée</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides IA illimités</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Alertes prioritaires</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides jusqu&apos;à 21 jours</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Plan B pluie par jour</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Tips d&apos;initiés &amp; codes promo</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Expériences cachées locales</li>
             </ul>
             <div className="pr-plan-bottom">
               {loading ? (
@@ -126,25 +132,28 @@ function PricingContent() {
                 <>
                   <span className="pr-btn pr-btn-active">Tu es Premium !</span>
                   <button className="pr-manage" onClick={handleManage} disabled={portalLoading}>
-                    {portalLoading ? 'Chargement...' : 'Gerer mon abonnement'}
+                    {portalLoading ? 'Chargement...' : 'Gérer mon abonnement'}
                   </button>
                 </>
               ) : (
-                <button className="pr-btn pr-btn-fill" onClick={handleCheckout} disabled={checkoutLoading}>
-                  {checkoutLoading ? 'Redirection...' : 'Passer Premium'}
-                </button>
+                <>
+                  <button className="pr-btn pr-btn-fill" onClick={handleCheckout} disabled={checkoutLoading}>
+                    {checkoutLoading ? 'Redirection...' : 'Passer Premium'}
+                  </button>
+                  <p className="pr-guarantee">Annulation gratuite en 1 clic, sans engagement</p>
+                </>
               )}
             </div>
           </div>
         </div>
 
-        {/* FAQ / Trust */}
+        {/* Trust */}
         <div className="pr-trust">
           <div className="pr-trust-item">
             <span className="pr-trust-icon">&#128274;</span>
             <div>
-              <strong>Paiement securise</strong>
-              <p>Transactions par Stripe. Tes donnees bancaires ne passent jamais par nos serveurs.</p>
+              <strong>Paiement sécurisé</strong>
+              <p>Transactions par Stripe. Tes données bancaires ne passent jamais par nos serveurs.</p>
             </div>
           </div>
           <div className="pr-trust-item">
@@ -157,8 +166,8 @@ function PricingContent() {
           <div className="pr-trust-item">
             <span className="pr-trust-icon">&#127873;</span>
             <div>
-              <strong>Actif instantanement</strong>
-              <p>Tes features Premium sont debloquees des la confirmation du paiement.</p>
+              <strong>Actif instantanément</strong>
+              <p>Tes features Premium sont débloquées dès la confirmation du paiement.</p>
             </div>
           </div>
         </div>

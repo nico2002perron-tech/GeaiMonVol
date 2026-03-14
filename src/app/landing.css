@@ -1788,6 +1788,137 @@
   background: radial-gradient(ellipse at 50% 50%, rgba(255,190,60,0.12) 0%, transparent 70%);
 }
 
+/* Gold-tinted AI bubbles in premium section */
+.lp-feature-visual.gold-card .lp-mockup-msg.ai {
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(255, 190, 60, 0.12);
+}
+
+.lp-feature-visual.gold-card .lp-mockup-msg.ai .label {
+  color: #FFD700;
+}
+
+/* ── Premium feature cards 2x2 ── */
+.lp-premium-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 28px 0 24px;
+}
+
+.lp-premium-card {
+  background: linear-gradient(135deg, rgba(255,190,60,0.06), rgba(255,215,0,0.02));
+  border: 1px solid rgba(255,190,60,0.15);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.25s ease;
+}
+
+.lp-premium-card:hover {
+  background: linear-gradient(135deg, rgba(255,190,60,0.1), rgba(255,215,0,0.04));
+  border-color: rgba(255,190,60,0.3);
+  transform: translateY(-2px);
+}
+
+.lp-premium-card-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.lp-premium-card strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1.2;
+}
+
+.lp-premium-card span:last-child {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* ── Free vs Premium comparison ── */
+.lp-premium-compare {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.03), rgba(255,190,60,0.03));
+  border: 1px solid rgba(226,232,240,0.6);
+}
+
+.lp-premium-compare-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lp-premium-compare-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.lp-premium-compare-col.free .lp-premium-compare-header {
+  color: #94A3B8;
+}
+
+.lp-premium-compare-col.premium .lp-premium-compare-header {
+  color: #D97706;
+}
+
+.lp-premium-compare-row {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.lp-premium-compare-col.free .lp-premium-compare-row {
+  color: #94A3B8;
+  text-decoration: line-through;
+  text-decoration-color: rgba(148,163,184,0.4);
+}
+
+.lp-premium-compare-col.premium .lp-premium-compare-row {
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.lp-premium-compare-arrow {
+  font-size: 20px;
+  color: #D97706;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .lp-premium-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .lp-premium-card {
+    padding: 12px;
+  }
+  .lp-premium-card-icon {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-premium-compare {
+    padding: 12px;
+    gap: 8px;
+  }
+}
+
 /* Gold CTA button */
 .lp-btn-gold {
   display: inline-flex;

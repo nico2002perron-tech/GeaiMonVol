@@ -14,6 +14,7 @@ import DestinationPopup from '@/components/map/DestinationPopup';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
+import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import './landing.css';
 
 // ── City → Country mapping ──
@@ -1916,19 +1917,54 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       <section className="lp-feature lp-feature-premium" id="guide">
         <div className="lp-feature-text lp-reveal-left">
           <span className="lp-section-label gold">Premium — Guide GeaiAI</span>
-          <h2 className="lp-section-title">Zéro casse-tête. Ton voyage est déjà organisé.</h2>
+          <h2 className="lp-section-title">Ton assistant de voyage personnel. Toujours prêt.</h2>
           <p className="lp-section-sub" style={{ marginBottom: 0 }}>
-            Donne ta destination et ton budget — GeaiAI te prépare un itinéraire
-            jour par jour avec les meilleurs restos et activités recommandés par les voyageurs avant toi.
+            Un message. Un itinéraire complet. Toi, tu fais juste tes valises.
           </p>
-          <ul className="lp-feature-list">
-            <li><span className="lp-feature-icon-mini">📅</span><span><strong>Horaire clé en main</strong> — Chaque journée est planifiée du matin au soir. Tu suis le plan, c&apos;est tout.</span></li>
-            <li><span className="lp-feature-icon-mini">💰</span><span><strong>Budget clair et réaliste</strong> — Vols, hôtel, repas, activités : tu sais exactement combien ça coûte avant de partir.</span></li>
-            <li><span className="lp-feature-icon-mini">⭐</span><span><strong>Les vrais bons spots</strong> — Restos, bars et activités basés sur les recommandations des utilisateurs précédents.</span></li>
-            <li><span className="lp-feature-icon-mini">⚡</span><span><strong>Prêt en 30 secondes</strong> — Pas besoin de scroller 15 blogs. Un message et ton voyage est organisé.</span></li>
-          </ul>
-          <Link href="/explore" className="lp-btn-gold">
-            Planifier mon voyage
+
+          {/* Feature cards 2x2 */}
+          <div className="lp-premium-cards">
+            <div className="lp-premium-card">
+              <span className="lp-premium-card-icon">📅</span>
+              <strong>Itinéraire complet</strong>
+              <span>Planifié du matin au soir</span>
+            </div>
+            <div className="lp-premium-card">
+              <span className="lp-premium-card-icon">💰</span>
+              <strong>Budget en temps réel</strong>
+              <span>Tu sais combien ça coûte</span>
+            </div>
+            <div className="lp-premium-card">
+              <span className="lp-premium-card-icon">⭐</span>
+              <strong>Spots vérifiés</strong>
+              <span>Validés par les voyageurs</span>
+            </div>
+            <div className="lp-premium-card">
+              <span className="lp-premium-card-icon">⚡</span>
+              <strong>Prêt en 30 sec</strong>
+              <span>Un message, c&apos;est réglé</span>
+            </div>
+          </div>
+
+          {/* Free vs Premium comparison */}
+          <div className="lp-premium-compare">
+            <div className="lp-premium-compare-col free">
+              <div className="lp-premium-compare-header">Gratuit</div>
+              <div className="lp-premium-compare-row">3 destinations</div>
+              <div className="lp-premium-compare-row">1 guide IA</div>
+              <div className="lp-premium-compare-row">Alertes hebdo</div>
+            </div>
+            <div className="lp-premium-compare-arrow">→</div>
+            <div className="lp-premium-compare-col premium">
+              <div className="lp-premium-compare-header">Premium</div>
+              <div className="lp-premium-compare-row">Illimité</div>
+              <div className="lp-premium-compare-row">Illimité</div>
+              <div className="lp-premium-compare-row">Alertes prioritaires</div>
+            </div>
+          </div>
+
+          <Link href="/pricing" className="lp-btn-gold">
+            Devenir voyageur Premium — {PREMIUM_PRICE}$/mois
             <ArrowIcon />
           </Link>
         </div>
