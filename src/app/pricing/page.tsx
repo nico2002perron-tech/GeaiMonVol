@@ -3,7 +3,6 @@
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import Image from 'next/image';
 import LandingHeader from '@/components/LandingHeader';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import '../landing.css';
@@ -55,7 +54,6 @@ function PricingContent() {
       <section className="pr-page">
         {/* Header */}
         <div className="pr-header">
-          <Image src="/mascots/geai-mascot.png" alt="GeaiMonVol" width={80} height={80} className="pr-header-mascot" />
           <span className="lp-section-label">Tarifs</span>
           <h1 className="lp-section-title">Passe au niveau supérieur</h1>
           <p className="pr-subtitle">
@@ -108,7 +106,6 @@ function PricingContent() {
 
           {/* PREMIUM */}
           <div className="pr-plan pr-plan-pro">
-            <Image src="/mascots/geai-mascot.png" alt="" width={64} height={64} className="pr-plan-mascot" aria-hidden="true" />
             <div className="pr-plan-glow" aria-hidden="true" />
             <div className="pr-plan-badge">Le + populaire</div>
             <div className="pr-plan-top">
