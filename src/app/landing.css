@@ -68,10 +68,6 @@
   opacity: 0.8;
 }
 
-.lp-logo-img {
-  border-radius: 8px;
-}
-
 .lp-logo-text {
   font-family: 'Fredoka', sans-serif;
   font-size: 20px;
@@ -556,15 +552,14 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg,
-      #BAE6FD 0%,
-      #CCEEFE 12%,
-      #DDF3FE 26%,
-      #EBF7FF 40%,
-      #F4FBFF 55%,
-      #FAFEFF 70%,
-      #FFFFFF 85%,
-      #FFFFFF 100%
+    linear-gradient(160deg,
+      #0A1628 0%,
+      #0C2340 18%,
+      #0E3460 35%,
+      #0B4F8A 50%,
+      #0EA5E9 72%,
+      #38BDF8 85%,
+      #BAE6FD 100%
     );
 }
 
@@ -604,10 +599,10 @@
 .lp-ocean-aurora {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
-  background: radial-gradient(ellipse 80% 50% at 50% 60%, #BAE6FD 0%, transparent 50%),
-              radial-gradient(ellipse 60% 40% at 30% 40%, #A5F3FC 0%, transparent 50%),
-              radial-gradient(ellipse 50% 50% at 70% 50%, #C4B5FD 0%, transparent 50%);
+  opacity: 0.4;
+  background: radial-gradient(ellipse 80% 50% at 50% 60%, rgba(14,165,233,0.4) 0%, transparent 50%),
+              radial-gradient(ellipse 60% 40% at 30% 40%, rgba(6,182,212,0.3) 0%, transparent 50%),
+              radial-gradient(ellipse 50% 50% at 70% 50%, rgba(99,102,241,0.25) 0%, transparent 50%);
   animation: auroraShift 20s ease-in-out infinite alternate;
 }
 
@@ -739,9 +734,9 @@
   gap: 8px;
   padding: 6px 14px;
   border-radius: 100px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(14, 165, 233, 0.12);
-  color: #0369A1;
+  background: rgba(14, 165, 233, 0.15);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #7DD3FC;
   font-size: 12px;
   font-weight: 600;
   margin-bottom: 24px;
@@ -761,17 +756,18 @@
 
 .lp-hero-text h1 {
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(40px, 4.8vw, 64px);
+  font-size: clamp(42px, 5vw, 68px);
   font-weight: 700;
-  line-height: 1.08;
-  color: #0F172A;
+  line-height: 1.05;
+  color: #FFFFFF;
   margin-bottom: 20px;
   letter-spacing: -1.5px;
+  text-shadow: 0 2px 40px rgba(0,0,0,0.3);
 }
 
 .lp-hero-text h1 span {
   display: block;
-  background: linear-gradient(135deg, #0284C7 0%, #0EA5E9 50%, #06B6D4 100%);
+  background: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 40%, #06B6D4 70%, #2DD4BF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -780,10 +776,49 @@
 .lp-hero-text p,
 .lp-hero-sub {
   font-size: 17px;
-  color: #64748B;
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.65;
+  margin-bottom: 28px;
+  max-width: 460px;
+}
+
+.lp-hero-sub strong {
+  color: #38BDF8;
+  font-weight: 700;
+}
+
+/* ── Feature pills ── */
+.lp-hero-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 32px;
-  max-width: 440px;
+}
+
+.lp-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 500;
+  width: fit-content;
+  transition: all 0.3s;
+}
+
+.lp-hero-pill:hover {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.3);
+  transform: translateX(4px);
+}
+
+.lp-hero-pill-icon {
+  font-size: 16px;
 }
 
 /* Social proof stats under CTA */
@@ -793,7 +828,7 @@
   gap: 24px;
   margin-top: 40px;
   padding-top: 28px;
-  border-top: 1px solid #E2E8F0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .lp-hero-proof-icon {
@@ -816,14 +851,14 @@
   font-family: 'Fredoka', sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: #0F172A;
+  color: #FFFFFF;
   letter-spacing: -0.3px;
   line-height: 1.2;
 }
 
 .lp-hero-proof-item span:not(.lp-hero-proof-icon) {
   font-size: 12px;
-  color: #94A3B8;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 500;
   line-height: 1.3;
 }
@@ -831,7 +866,7 @@
 .lp-hero-proof-sep {
   width: 1px;
   align-self: stretch;
-  background: #E2E8F0;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .lp-hero-actions {
@@ -892,15 +927,15 @@
   transform: translateX(4px);
 }
 
-/* Glass button on light blue bg */
+/* Glass button on dark bg */
 .lp-btn-glass {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 16px 32px;
-  background: rgba(255, 255, 255, 0.65);
-  color: #0C4A6E;
-  border: 1.5px solid rgba(14, 165, 233, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 100px;
   text-decoration: none;
   font-size: 16px;
@@ -908,15 +943,15 @@
   cursor: pointer;
   transition: all 0.3s;
   backdrop-filter: blur(12px);
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .lp-btn-glass:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(14, 165, 233, 0.4);
-  color: #0369A1;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #FFFFFF;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.15);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.2);
 }
 
 /* Also keep lp-btn-primary/secondary for other sections */
@@ -965,11 +1000,162 @@
   background: var(--primary-light);
 }
 
-/* ── Hero Cards — floating on ocean ── */
+/* ── Hero Visual ── */
 
 .lp-hero-visual {
   position: relative;
-  height: 440px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+}
+
+/* ── Floating alert card ── */
+.lp-float-alert {
+  position: absolute;
+  top: 10px;
+  right: -20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  z-index: 10;
+  animation: floatAlert 5s ease-in-out infinite, fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.lp-float-alert-icon {
+  font-size: 20px;
+  animation: bellRing 3s ease-in-out infinite;
+}
+
+@keyframes bellRing {
+  0%, 80%, 100% { transform: rotate(0); }
+  85% { transform: rotate(12deg); }
+  90% { transform: rotate(-10deg); }
+  95% { transform: rotate(6deg); }
+}
+
+.lp-float-alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.lp-float-alert-text strong {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.lp-float-alert-text span {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes floatAlert {
+  0%, 100% { transform: translateY(0) rotate(1deg); }
+  50% { transform: translateY(-8px) rotate(-0.5deg); }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Floating AI card ── */
+.lp-float-ai {
+  position: absolute;
+  bottom: 40px;
+  left: -30px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  z-index: 10;
+  min-width: 150px;
+  animation: floatAI 6s ease-in-out infinite, fadeSlideInLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.lp-float-ai-icon {
+  font-size: 18px;
+}
+
+.lp-float-ai-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lp-float-ai-text strong {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.lp-float-ai-text span {
+  font-size: 11px;
+  color: #2DD4BF;
+  font-weight: 600;
+}
+
+.lp-float-ai-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.lp-float-ai-bar-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #0EA5E9, #2DD4BF);
+  animation: aiBarFill 2s ease-out 1.8s both;
+}
+
+@keyframes aiBarFill {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes floatAI {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(0.5deg); }
+}
+
+@keyframes fadeSlideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Hero mascot ── */
+.lp-hero-mascot {
+  position: absolute;
+  bottom: -10px;
+  right: -40px;
+  width: 90px;
+  height: 90px;
+  z-index: 10;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  animation: mascotBounce 3s ease-in-out infinite, fadeSlideIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both;
+  pointer-events: none;
+}
+
+@keyframes mascotBounce {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(3deg); }
 }
 
 .lp-hero-card {
@@ -1094,6 +1280,316 @@
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   color: var(--dark);
+}
+
+/* ── Boarding Pass (clean card) ── */
+
+.bp-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 420px;
+  perspective: 1200px;
+}
+
+.bp-glow {
+  position: absolute;
+  width: 440px;
+  height: 440px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, rgba(6, 182, 212, 0.12) 35%, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: bpGlowPulse 4s ease-in-out infinite;
+}
+
+@keyframes bpGlowPulse {
+  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+}
+
+.bp-pass {
+  position: relative;
+  width: 380px;
+  max-width: 100%;
+  background: #FFFFFF;
+  border-radius: 24px;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.35),
+    0 8px 24px rgba(14, 165, 233, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.5s ease;
+  transform-origin: center center;
+  animation: bpEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+}
+
+@keyframes bpEntrance {
+  from { opacity: 0; transform: translateY(30px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bp-pass:hover {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow:
+    0 32px 100px rgba(0, 0, 0, 0.4),
+    0 12px 32px rgba(14, 165, 233, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.bp-flip {
+  animation: bpFlipOut 0.4s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+@keyframes bpFlipOut {
+  0% { opacity: 1; transform: rotateY(0) scale(1); }
+  100% { opacity: 0; transform: rotateY(90deg) scale(0.95); }
+}
+
+.bp-pass:not(.bp-flip) {
+  animation: bpFlipIn 0.4s cubic-bezier(0, 0.55, 0.45, 1) both;
+}
+
+@keyframes bpFlipIn {
+  0% { opacity: 0; transform: rotateY(-90deg) scale(0.95); }
+  100% { opacity: 1; transform: rotateY(0) scale(1); }
+}
+
+/* ── City image hero ── */
+.bp-city-image {
+  position: relative;
+  height: 190px;
+  overflow: hidden;
+}
+
+.bp-city-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bp-pass:hover .bp-city-image img {
+  transform: scale(1.06);
+}
+
+.bp-city-image-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none;
+}
+
+/* Discount tag top-right */
+.bp-savings-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  background: #10B981;
+  color: #FFFFFF;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+/* City info bottom-left on image */
+.bp-city-image-info {
+  position: absolute;
+  bottom: 14px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bp-city-image-city {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.bp-city-image-route {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  letter-spacing: 0.3px;
+}
+
+/* ── Price + info row ── */
+.bp-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+}
+
+.bp-info-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.bp-info-current {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1;
+  letter-spacing: -0.8px;
+}
+
+.bp-info-old {
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  color: #94A3B8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.bp-info-tags {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bp-info-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bp-info-tag-flight {
+  background: #F0F9FF;
+  color: #0369A1;
+  border: 1px solid #BAE6FD;
+}
+
+.bp-info-tag-deal {
+  color: #FFFFFF;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+/* ── Bottom row: airline + CTA ── */
+.bp-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 14px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.bp-bottom-airline {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.bp-bottom-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0EA5E9;
+  transition: all 0.25s;
+}
+
+.bp-pass:hover .bp-bottom-cta {
+  color: #0284C7;
+}
+
+.bp-pass:hover .bp-bottom-cta svg {
+  transform: translateX(3px);
+}
+
+.bp-bottom-cta svg {
+  transition: transform 0.25s;
+}
+
+/* ── Dots ── */
+.bp-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.bp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.bp-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: #0EA5E9;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.5);
+}
+
+.bp-dot:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Boarding Pass Mobile ── */
+@media (max-width: 480px) {
+  .bp-pass {
+    width: 100%;
+  }
+
+  .bp-city-image {
+    height: 150px;
+  }
+
+  .bp-city-image-city {
+    font-size: 20px;
+  }
+
+  .bp-info-current {
+    font-size: 24px;
+  }
+
+  .bp-info-row {
+    padding: 12px 16px 10px;
+  }
+
+  .bp-bottom-row {
+    padding: 8px 16px 12px;
+  }
 }
 
 /* ── Wave Divider ── */
@@ -2576,7 +3072,7 @@
   }
 
   .lp-hero-visual {
-    height: 300px;
+    min-height: auto;
     max-width: 500px;
     margin: 0 auto;
   }
@@ -2682,12 +3178,31 @@
   }
 
   .lp-hero-visual {
-    height: 220px;
+    min-height: auto;
   }
 
-  .lp-hero-card {
-    transform: scale(0.8) !important;
-    animation: none !important;
+  .lp-hero-pills {
+    align-items: center;
+  }
+
+  .lp-float-alert {
+    top: -10px;
+    right: -5px;
+    padding: 8px 12px;
+  }
+
+  .lp-float-ai {
+    bottom: 20px;
+    left: -5px;
+    padding: 8px 12px;
+    min-width: 130px;
+  }
+
+  .lp-hero-mascot {
+    width: 65px;
+    height: 65px;
+    right: -15px;
+    bottom: -5px;
   }
 
   .lp-ticker-card {

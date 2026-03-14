@@ -60,7 +60,6 @@ export default function LandingHeader() {
     <header className={`lp-header${showBanner ? ' lp-header-with-banner' : ''}`}>
       <div className="lp-header-inner">
         <Link href="/" className="lp-logo">
-          <Image src="/logo_geai.png" alt="GeaiMonVol" width={30} height={30} className="lp-logo-img" />
           <span className="lp-logo-text">Geai<strong>MonVol</strong></span>
         </Link>
 

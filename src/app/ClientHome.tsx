@@ -231,6 +231,133 @@ function AnimatedStats() {
   );
 }
 
+// ── Boarding Pass Component ──
+const BOARDING_FALLBACK = [
+  { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, airline: 'Air Transat', stops: 0, dealLevel: 'great' },
+  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, discount: 34, airline: 'ANA', stops: 1, dealLevel: 'incredible' },
+  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, discount: 38, airline: 'Air Transat', stops: 0, dealLevel: 'incredible' },
+  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, discount: 36, airline: 'Icelandair', stops: 0, dealLevel: 'great' },
+  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, discount: 31, airline: 'Air Canada', stops: 0, dealLevel: 'good' },
+];
+
+function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: (d: any) => void }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [flipping, setFlipping] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const bpDeals = useMemo(() => {
+    const top = deals
+      .filter(d => d.discount >= 20)
+      .sort((a, b) => b.discount - a.discount)
+      .slice(0, 5);
+    if (top.length >= 3) return top;
+    return BOARDING_FALLBACK;
+  }, [deals]);
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setFlipping(true);
+      setTimeout(() => {
+        setActiveIdx(prev => (prev + 1) % bpDeals.length);
+        setFlipping(false);
+      }, 400);
+    }, 4500);
+  }, [bpDeals.length]);
+
+  useEffect(() => {
+    startTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [startTimer]);
+
+  const goTo = (i: number) => {
+    if (i === activeIdx) return;
+    setFlipping(true);
+    setTimeout(() => { setActiveIdx(i); setFlipping(false); }, 400);
+    startTimer();
+  };
+
+  const deal = bpDeals[activeIdx];
+  if (!deal) return null;
+
+  const country = CITY_COUNTRY[deal.city] || '';
+  const flag = COUNTRY_FLAGS[country] || '';
+  const levelInfo = DEAL_LEVELS[deal.dealLevel];
+  const levelColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
+    : deal.dealLevel === 'incredible' ? '#DC2626'
+    : deal.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
+  const cityImage = CITY_IMAGES[deal.city] || DEFAULT_CITY_IMAGE;
+
+  return (
+    <div className="bp-wrapper">
+      {/* Glow behind the pass */}
+      <div className="bp-glow" />
+
+      <div
+        className={`bp-pass${flipping ? ' bp-flip' : ''}`}
+        onClick={() => onDealClick(deal)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onDealClick(deal); } }}
+      >
+        {/* ── Hero image with overlay info ── */}
+        <div className="bp-city-image">
+          <img src={cityImage} alt={deal.city} />
+          <div className="bp-city-image-overlay" />
+          {/* Discount tag */}
+          <span className="bp-savings-tag">-{deal.discount}%</span>
+          {/* City name + flag on image */}
+          <div className="bp-city-image-info">
+            <span className="bp-city-image-city">{flag} {deal.city}</span>
+            <span className="bp-city-image-route">Montréal → {deal.code}</span>
+          </div>
+        </div>
+
+        {/* ── Price + key info row ── */}
+        <div className="bp-info-row">
+          <div className="bp-info-price-block">
+            <span className="bp-info-current">{Math.round(deal.price)} $</span>
+            {deal.oldPrice > deal.price && (
+              <span className="bp-info-old">{Math.round(deal.oldPrice)} $</span>
+            )}
+          </div>
+          <div className="bp-info-tags">
+            <span className="bp-info-tag bp-info-tag-flight">
+              {deal.stops === 0 ? '✈ Direct' : `✈ ${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
+            </span>
+            {levelInfo && (
+              <span className="bp-info-tag bp-info-tag-deal" style={{ background: levelColor }}>
+                {levelInfo.icon} {levelInfo.label}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* ── Airline + CTA ── */}
+        <div className="bp-bottom-row">
+          <span className="bp-bottom-airline">{deal.airline || 'GeaiMonVol'}</span>
+          <span className="bp-bottom-cta">
+            Voir les dates
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+          </span>
+        </div>
+      </div>
+
+      {/* Dots navigation */}
+      <div className="bp-dots">
+        {bpDeals.map((_, i) => (
+          <button
+            key={i}
+            className={`bp-dot${i === activeIdx ? ' active' : ''}`}
+            onClick={() => goTo(i)}
+            aria-label={`Deal ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 type FilterTab = 'tous' | 'favoris' | 'top' | 'canada' | 'monde' | 'tout-inclus';
 type SortMode = 'deal' | 'price' | 'discount';
 
@@ -622,7 +749,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               const left = 5 + (i * 37 + 13) % 90;
               const duration = 10 + (i % 7) * 3;
               const delay = (i * 1.7) % 12;
-              const colors = ['rgba(14,165,233,0.15)', 'rgba(6,182,212,0.12)', 'rgba(99,102,241,0.1)', 'rgba(16,185,129,0.1)'];
+              const colors = ['rgba(56,189,248,0.25)', 'rgba(6,182,212,0.2)', 'rgba(99,102,241,0.18)', 'rgba(45,212,191,0.18)'];
               return (
                 <div
                   key={i}
@@ -645,20 +772,36 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           <div className="lp-hero-text">
             <div className="lp-hero-badge">
               <span className="lp-hero-badge-dot" />
-              Scanning en direct
+              Scanning en direct — prix mis à jour 24/7
             </div>
             <h1>
-              Voyage moins cher,<br />
-              <span>voyage plus souvent.</span>
+              Des deals de vols <span>qui ont de l'allure.</span>
             </h1>
             <p className="lp-hero-sub">
-              On detecte les baisses de prix sur les vols au depart de Montreal
-              et GeaiAI te crée un itinéraire complet en quelques secondes.
+              On détecte les meilleurs deals sur les vols au départ de Montréal.
+              <strong>GeaiAI te planifie le voyage en 30 secondes.</strong>
             </p>
+
+            {/* ── Feature pills ── */}
+            <div className="lp-hero-pills">
+              <div className="lp-hero-pill">
+                <span className="lp-hero-pill-icon">📡</span>
+                <span>Scanning automatique des prix</span>
+              </div>
+              <div className="lp-hero-pill">
+                <span className="lp-hero-pill-icon">🤖</span>
+                <span>Itinéraire IA en 30 secondes</span>
+              </div>
+              <div className="lp-hero-pill">
+                <span className="lp-hero-pill-icon">🔔</span>
+                <span>Alertes de baisses de prix</span>
+              </div>
+            </div>
+
             <div className="lp-hero-actions">
               <a href="#deals" className="lp-btn-ocean">
                 <span className="lp-btn-ocean-glow" />
-                Voir les deals
+                Voir les deals en direct
                 <ArrowIcon />
               </a>
               <a href="#how" className="lp-btn-glass">
@@ -686,50 +829,48 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 <span className="lp-hero-proof-icon">⚡</span>
                 <div>
                   <strong>24h</strong>
-                  <span>mise à jour</span>
+                  <span>mise à jour auto</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="lp-hero-visual" ref={heroVisualRef}>
-            {(() => {
-              // Pick top 3 deals with highest discount for hero cards
-              const heroDeals = allDeals
-                .filter(d => d.discount >= 20 && d.image)
-                .sort((a, b) => b.discount - a.discount)
-                .slice(0, 3);
-              // Fallback if no live data yet
-              const cards = heroDeals.length >= 3 ? heroDeals : [
-                { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, image: 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=400&h=200&fit=crop' },
-                { city: 'Tokyo', code: 'TYO', price: 689, oldPrice: 1050, discount: 34, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=200&fit=crop' },
-                { city: 'Punta Cana', code: 'PUJ', price: 899, oldPrice: 1350, discount: 33, image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=400&h=200&fit=crop' },
-              ];
-              const floatClasses = ['lp-hero-card-float-1', 'lp-hero-card-float-2', 'lp-hero-card-float-3'];
-              const icons = ['🔥', '✈️', '🏖️'];
-              return cards.map((c, i) => (
-                <div key={i} className={`lp-hero-card ${floatClasses[i]}`}>
-                  <div className="lp-hero-card-img">
-                    <Image src={c.image} alt={`Deal vol ${c.city}`} fill sizes="(max-width: 768px) 160px, 220px" priority={i === 0} style={{ objectFit: 'cover' }} />
-                    <span className="lp-hero-card-badge">{icons[i]} -{c.discount}%</span>
-                  </div>
-                  <div className="lp-hero-card-body">
-                    <div className="lp-hero-card-route"><strong>YUL</strong> &rarr; <strong>{c.code}</strong></div>
-                    <div className="lp-hero-card-city">{c.city}</div>
-                    <div className="lp-hero-card-price">
-                      {c.oldPrice > c.price && <span className="old">{Math.round(c.oldPrice)} $</span>}
-                      <span className="current">{Math.round(c.price)} $</span>
-                    </div>
-                  </div>
-                </div>
-              ));
-            })()}
+            {/* Floating alert card */}
+            <div className="lp-float-alert">
+              <div className="lp-float-alert-icon">🔔</div>
+              <div className="lp-float-alert-text">
+                <strong>Baisse détectée!</strong>
+                <span>Lisbonne — <em style={{color:'#10B981'}}>-32%</em></span>
+              </div>
+            </div>
+
+            {/* Floating AI planning card */}
+            <div className="lp-float-ai">
+              <div className="lp-float-ai-icon">🤖</div>
+              <div className="lp-float-ai-text">
+                <strong>GeaiAI</strong>
+                <span>Itinéraire prêt ✓</span>
+              </div>
+              <div className="lp-float-ai-bar">
+                <div className="lp-float-ai-bar-fill" />
+              </div>
+            </div>
+
+            {/* Mascot */}
+            <img
+              src="/mascots/geai-mascot.png"
+              alt="GeaiMonVol mascotte"
+              className="lp-hero-mascot"
+            />
+
+            <BoardingPass deals={allDeals} onDealClick={openDealPopup} />
           </div>
         </div>
         <div className="lp-wave-divider">
           <svg viewBox="0 0 1440 140" preserveAspectRatio="none">
-            <path d="M0,50 C240,110 480,10 720,60 C960,110 1200,20 1440,70 L1440,140 L0,140 Z" fill="white" opacity="0.3" />
-            <path d="M0,70 C300,30 600,100 900,50 C1100,20 1300,80 1440,55 L1440,140 L0,140 Z" fill="white" opacity="0.5" />
+            <path d="M0,50 C240,110 480,10 720,60 C960,110 1200,20 1440,70 L1440,140 L0,140 Z" fill="#F8FAFC" opacity="0.3" />
+            <path d="M0,70 C300,30 600,100 900,50 C1100,20 1300,80 1440,55 L1440,140 L0,140 Z" fill="#F8FAFC" opacity="0.5" />
             <path d="M0,90 C200,70 500,110 800,80 C1100,50 1300,100 1440,85 L1440,140 L0,140 Z" fill="#F8FAFC" />
           </svg>
         </div>
