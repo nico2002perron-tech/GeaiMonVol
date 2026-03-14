@@ -1,5 +1,6 @@
 import { Metadata, Viewport } from 'next';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -34,7 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
         <script
           dangerouslySetInnerHTML={{

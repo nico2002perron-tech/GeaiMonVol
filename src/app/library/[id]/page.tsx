@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
+import { useToast } from '@/components/ui/Toast';
 import '../../landing.css';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -121,9 +122,13 @@ function Direction({ data }: { data: any }) {
 export default function GuideDetailPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const params = useParams();
+  const { toast } = useToast();
   const [guide, setGuide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [shareLoading, setShareLoading] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
 
   const isPremium = profile?.plan === 'premium';
 
@@ -136,7 +141,14 @@ export default function GuideDetailPage() {
         if (!res.ok) throw new Error('Not found');
         return res.json();
       })
-      .then(data => setGuide(data))
+      .then(data => {
+        setGuide(data);
+        if (data.is_public && data.share_token) {
+          setIsShared(true);
+          const base = window.location.origin;
+          setShareUrl(`${base}/share/${data.share_token}`);
+        }
+      })
       .catch(() => setError('Guide introuvable.'))
       .finally(() => setLoading(false));
   }, [user, authLoading, params.id]);
@@ -166,6 +178,42 @@ export default function GuideDetailPage() {
     );
   }
 
+  async function handleShare() {
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/guide/${params.id}/share`, { method: 'POST' });
+      const data = await res.json();
+      if (data.is_public) {
+        setIsShared(true);
+        setShareUrl(data.share_url);
+        await navigator.clipboard.writeText(data.share_url);
+        toast('Lien copié ! Partage-le avec tes amis.', 'success');
+      } else {
+        setIsShared(false);
+        setShareUrl('');
+        toast('Partage désactivé.', 'info');
+      }
+    } catch {
+      toast('Erreur lors du partage.', 'warning');
+    }
+    setShareLoading(false);
+  }
+
+  function handlePrint() {
+    if (!isPremium) {
+      toast('Export PDF disponible avec Premium !', 'warning');
+      return;
+    }
+    window.print();
+  }
+
+  async function handleCopyLink() {
+    if (shareUrl) {
+      await navigator.clipboard.writeText(shareUrl);
+      toast('Lien copié !', 'success');
+    }
+  }
+
   const gd = guide.guide_data;
   const days = gd?.days || [];
 
@@ -174,8 +222,23 @@ export default function GuideDetailPage() {
       <LandingHeader />
 
       <section className="gd-page">
-        {/* Back link */}
-        <Link href="/library" className="gd-back">&#8592; Mes guides</Link>
+        {/* Back link + Actions */}
+        <div className="gd-topbar">
+          <Link href="/library" className="gd-back">&#8592; Mes guides</Link>
+          <div className="gd-actions">
+            <button className="gd-action-btn" onClick={handleShare} disabled={shareLoading} title={isShared ? 'Désactiver le partage' : 'Partager'}>
+              {isShared ? '&#128279; Partagé' : '&#128279; Partager'}
+            </button>
+            {isShared && (
+              <button className="gd-action-btn gd-action-copy" onClick={handleCopyLink} title="Copier le lien">
+                &#128203; Copier
+              </button>
+            )}
+            <button className={`gd-action-btn gd-action-print${!isPremium ? ' gd-action-locked' : ''}`} onClick={handlePrint} title={isPremium ? 'Télécharger PDF' : 'Premium requis'}>
+              {isPremium ? '&#128438; PDF' : '&#128274; PDF'}
+            </button>
+          </div>
+        </div>
 
         {/* Header */}
         <div className="gd-header">

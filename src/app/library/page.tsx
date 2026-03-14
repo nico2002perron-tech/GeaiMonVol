@@ -1,9 +1,12 @@
 'use client';
 
 import { useAuth } from '@/lib/auth/AuthProvider';
+import { usePremium } from '@/lib/hooks/usePremium';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
+import PremiumUpsell from '@/components/ui/PremiumUpsell';
+import { FREE_GUIDE_MAX } from '@/lib/constants/premium';
 import '../landing.css';
 
 interface GuidePreview {
@@ -35,6 +38,7 @@ function formatDate(d: string) {
 
 export default function LibraryPage() {
   const { user, loading: authLoading } = useAuth();
+  const { isPremium, guideCount, canGenerateGuide, loading: premLoading } = usePremium();
   const [guides, setGuides] = useState<GuidePreview[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -58,6 +62,23 @@ export default function LibraryPage() {
           <span className="lp-section-label">Mes guides</span>
           <h1 className="lp-section-title">Ma bibliothèque de voyages</h1>
           <p className="lb-subtitle">Retrouve tous tes itinéraires générés par GeaiAI.</p>
+
+          {user && !premLoading && !isPremium && (
+            <div className="guide-counter">
+              <span className="guide-counter-icon">&#9993;</span>
+              <span className="guide-counter-text">
+                {guideCount}/{FREE_GUIDE_MAX} guide{FREE_GUIDE_MAX > 1 ? 's' : ''} utilisé{guideCount > 1 ? 's' : ''}
+              </span>
+              {!canGenerateGuide && <span className="guide-counter-full">Limite atteinte</span>}
+            </div>
+          )}
+          {user && !premLoading && isPremium && (
+            <div className="guide-counter guide-counter-premium">
+              <span className="guide-counter-icon">&#9889;</span>
+              <span className="guide-counter-text">{guideCount} guide{guideCount > 1 ? 's' : ''} généré{guideCount > 1 ? 's' : ''}</span>
+              <span className="guide-counter-full" style={{ color: '#8B6914' }}>Illimité</span>
+            </div>
+          )}
         </div>
 
         {!user && !authLoading && (
@@ -80,6 +101,10 @@ export default function LibraryPage() {
             <p>Aucun guide encore. Génère ton premier itinéraire !</p>
             <Link href="/explore" className="lb-cta">Créer un guide</Link>
           </div>
+        )}
+
+        {!loading && user && !canGenerateGuide && !isPremium && !premLoading && (
+          <PremiumUpsell feature="guide" inline />
         )}
 
         {!loading && guides.length > 0 && (

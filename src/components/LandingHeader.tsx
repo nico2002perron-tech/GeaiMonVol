@@ -87,6 +87,9 @@ export default function LandingHeader() {
                   <a href={h('#guide')} className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
                     Guide GeaiAI
                   </a>
+                  <Link href="/library" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
+                    Mes guides
+                  </Link>
                   <div className="lp-h-drop-sep" />
                   <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se déconnecter</button>
                 </div>
@@ -107,6 +110,7 @@ export default function LandingHeader() {
           </Link>
           <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide GeaiAI</a>
           <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
+          {user && <Link href="/library" onClick={() => setMobileMenuOpen(false)}>Mes guides</Link>}
           <div className="lp-mob-sep" />
           {!user ? (
             <>
