@@ -23,12 +23,18 @@ export async function GET(request: Request) {
             ? (parseInt(forcePhase, 10) as ScanPhase)
             : getPhaseForToday();
 
-        console.log(`Starting chunked scan — Phase ${phase}...`);
+        const hasRapidKey = !!process.env.RAPIDAPI_KEY;
+        console.log(`Starting chunked scan — Phase ${phase}... (RAPIDAPI_KEY: ${hasRapidKey ? 'SET (' + process.env.RAPIDAPI_KEY!.slice(0, 6) + '...)' : 'MISSING'})`);
 
         const deals = await chunkedScan(phase);
 
         if (deals.length === 0) {
-            return NextResponse.json({ message: `Phase ${phase}: No deals found`, phase, count: 0 });
+            return NextResponse.json({
+                message: `Phase ${phase}: No deals found`,
+                phase,
+                count: 0,
+                debug: { rapidApiKey: hasRapidKey },
+            });
         }
 
         const supabase = await createServerSupabase();
