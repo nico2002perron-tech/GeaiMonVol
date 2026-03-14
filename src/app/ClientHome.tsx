@@ -19,24 +19,43 @@ import './landing.css';
 
 // ── City → Country mapping ──
 const CITY_COUNTRY: Record<string, string> = {
+  // Europe
   'Paris': 'France', 'Barcelone': 'Espagne', 'Madrid': 'Espagne',
   'Lisbonne': 'Portugal', 'Porto': 'Portugal', 'Rome': 'Italie',
-  'Athènes': 'Grèce', 'Londres': 'Royaume-Uni', 'Dublin': 'Irlande',
+  'Athenes': 'Grèce', 'Athènes': 'Grèce',
+  'Londres': 'Royaume-Uni', 'Dublin': 'Irlande',
   'Amsterdam': 'Pays-Bas', 'Berlin': 'Allemagne',
-  'Cancún': 'Mexique', 'Riviera Maya': 'Mexique',
+  // Caraïbes & Amérique centrale
+  'Cancun': 'Mexique', 'Cancún': 'Mexique', 'Riviera Maya': 'Mexique',
   'Punta Cana': 'République dominicaine',
+  'Santo Domingo': 'République dominicaine',
+  'Puerto Plata': 'République dominicaine',
   'Cuba (Varadero)': 'Cuba', 'Varadero': 'Cuba', 'La Havane': 'Cuba',
+  'Kingston': 'Jamaïque', 'Montego Bay': 'Jamaïque',
+  'Nassau': 'Bahamas', 'Freeport': 'Bahamas',
+  'Guatemala City': 'Guatemala',
+  'San Jose': 'Costa Rica', 'San José': 'Costa Rica',
+  'Bridgetown': 'Barbade',
+  'Belize City': 'Belize',
+  // Amérique du Nord
   'Fort Lauderdale': 'États-Unis', 'Miami': 'États-Unis',
   'New York': 'États-Unis', 'Los Angeles': 'États-Unis',
-  'Marrakech': 'Maroc', 'Bangkok': 'Thaïlande', 'Tokyo': 'Japon',
-  'Bogota': 'Colombie', 'Cartagena': 'Colombie',
-  'Lima': 'Pérou', 'São Paulo': 'Brésil', 'Buenos Aires': 'Argentine',
-  'Bali': 'Indonésie', 'Ho Chi Minh': 'Vietnam',
-  'Reykjavik': 'Islande', 'Montego Bay': 'Jamaïque',
-  'San José': 'Costa Rica',
+  'Las Vegas': 'États-Unis', 'Orlando': 'États-Unis',
   'Toronto': 'Canada', 'Ottawa': 'Canada', 'Vancouver': 'Canada',
   'Calgary': 'Canada', 'Edmonton': 'Canada', 'Winnipeg': 'Canada',
   'Halifax': 'Canada', 'Québec': 'Canada',
+  // Amérique du Sud
+  'Bogota': 'Colombie', 'Cartagena': 'Colombie', 'Medellin': 'Colombie',
+  'Lima': 'Pérou', 'Cusco': 'Pérou',
+  'São Paulo': 'Brésil', 'Rio de Janeiro': 'Brésil',
+  'Buenos Aires': 'Argentine',
+  // Asie & Afrique
+  'Marrakech': 'Maroc', 'Bangkok': 'Thaïlande', 'Phuket': 'Thaïlande',
+  'Tokyo': 'Japon', 'Osaka': 'Japon',
+  'Bali': 'Indonésie', 'Ho Chi Minh': 'Vietnam', 'Hanoi': 'Vietnam',
+  'Seoul': 'Corée du Sud', 'Delhi': 'Inde', 'Mumbai': 'Inde',
+  'Istanbul': 'Turquie', 'Le Caire': 'Égypte',
+  'Reykjavik': 'Islande',
 };
 
 // ── Country flag emojis ──
@@ -48,6 +67,9 @@ const COUNTRY_FLAGS: Record<string, string> = {
   'Japon': '🇯🇵', 'Colombie': '🇨🇴', 'Pérou': '🇵🇪', 'Brésil': '🇧🇷',
   'Argentine': '🇦🇷', 'Indonésie': '🇮🇩', 'Vietnam': '🇻🇳', 'Islande': '🇮🇸',
   'Jamaïque': '🇯🇲', 'Costa Rica': '🇨🇷', 'Canada': '🇨🇦',
+  'Bahamas': '🇧🇸', 'Barbade': '🇧🇧', 'Guatemala': '🇬🇹', 'Belize': '🇧🇿',
+  'Turquie': '🇹🇷', 'Inde': '🇮🇳', 'Corée du Sud': '🇰🇷', 'Égypte': '🇪🇬',
+  'Porto Rico': '🇵🇷',
 };
 
 // ── Static fallback deals (shown when DB has no data) ──
