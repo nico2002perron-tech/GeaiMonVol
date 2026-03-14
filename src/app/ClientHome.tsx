@@ -233,11 +233,11 @@ function AnimatedStats() {
 
 // ── Boarding Pass Component ──
 const BOARDING_FALLBACK = [
-  { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, airline: 'Air Transat', stops: 0, dealLevel: 'great' },
-  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, discount: 34, airline: 'ANA', stops: 1, dealLevel: 'incredible' },
-  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, discount: 38, airline: 'Air Transat', stops: 0, dealLevel: 'incredible' },
-  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, discount: 36, airline: 'Icelandair', stops: 0, dealLevel: 'great' },
-  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, discount: 31, airline: 'Air Canada', stops: 0, dealLevel: 'good' },
+  { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, airline: 'Air Transat', stops: 0, dealLevel: 'great', image: '' },
+  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, discount: 34, airline: 'ANA', stops: 1, dealLevel: 'incredible', image: '' },
+  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, discount: 38, airline: 'Air Transat', stops: 0, dealLevel: 'incredible', image: '' },
+  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, discount: 36, airline: 'Icelandair', stops: 0, dealLevel: 'great', image: '' },
+  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, discount: 31, airline: 'Air Canada', stops: 0, dealLevel: 'good', image: '' },
 ];
 
 function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: (d: any) => void }) {
