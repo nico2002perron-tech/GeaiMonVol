@@ -98,6 +98,7 @@ export async function GET(request: Request) {
 
         // Refresh images pour les nouvelles destinations (seulement phase 0)
         let imagesResult = null;
+        const unsplashKeySet = !!process.env.UNSPLASH_ACCESS_KEY;
         if (phase === 0) {
             const cities = [...new Set(deals.map(d => d.city))];
             imagesResult = await refreshDestinationImages(cities);
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
 
         console.log('Scan summary:', JSON.stringify(summary, null, 2));
 
-        return NextResponse.json({ ...summary, images: imagesResult });
+        return NextResponse.json({ ...summary, images: imagesResult, debug: { unsplashKeySet } });
     } catch (error: any) {
         console.error('Scan error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
