@@ -5,14 +5,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 export default function LandingHeader() {
   const pathname = usePathname();
   const isExplore = pathname === '/explore';
   const { user, profile, signOut } = useAuth();
+  const { isPremium, canGenerateGuide, loading: premLoading } = usePremium();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const showBanner = !premLoading && !isPremium && !bannerDismissed;
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Voyageur';
 
@@ -35,7 +40,24 @@ export default function LandingHeader() {
   const h = (hash: string) => isExplore ? `/${hash}` : hash;
 
   return (
-    <header className="lp-header">
+    <>
+      {/* Promo banner */}
+      {showBanner && (
+        <div className="promo-banner">
+          <div className="promo-banner-inner">
+            <span className="promo-banner-text">
+              <span className="promo-banner-badge">Offre de lancement</span>
+              Récupère ton guide IA Premium gratuit — Québec, durée limitée !
+            </span>
+            <Link href={user ? (canGenerateGuide ? '/#guide' : '/pricing') : '/auth'} className="promo-banner-cta">
+              {canGenerateGuide ? 'Générer mon guide' : 'En savoir plus'}
+            </Link>
+            <button className="promo-banner-close" onClick={() => setBannerDismissed(true)} aria-label="Fermer">&#10005;</button>
+          </div>
+        </div>
+      )}
+
+    <header className={`lp-header${showBanner ? ' lp-header-with-banner' : ''}`}>
       <div className="lp-header-inner">
         <Link href="/" className="lp-logo">
           <Image src="/logo_geai.png" alt="GeaiMonVol" width={30} height={30} className="lp-logo-img" />
@@ -51,6 +73,11 @@ export default function LandingHeader() {
             </Link>
             <a href={h('#guide')} className="lp-nav-link">Guide GeaiAI</a>
             <a href={h('#how')} className="lp-nav-link">Comment ça marche</a>
+            {!isPremium && !premLoading && (
+              <Link href={user ? '/pricing' : '/auth'} className="lp-nav-link lp-nav-promo">
+                &#9733; Guide gratuit
+              </Link>
+            )}
           </div>
         </nav>
 
@@ -58,7 +85,7 @@ export default function LandingHeader() {
           {!user ? (
             <>
               <Link href="/auth" className="lp-h-login">Se connecter</Link>
-              <Link href="/auth" className="lp-h-signup">Commencer</Link>
+              <Link href="/auth" className="lp-h-signup lp-h-signup-promo">Guide gratuit &#8594;</Link>
             </>
           ) : (
             <div ref={menuRef} className="lp-h-user">
@@ -111,11 +138,16 @@ export default function LandingHeader() {
           <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide GeaiAI</a>
           <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
           {user && <Link href="/library" onClick={() => setMobileMenuOpen(false)}>Mes guides</Link>}
+          {!isPremium && !premLoading && (
+            <Link href={user ? '/pricing' : '/auth'} onClick={() => setMobileMenuOpen(false)} className="lp-mob-promo">
+              &#9733; Guide IA gratuit — Offre limitée
+            </Link>
+          )}
           <div className="lp-mob-sep" />
           {!user ? (
             <>
               <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-login">Se connecter</Link>
-              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-signup">Commencer</Link>
+              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-signup">Guide gratuit &#8594;</Link>
             </>
           ) : (
             <>
@@ -132,5 +164,6 @@ export default function LandingHeader() {
         </div>
       )}
     </header>
+    </>
   );
 }
