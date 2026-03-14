@@ -24,7 +24,7 @@ const CITY_COUNTRY: Record<string, string> = {
   'Athènes': 'Grèce', 'Londres': 'Royaume-Uni', 'Dublin': 'Irlande',
   'Amsterdam': 'Pays-Bas', 'Berlin': 'Allemagne',
   'Cancún': 'Mexique', 'Riviera Maya': 'Mexique',
-  'Punta Cana': 'Rép. Dominicaine',
+  'Punta Cana': 'République dominicaine',
   'Cuba (Varadero)': 'Cuba', 'Varadero': 'Cuba', 'La Havane': 'Cuba',
   'Fort Lauderdale': 'États-Unis', 'Miami': 'États-Unis',
   'New York': 'États-Unis', 'Los Angeles': 'États-Unis',
@@ -43,7 +43,7 @@ const CITY_COUNTRY: Record<string, string> = {
 const COUNTRY_FLAGS: Record<string, string> = {
   'France': '🇫🇷', 'Espagne': '🇪🇸', 'Portugal': '🇵🇹', 'Italie': '🇮🇹',
   'Grèce': '🇬🇷', 'Royaume-Uni': '🇬🇧', 'Irlande': '🇮🇪', 'Pays-Bas': '🇳🇱',
-  'Allemagne': '🇩🇪', 'Mexique': '🇲🇽', 'Rép. Dominicaine': '🇩🇴',
+  'Allemagne': '🇩🇪', 'Mexique': '🇲🇽', 'République dominicaine': '🇩🇴',
   'Cuba': '🇨🇺', 'États-Unis': '🇺🇸', 'Maroc': '🇲🇦', 'Thaïlande': '🇹🇭',
   'Japon': '🇯🇵', 'Colombie': '🇨🇴', 'Pérou': '🇵🇪', 'Brésil': '🇧🇷',
   'Argentine': '🇦🇷', 'Indonésie': '🇮🇩', 'Vietnam': '🇻🇳', 'Islande': '🇮🇸',
@@ -503,7 +503,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
   // Résoudre l'image: Supabase cache → hardcodé → default
   const getImage = useCallback((city: string) => {
-    return cachedImages[city] || CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE;
+    const country = CITY_COUNTRY[city] || '';
+    return cachedImages[city] || cachedImages[country] || CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE;
   }, [cachedImages]);
 
   // Favorites (localStorage) — using Record instead of Set to avoid useMemo issues
@@ -669,10 +670,13 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   // Override images avec le cache Supabase (Unsplash)
   const dealsWithImages = useMemo(() => {
     if (Object.keys(cachedImages).length === 0) return allDeals;
-    return allDeals.map(d => ({
-      ...d,
-      image: cachedImages[d.city] || d.image,
-    }));
+    return allDeals.map(d => {
+      const country = CITY_COUNTRY[d.city] || '';
+      return {
+        ...d,
+        image: cachedImages[d.city] || cachedImages[country] || d.image,
+      };
+    });
   }, [allDeals, cachedImages]);
 
   // ── Filter + Search ──

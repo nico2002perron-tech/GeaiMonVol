@@ -96,12 +96,9 @@ export async function GET(request: Request) {
             },
         };
 
-        // Refresh images pour les nouvelles destinations (seulement phase 0)
-        let imagesResult = null;
-        if (phase === 0) {
-            const cities = [...new Set(deals.map(d => d.city))];
-            imagesResult = await refreshDestinationImages(cities);
-        }
+        // Refresh images pour les nouvelles destinations (toutes les phases)
+        const cities = [...new Set(deals.map(d => d.city))];
+        const imagesResult = await refreshDestinationImages(cities);
 
         console.log('Scan summary:', JSON.stringify(summary, null, 2));
 
