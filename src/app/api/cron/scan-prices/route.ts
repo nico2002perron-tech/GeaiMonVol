@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { chunkedScan, getPhaseForToday } from '@/lib/services/flights';
 import type { ScanPhase } from '@/lib/services/flights';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { refreshDestinationImages } from '@/lib/services/images';
 
 export const maxDuration = 60; // Chaque phase tient dans 60s
 
@@ -95,9 +96,16 @@ export async function GET(request: Request) {
             },
         };
 
+        // Refresh images pour les nouvelles destinations (seulement phase 0)
+        let imagesResult = null;
+        if (phase === 0) {
+            const cities = [...new Set(deals.map(d => d.city))];
+            imagesResult = await refreshDestinationImages(cities);
+        }
+
         console.log('Scan summary:', JSON.stringify(summary, null, 2));
 
-        return NextResponse.json(summary);
+        return NextResponse.json({ ...summary, images: imagesResult });
     } catch (error: any) {
         console.error('Scan error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });

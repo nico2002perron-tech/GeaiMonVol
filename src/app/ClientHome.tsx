@@ -286,7 +286,7 @@ function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: 
   const levelColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
     : deal.dealLevel === 'incredible' ? '#DC2626'
     : deal.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
-  const cityImage = CITY_IMAGES[deal.city] || DEFAULT_CITY_IMAGE;
+  const cityImage = deal.image || CITY_IMAGES[deal.city] || DEFAULT_CITY_IMAGE;
 
   return (
     <div className="bp-wrapper">
@@ -445,6 +445,7 @@ interface ClientHomeProps {
 
 export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const stableInitial = initialDeals && initialDeals.length > 0 ? initialDeals : EMPTY_DEALS;
+  const [cachedImages, setCachedImages] = useState<Record<string, string>>({});
   const [activeFilter, setActiveFilter] = useState<FilterTab>('tous');
   const [sortMode, setSortMode] = useState<SortMode>('deal');
   const [searchQuery, setSearchQuery] = useState('');
@@ -491,6 +492,19 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
   const filtersRef = useRef<HTMLDivElement>(null);
   const heroVisualRef = useRef<HTMLDivElement>(null);
+
+  // Fetch cached destination images from Supabase
+  useEffect(() => {
+    fetch('/api/images')
+      .then(r => r.ok ? r.json() : {})
+      .then(data => { if (data && Object.keys(data).length > 0) setCachedImages(data); })
+      .catch(() => {});
+  }, []);
+
+  // Résoudre l'image: Supabase cache → hardcodé → default
+  const getImage = useCallback((city: string) => {
+    return cachedImages[city] || CITY_IMAGES[city] || COUNTRY_IMAGES[city] || DEFAULT_CITY_IMAGE;
+  }, [cachedImages]);
 
   // Favorites (localStorage) — using Record instead of Set to avoid useMemo issues
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
@@ -652,9 +666,18 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     }));
   }, [livePrices, isLive, ssrDeals]);
 
+  // Override images avec le cache Supabase (Unsplash)
+  const dealsWithImages = useMemo(() => {
+    if (Object.keys(cachedImages).length === 0) return allDeals;
+    return allDeals.map(d => ({
+      ...d,
+      image: cachedImages[d.city] || d.image,
+    }));
+  }, [allDeals, cachedImages]);
+
   // ── Filter + Search ──
   const filteredDeals = useMemo(() => {
-    let result = [...allDeals];
+    let result = [...dealsWithImages];
 
     // Search filter
     if (searchQuery.trim()) {
@@ -864,7 +887,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               className="lp-hero-mascot"
             />
 
-            <BoardingPass deals={allDeals} onDealClick={openDealPopup} />
+            <BoardingPass deals={dealsWithImages} onDealClick={openDealPopup} />
           </div>
         </div>
         <div className="lp-wave-divider">
@@ -879,8 +902,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       {/* ─── TICKER BAR ─── */}
       {(() => {
         // Use live deals for ticker when available, otherwise static
-        const tickerDeals = allDeals.length >= 6
-          ? allDeals.filter(d => d.discount >= 15).slice(0, 12).map(d => ({
+        const tickerDeals = dealsWithImages.length >= 6
+          ? dealsWithImages.filter(d => d.discount >= 15).slice(0, 12).map(d => ({
               city: d.city, code: d.code, price: d.price, oldPrice: d.oldPrice,
               discount: d.discount, image: d.image, category: d.category,
               country: d.country, dealLevel: d.dealLevel, airline: d.airline,
