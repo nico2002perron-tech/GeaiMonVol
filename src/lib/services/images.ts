@@ -12,13 +12,43 @@ interface UnsplashPhoto {
  * Cherche une photo de destination sur Unsplash et la cache dans Supabase.
  * Retourne l'URL de l'image ou le fallback hardcodé.
  */
+// Country names get a different search query for better results
+const COUNTRY_QUERIES: Record<string, string> = {
+    'Canada': 'Canada landscape nature scenic',
+    'États-Unis': 'United States iconic skyline',
+    'Mexique': 'Mexico beach resort tropical',
+    'Cuba': 'Cuba Havana vintage colorful',
+    'République dominicaine': 'Dominican Republic beach paradise',
+    'Bahamas': 'Bahamas turquoise water tropical',
+    'Jamaïque': 'Jamaica tropical beach reggae',
+    'Costa Rica': 'Costa Rica jungle nature',
+    'Guatemala': 'Guatemala Antigua colorful',
+    'Barbade': 'Barbados beach crystal water',
+    'Belize': 'Belize caribbean blue hole',
+    'Colombie': 'Colombia Cartagena colorful',
+    'Brésil': 'Brazil Rio aerial view',
+    'Pérou': 'Peru Machu Picchu',
+    'Argentine': 'Buenos Aires cityscape',
+    'France': 'Paris Eiffel Tower',
+    'Espagne': 'Spain Barcelona beach',
+    'Portugal': 'Lisbon Portugal colorful',
+    'Italie': 'Italy Rome Colosseum',
+    'Grèce': 'Greece Santorini blue dome',
+    'Islande': 'Iceland aurora northern lights',
+    'Maroc': 'Morocco Marrakech souk',
+    'Japon': 'Japan Tokyo cherry blossom',
+    'Thaïlande': 'Thailand tropical temple',
+    'Porto Rico': 'Puerto Rico colorful old town',
+    'Trinité-et-Tobago': 'Trinidad Tobago beach carnival',
+};
+
 async function fetchUnsplashImage(city: string): Promise<{ url: string; photographer: string } | null> {
     if (!UNSPLASH_ACCESS_KEY) return null;
 
     try {
-        const query = `${city} city travel landmark`;
+        const query = COUNTRY_QUERIES[city] || `${city} travel aerial landmark`;
         const res = await fetch(
-            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&content_filter=high`,
+            `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape&content_filter=high`,
             {
                 headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` },
             }
@@ -30,12 +60,15 @@ async function fetchUnsplashImage(city: string): Promise<{ url: string; photogra
         }
 
         const data = await res.json();
-        const photo: UnsplashPhoto | undefined = data.results?.[0];
+        const photos: UnsplashPhoto[] = data.results || [];
 
-        if (!photo) return null;
+        if (photos.length === 0) return null;
+
+        // Pick the best photo (prefer the one with highest resolution)
+        const photo = photos[0];
 
         return {
-            url: `${photo.urls.regular}&w=600&h=400&fit=crop`,
+            url: `${photo.urls.regular}&w=800&h=500&fit=crop&q=80`,
             photographer: photo.user.name,
         };
     } catch (error) {
