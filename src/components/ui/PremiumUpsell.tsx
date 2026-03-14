@@ -12,9 +12,9 @@ const MESSAGES: Record<string, { icon: string; title: string; desc: string; perk
   },
   guide: {
     icon: '🧭',
-    title: 'Limite de guides atteinte',
-    desc: 'Tu as utilisé ton guide gratuit. Passe Premium pour générer des itinéraires illimités avec tips d\'initiés et plan B pluie.',
-    perks: ['Guides IA illimités', 'Tips d\'initiés', 'Expériences cachées', 'Plan B pluie'],
+    title: 'Tu as aimé ton guide Québec ?',
+    desc: 'Débloque des guides illimités pour toutes les destinations du monde — Cancún, Lisbonne, Tokyo et plus !',
+    perks: ['Guides IA illimités — monde entier', 'Jusqu\'à 21 jours de voyage', 'Tips d\'initiés', 'Expériences cachées'],
   },
   alerts: {
     icon: '🔔',

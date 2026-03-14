@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     // ── Parse body ──
     const body = await req.json();
-    const {
+    let {
       destination, destination_code, country,
       departure_date, return_date, price, airline, stops,
       preferences = [], trip_days, rest_days = 1,
@@ -106,6 +106,22 @@ export async function POST(req: NextRequest) {
     if (!destination) {
       return NextResponse.json({ error: 'Destination requise.' }, { status: 400 });
     }
+
+    // ── Free tier: Quebec only (launch offer) ──
+    if (!isPremium) {
+      if (!isQuebecDestination(destination)) {
+        return NextResponse.json({
+          error: 'Ton guide gratuit est réservé au Québec ! Passe Premium pour toutes les destinations du monde.',
+          upgrade_required: true,
+          quebec_only: true,
+        }, { status: 403 });
+      }
+      // Force country for free Quebec guide
+      country = country || 'Canada (Québec)';
+    }
+
+    // Free users get premium experience for their Quebec guide (launch offer)
+    const unlockPremiumFields = isPremium || (!isPremium && guideCount < FREE_GUIDE_MAX);
 
     const maxDays = isPremium ? PREMIUM_MAX_TRIP_DAYS : FREE_MAX_TRIP_DAYS;
     let nights = trip_days || 7;
@@ -444,7 +460,7 @@ IMPORTANT :
 - Utilise des VRAIS noms de restaurants et lieux qui existent
 - Les costs sont en CAD
 - Chaque "getting_to_*" doit avoir des directions réalistes
-- Le total_cost de chaque jour = somme des costs du jour${isPremium ? `
+- Le total_cost de chaque jour = somme des costs du jour${unlockPremiumFields ? `
 
 BONUS PREMIUM (ajoute ces éléments) :
 - Pour CHAQUE jour, ajoute un champ "rainy_plan": { "activity": "...", "location": "...", "description": "...", "cost": 0 } comme plan B en cas de pluie
@@ -466,7 +482,7 @@ BONUS PREMIUM (ajoute ces éléments) :
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: isPremium ? PREMIUM_MAX_TOKENS : FREE_MAX_TOKENS,
+        max_tokens: unlockPremiumFields ? PREMIUM_MAX_TOKENS : FREE_MAX_TOKENS,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt },

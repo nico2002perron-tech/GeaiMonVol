@@ -340,9 +340,9 @@ export default function GuideDetailPage() {
         {/* Upsell for free users */}
         {!isPremium && (
           <div className="gd-upsell">
-            <h3>&#9733; Débloquer plus avec Premium</h3>
-            <p>Plan B pluie, tips d&apos;initiés, codes promo et expériences cachées locales.</p>
-            <Link href="/pricing" className="lb-cta">Passer Premium</Link>
+            <h3>&#9733; Tu as aimé ton guide Québec ?</h3>
+            <p>Passe Premium pour générer des guides illimités vers toutes les destinations du monde — Cancún, Lisbonne, Tokyo et plus !</p>
+            <Link href="/pricing" className="lb-cta">Débloquer le monde entier</Link>
           </div>
         )}
 

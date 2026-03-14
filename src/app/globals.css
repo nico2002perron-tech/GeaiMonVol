@@ -4886,6 +4886,16 @@ a {
   white-space: nowrap;
   z-index: 2;
 }
+.pr-badge-launch {
+  background: linear-gradient(135deg, #059669, #10B981);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3);
+  animation: pr-launch-pulse 2s ease-in-out infinite;
+}
+@keyframes pr-launch-pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(5, 150, 105, 0.3); }
+  50% { box-shadow: 0 4px 24px rgba(5, 150, 105, 0.5); }
+}
 
 /* Plan name */
 .pr-plan-name {

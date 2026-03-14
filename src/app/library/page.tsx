@@ -67,7 +67,7 @@ export default function LibraryPage() {
             <div className="guide-counter">
               <span className="guide-counter-icon">&#9993;</span>
               <span className="guide-counter-text">
-                {guideCount}/{FREE_GUIDE_MAX} guide{FREE_GUIDE_MAX > 1 ? 's' : ''} utilisé{guideCount > 1 ? 's' : ''}
+                {guideCount}/{FREE_GUIDE_MAX} guide Québec utilisé
               </span>
               {!canGenerateGuide && <span className="guide-counter-full">Limite atteinte</span>}
             </div>
