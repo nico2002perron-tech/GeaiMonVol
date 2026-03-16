@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
+import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import type { SubDestination } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 
@@ -28,6 +28,20 @@ interface DestinationDeal {
     tripNights?: number;
 }
 
+interface HotelInfo {
+    name: string;
+    stars: number;
+    pricePerNight: number;
+    totalPrice: number;
+    nights: number;
+    rating: number;
+    reviewCount: number;
+    imageUrl: string;
+    bookingUrl: string;
+    isAllInclusive: boolean;
+    amenities?: string[];
+}
+
 interface DestinationPopupProps {
     isOpen: boolean;
     onClose: () => void;
@@ -40,6 +54,28 @@ interface DestinationPopupProps {
     avgPrice?: number;
     historyCount?: number;
 }
+
+// ── Amenity icon mapping for hotel badges ──
+const AMENITY_ICONS: Record<string, string> = {
+    'Free Wi-Fi': '📶',
+    'Wi-Fi': '📶',
+    'Free parking': '🅿️',
+    'Parking': '🅿️',
+    'Outdoor pool': '🏊',
+    'Pool': '🏊',
+    'Indoor pool': '🏊',
+    'Hot tub': '♨️',
+    'Spa': '💆',
+    'Beach access': '🏖️',
+    'Beach': '🏖️',
+    'Gym': '🏋️',
+    'Fitness': '🏋️',
+    'Restaurant': '🍽️',
+    'Bar': '🍸',
+    'Room service': '🛎️',
+    'Air conditioning': '❄️',
+    'Airport shuttle': '🚌',
+};
 
 // ── Destination travel tips & nearby connections ──
 const DESTINATION_TIPS: Record<string, { tip: string; nearby?: { city: string; reason: string }[] }> = {
@@ -183,6 +219,29 @@ export default function DestinationPopup({
     const [popupToast, setPopupToast] = useState('');
     const overlayRef = useRef<HTMLDivElement>(null);
 
+    // Hotel / Pack state
+    const [hotels, setHotels] = useState<HotelInfo[]>([]);
+    const [hotelsLoading, setHotelsLoading] = useState(false);
+
+    // 2-step flow for all-inclusive
+    const [packStep, setPackStep] = useState<1 | 2 | 3>(1);
+    const [selectedFlight, setSelectedFlight] = useState<DestinationDeal | null>(null);
+    const [selectedHotel, setSelectedHotel] = useState<HotelInfo | null>(null);
+    const [pricingMode, setPricingMode] = useState<'per-person' | 'total-2' | 'family'>('per-person');
+    const [familyAdults, setFamilyAdults] = useState(2);
+    const [familyChildren, setFamilyChildren] = useState(1);
+
+    // AI deal analysis (Step 3)
+    const [packAnalysis, setPackAnalysis] = useState<any>(null);
+    const [analysisLoading, setAnalysisLoading] = useState(false);
+
+    // AI hotel summaries
+    const [hotelSummaries, setHotelSummaries] = useState<Record<string, string>>({});
+    const summariesFetched = useRef(false);
+
+    const flightMultiplier = pricingMode === 'total-2' ? 2 : pricingMode === 'family' ? familyAdults + familyChildren * 0.75 : 1;
+    const hotelRooms = pricingMode === 'family' ? Math.ceil(familyAdults / 2) : 1;
+
     // Country-level detection
     const isCountryLevel = destinationCode.length === 2 && destinationCode === destinationCode.toUpperCase();
     const subDestinations: SubDestination[] = isCountryLevel ? (COUNTRY_SUBDESTINATIONS[destinationCode] || []) : [];
@@ -202,7 +261,187 @@ export default function DestinationPopup({
         setMedianPrice(0);
         setHistoryCount(0);
         setSortMode('date');
+        setHotels([]);
+        setPackStep(1);
+        setSelectedFlight(null);
+        setSelectedHotel(null);
+        setPricingMode('per-person');
+        setFamilyAdults(2);
+        setFamilyChildren(1);
+        setHotelSummaries({});
+        summariesFetched.current = false;
+        setPackAnalysis(null);
+        setAnalysisLoading(false);
     }, [isOpen]);
+
+    // Fetch hotels for all-inclusive destinations
+    const isAllInclusive = ALL_INCLUSIVE_CODES.includes(activeCode);
+    useEffect(() => {
+        if (!isOpen || !activeCode || activeCode.length < 3) return;
+        if (!isAllInclusive) {
+            setHotels([]);
+            return;
+        }
+
+        setHotelsLoading(true);
+        fetch(`/api/prices/hotels?code=${encodeURIComponent(activeCode)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.hotels && data.hotels.length > 0) {
+                    setHotels((data.hotels || []).filter((h: any) => !h.stars || h.stars >= 3));
+                } else {
+                    setHotels([]);
+                }
+            })
+            .catch(() => setHotels([]))
+            .finally(() => setHotelsLoading(false));
+    }, [isOpen, activeCode, isAllInclusive]);
+
+    // Recommended hotel: best price/rating combo
+    const recommendedHotel = useMemo(() => {
+        if (hotels.length === 0) return null;
+        if (hotels.length === 1) return hotels[0];
+        const maxPrice = Math.max(...hotels.map(h => h.pricePerNight));
+        const maxRating = Math.max(...hotels.map(h => h.rating), 1);
+        return hotels.reduce((best, h) => {
+            const score = (maxPrice > 0 ? ((maxPrice - h.pricePerNight) / maxPrice) * 0.4 : 0)
+                + (maxRating > 0 ? (h.rating / maxRating) * 0.6 : 0);
+            const bestScore = (maxPrice > 0 ? ((maxPrice - best.pricePerNight) / maxPrice) * 0.4 : 0)
+                + (maxRating > 0 ? (best.rating / maxRating) * 0.6 : 0);
+            return score > bestScore ? h : best;
+        });
+    }, [hotels]);
+
+    // Auto-select recommended hotel when entering step 2
+    useEffect(() => {
+        if (packStep === 2 && recommendedHotel && !selectedHotel) {
+            setSelectedHotel(recommendedHotel);
+        }
+    }, [packStep, recommendedHotel, selectedHotel]);
+
+    // Fetch AI hotel summaries when entering step 2
+    useEffect(() => {
+        if (packStep !== 2 || hotels.length === 0 || summariesFetched.current) return;
+        summariesFetched.current = true;
+
+        fetch('/api/prices/hotels/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                hotels: hotels.map(h => ({
+                    name: h.name,
+                    stars: h.stars,
+                    rating: h.rating,
+                    reviewCount: h.reviewCount,
+                    pricePerNight: h.pricePerNight,
+                    isAllInclusive: h.isAllInclusive,
+                    amenities: (h as HotelInfo).amenities,
+                })),
+                destination: activeCity,
+            }),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.summaries) setHotelSummaries(data.summaries);
+            })
+            .catch(() => {});
+    }, [packStep, hotels, activeCity]);
+
+    // Trip nights from selected flight
+    const selectedNights = useMemo(() => {
+        if (!selectedFlight) return 7;
+        const n = getTripNights(selectedFlight.departureDate, selectedFlight.returnDate);
+        return n > 0 ? n : 7;
+    }, [selectedFlight]);
+
+    // Live combined total
+    const combinedTotal = useMemo(() => {
+        if (!selectedFlight || !selectedHotel) return null;
+        return Math.round(selectedFlight.price * flightMultiplier + selectedHotel.pricePerNight * selectedNights * hotelRooms);
+    }, [selectedFlight, selectedHotel, selectedNights, flightMultiplier, hotelRooms]);
+
+    // Fetch AI pack analysis when entering step 3
+    useEffect(() => {
+        if (packStep !== 3 || !selectedFlight || !selectedHotel || packAnalysis) return;
+        setAnalysisLoading(true);
+        fetch('/api/prices/pack-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destination: activeCity,
+                destination_code: activeCode,
+                flight_price: selectedFlight.price,
+                hotel_name: selectedHotel.name,
+                hotel_stars: selectedHotel.stars,
+                hotel_rating: selectedHotel.rating,
+                hotel_review_count: selectedHotel.reviewCount,
+                hotel_price_per_night: selectedHotel.pricePerNight,
+                hotel_amenities: (selectedHotel as any).amenities || [],
+                nights: selectedNights,
+                departure_date: selectedFlight.departureDate,
+                return_date: selectedFlight.returnDate,
+                airline: selectedFlight.airline,
+                stops: selectedFlight.stops,
+            }),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.error) setPackAnalysis(data);
+            })
+            .catch(() => {})
+            .finally(() => setAnalysisLoading(false));
+    }, [packStep, selectedFlight, selectedHotel, activeCity, activeCode, selectedNights, packAnalysis]);
+
+    // Hotel price stats
+    const hotelAvgPrice = useMemo(() => {
+        if (hotels.length === 0) return 0;
+        return Math.round(hotels.reduce((s, h) => s + h.pricePerNight, 0) / hotels.length);
+    }, [hotels]);
+
+    // Best time to book — trend indicator
+    const priceTrend = useMemo(() => {
+        if (deals.length < 2) return null;
+        // Sort by date and look at recent vs older prices
+        const sorted = [...deals].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+        const recentHalf = sorted.slice(Math.floor(sorted.length / 2));
+        const olderHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+
+        if (olderHalf.length === 0 || recentHalf.length === 0) return null;
+
+        const avgRecent = recentHalf.reduce((s, d) => s + d.price, 0) / recentHalf.length;
+        const avgOlder = olderHalf.reduce((s, d) => s + d.price, 0) / olderHalf.length;
+
+        const pctChange = ((avgRecent - avgOlder) / avgOlder) * 100;
+
+        if (pctChange < -5) return { direction: 'down' as const, pct: Math.abs(Math.round(pctChange)), label: 'Prix en baisse', color: '#10B981', icon: '\u{1F4C9}', advice: 'Les prix baissent \u2014 bon moment pour r\u00e9server!' };
+        if (pctChange > 5) return { direction: 'up' as const, pct: Math.round(pctChange), label: 'Prix en hausse', color: '#EF4444', icon: '\u{1F4C8}', advice: 'Les prix montent \u2014 r\u00e9serve vite!' };
+        return { direction: 'stable' as const, pct: 0, label: 'Prix stables', color: '#F59E0B', icon: '\u27A1\uFE0F', advice: 'Prix stables ces derni\u00e8res semaines.' };
+    }, [deals]);
+
+    const dateFlexibility = useMemo(() => {
+        if (deals.length < 3) return null;
+        // Group by departure week
+        const weekMap: Record<string, { minPrice: number; date: string; deal: DestinationDeal }> = {};
+        for (const deal of deals) {
+            const d = new Date(deal.departureDate + 'T00:00:00');
+            // Use ISO week start (Monday)
+            const weekStart = new Date(d);
+            weekStart.setDate(d.getDate() - d.getDay() + 1);
+            const key = weekStart.toISOString().split('T')[0];
+            if (!weekMap[key] || deal.price < weekMap[key].minPrice) {
+                weekMap[key] = { minPrice: deal.price, date: deal.departureDate, deal };
+            }
+        }
+        const weeks = Object.entries(weekMap)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([weekStart, data]) => ({
+                weekStart,
+                ...data,
+            }));
+        if (weeks.length < 2) return null;
+        const cheapestWeek = weeks.reduce((best, w) => w.minPrice < best.minPrice ? w : best);
+        return { weeks, cheapestWeek };
+    }, [deals]);
 
     // Fetch deals when destination changes
     useEffect(() => {
@@ -216,13 +455,14 @@ export default function DestinationPopup({
         }
 
         const canLiveSearch = activeCode.length >= 3;
+        const abortController = new AbortController();
 
         setLoading(true);
         setError('');
         setDeals([]);
         setLiveSearching(false);
 
-        fetch(`/api/prices/destination?name=${encodeURIComponent(activeCity)}`)
+        fetch(`/api/prices/destination?name=${encodeURIComponent(activeCity)}`, { signal: abortController.signal })
             .then((res) => res.json())
             .then((data) => {
                 if (data.error) {
@@ -253,13 +493,14 @@ export default function DestinationPopup({
                     setLoading(false);
                 }
             })
-            .catch(() => {
+            .catch((err) => {
+                if (err.name === 'AbortError') return;
                 setError('Impossible de charger les dates');
                 setLoading(false);
             });
 
         function fetchLiveDeals(existingDeals: DestinationDeal[]) {
-            fetch(`/api/prices/search-live?code=${encodeURIComponent(activeCode)}&city=${encodeURIComponent(activeCity)}`)
+            fetch(`/api/prices/search-live?code=${encodeURIComponent(activeCode)}&city=${encodeURIComponent(activeCity)}`, { signal: abortController.signal })
                 .then((res) => res.json())
                 .then((liveData) => {
                     if (liveData.deals && liveData.deals.length > 0) {
@@ -279,6 +520,8 @@ export default function DestinationPopup({
                     setLoading(false);
                 });
         }
+
+        return () => abortController.abort();
     }, [isOpen, activeCity, activeCode, isCountryLevel, selectedSubDest, subDestinations.length]);
 
     // Close on ESC
@@ -429,6 +672,190 @@ export default function DestinationPopup({
                     {/* ═══ CONTENT ═══ */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
 
+                        {/* ═══ STEP INDICATOR (All-Inclusive only) ═══ */}
+                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                marginBottom: 18, gap: 0,
+                            }}>
+                                {/* Step 1 circle */}
+                                <div
+                                    onClick={() => { if (packStep === 2 || packStep === 3) { setPackStep(1); } }}
+                                    style={{
+                                        width: 32, height: 32, borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: packStep === 1
+                                            ? 'linear-gradient(135deg, #0EA5E9, #06B6D4)'
+                                            : selectedFlight ? '#10B981' : '#E2E8F0',
+                                        color: (packStep === 1 || selectedFlight) ? '#fff' : '#94A3B8',
+                                        cursor: packStep > 1 ? 'pointer' : 'default',
+                                        transition: 'all 0.3s',
+                                        boxShadow: packStep === 1 ? '0 2px 8px rgba(14,165,233,0.3)' : 'none',
+                                    }}
+                                >
+                                    {selectedFlight && packStep > 1
+                                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                        : <span style={{ fontSize: 14 }}>&#9992;</span>
+                                    }
+                                </div>
+                                <div style={{ fontSize: 10, fontWeight: 600, color: packStep >= 1 ? '#0F172A' : '#94A3B8', fontFamily: "'Outfit', sans-serif", margin: '0 4px' }}>
+                                    Vol
+                                </div>
+                                {/* Connector line */}
+                                <div style={{
+                                    width: 50, height: 2, borderRadius: 1, margin: '0 4px',
+                                    background: selectedFlight ? '#10B981' : '#E2E8F0',
+                                    transition: 'all 0.3s',
+                                }} />
+                                {/* Step 2 circle */}
+                                <div
+                                    onClick={() => { if (packStep === 3) setPackStep(2); }}
+                                    style={{
+                                        width: 32, height: 32, borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        background: packStep === 2
+                                            ? 'linear-gradient(135deg, #0EA5E9, #06B6D4)'
+                                            : packStep === 3 && selectedHotel ? '#10B981' : '#E2E8F0',
+                                        color: (packStep === 2 || (packStep === 3 && selectedHotel)) ? '#fff' : '#94A3B8',
+                                        cursor: packStep === 3 ? 'pointer' : 'default',
+                                        transition: 'all 0.3s',
+                                        boxShadow: packStep === 2 ? '0 2px 8px rgba(14,165,233,0.3)' : 'none',
+                                    }}
+                                >
+                                    {selectedHotel && packStep === 3
+                                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                        : <span style={{ fontSize: 13 }}>&#127976;</span>
+                                    }
+                                </div>
+                                <div style={{ fontSize: 10, fontWeight: 600, color: packStep >= 2 ? '#0F172A' : '#94A3B8', fontFamily: "'Outfit', sans-serif", margin: '0 4px' }}>
+                                    Hotel
+                                </div>
+                                {/* Connector line */}
+                                <div style={{
+                                    width: 50, height: 2, borderRadius: 1, margin: '0 4px',
+                                    background: packStep === 3 ? '#10B981' : selectedHotel ? '#0EA5E9' : '#E2E8F0',
+                                    transition: 'all 0.3s',
+                                }} />
+                                {/* Step 3: GeAI Analysis */}
+                                <div style={{
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: packStep === 3
+                                        ? 'linear-gradient(135deg, #0F172A, #1E293B)'
+                                        : '#E2E8F0',
+                                    color: packStep === 3 ? '#fff' : '#94A3B8',
+                                    transition: 'all 0.3s',
+                                    boxShadow: packStep === 3 ? '0 2px 8px rgba(15,23,42,0.3)' : 'none',
+                                }}>
+                                    {packStep === 3
+                                        ? <img src="/logo_geai.png" alt="GeAI" width={20} height={20} style={{ borderRadius: '50%' }} />
+                                        : <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "'Fredoka', sans-serif" }}>IA</span>
+                                    }
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── Pricing mode toggle (All-Inclusive) ── */}
+                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                marginBottom: 14, gap: 0,
+                            }}>
+                                <div style={{
+                                    display: 'flex', borderRadius: 8, overflow: 'hidden',
+                                    border: '1px solid #E2E8F0', background: '#F8FAFC',
+                                }}>
+                                    <button
+                                        onClick={() => setPricingMode('per-person')}
+                                        style={{
+                                            padding: '5px 12px', border: 'none', fontSize: 11, fontWeight: 600,
+                                            fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                                            background: pricingMode === 'per-person' ? '#0EA5E9' : 'transparent',
+                                            color: pricingMode === 'per-person' ? '#fff' : '#64748B',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        1 voyageur
+                                    </button>
+                                    <button
+                                        onClick={() => setPricingMode('total-2')}
+                                        style={{
+                                            padding: '5px 12px', border: 'none', fontSize: 11, fontWeight: 600,
+                                            fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                                            background: pricingMode === 'total-2' ? '#0EA5E9' : 'transparent',
+                                            color: pricingMode === 'total-2' ? '#fff' : '#64748B',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        2 voyageurs
+                                    </button>
+                                    <button
+                                        onClick={() => setPricingMode('family')}
+                                        style={{
+                                            padding: '5px 12px', border: 'none', fontSize: 11, fontWeight: 600,
+                                            fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                                            background: pricingMode === 'family' ? '#0EA5E9' : 'transparent',
+                                            color: pricingMode === 'family' ? '#fff' : '#64748B',
+                                            transition: 'all 0.2s',
+                                        }}
+                                    >
+                                        Famille
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {/* Family configuration panel */}
+                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && pricingMode === 'family' && (
+                            <div style={{
+                                marginTop: -6, marginBottom: 14, padding: '10px 14px', borderRadius: 10,
+                                background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.1)',
+                                display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center',
+                            }}>
+                                {/* Adults */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Adultes</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <button onClick={() => setFamilyAdults(Math.max(1, familyAdults - 1))} style={{
+                                            width: 24, height: 24, borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff',
+                                            cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#475569',
+                                        }}>-</button>
+                                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", color: '#0F172A', minWidth: 20, textAlign: 'center' }}>
+                                            {familyAdults}
+                                        </span>
+                                        <button onClick={() => setFamilyAdults(Math.min(4, familyAdults + 1))} style={{
+                                            width: 24, height: 24, borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff',
+                                            cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#475569',
+                                        }}>+</button>
+                                    </div>
+                                </div>
+                                {/* Children */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', fontFamily: "'Outfit', sans-serif" }}>Enfants</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <button onClick={() => setFamilyChildren(Math.max(0, familyChildren - 1))} style={{
+                                            width: 24, height: 24, borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff',
+                                            cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#475569',
+                                        }}>-</button>
+                                        <span style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", color: '#0F172A', minWidth: 20, textAlign: 'center' }}>
+                                            {familyChildren}
+                                        </span>
+                                        <button onClick={() => setFamilyChildren(Math.min(3, familyChildren + 1))} style={{
+                                            width: 24, height: 24, borderRadius: 6, border: '1px solid #E2E8F0', background: '#fff',
+                                            cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            color: '#475569',
+                                        }}>+</button>
+                                    </div>
+                                </div>
+                                {/* Room count info */}
+                                <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                    {Math.ceil(familyAdults / 2)} chambre{Math.ceil(familyAdults / 2) > 1 ? 's' : ''}
+                                </span>
+                            </div>
+                        )}
+
                         {/* ── City picker (country-level) ── */}
                         {isCountryLevel && subDestinations.length > 0 && (
                             <div style={{ marginBottom: 16 }}>
@@ -498,7 +925,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ── Header bar: count + sort + Skyscanner link ── */}
-                        {(!isCountryLevel || selectedSubDest || subDestinations.length === 0) && (
+                        {(!isAllInclusive || packStep === 1) && (!isCountryLevel || selectedSubDest || subDestinations.length === 0) && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 marginBottom: 12, gap: 8,
@@ -575,7 +1002,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ GeAI MASCOT ═══ */}
-                        {bestPrice != null && bestPrice > 0 && !loading && deals.length > 0 && (() => {
+                        {(!isAllInclusive || packStep === 1) && bestPrice != null && bestPrice > 0 && !loading && deals.length > 0 && (() => {
                             const effMedian = medianPrice || propMedianPrice || 0;
                             const effAvg = avgPrice || propAvgPrice || 0;
                             const effHistory = historyCount || propHistoryCount || 0;
@@ -711,8 +1138,52 @@ export default function DestinationPopup({
                             );
                         })()}
 
+                        {/* ── TREND INDICATOR ── */}
+                        {(!isAllInclusive || packStep === 1) && priceTrend && !loading && deals.length > 0 && (
+                            <div style={{
+                                marginBottom: 12, padding: '10px 14px', borderRadius: 12,
+                                background: priceTrend.direction === 'down'
+                                    ? 'rgba(16,185,129,0.06)'
+                                    : priceTrend.direction === 'up'
+                                        ? 'rgba(239,68,68,0.06)'
+                                        : 'rgba(245,158,11,0.06)',
+                                border: `1px solid ${priceTrend.direction === 'down'
+                                    ? 'rgba(16,185,129,0.15)'
+                                    : priceTrend.direction === 'up'
+                                        ? 'rgba(239,68,68,0.15)'
+                                        : 'rgba(245,158,11,0.15)'}`,
+                                display: 'flex', alignItems: 'center', gap: 10,
+                            }}>
+                                <span style={{ fontSize: 18, flexShrink: 0 }}>{priceTrend.icon}</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{
+                                        fontSize: 12, fontWeight: 700, color: priceTrend.color,
+                                        fontFamily: "'Outfit', sans-serif",
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                    }}>
+                                        {priceTrend.label}
+                                        {priceTrend.pct > 0 && (
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 600, padding: '1px 6px',
+                                                borderRadius: 4, background: `${priceTrend.color}15`,
+                                                color: priceTrend.color,
+                                            }}>
+                                                {priceTrend.direction === 'down' ? '-' : '+'}{priceTrend.pct}%
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{
+                                        fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif",
+                                        marginTop: 2,
+                                    }}>
+                                        {priceTrend.advice}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Error */}
-                        {error && (
+                        {(!isAllInclusive || packStep === 1) && error && (
                             <div style={{
                                 padding: '12px 16px', borderRadius: 12,
                                 background: 'rgba(239,68,68,0.06)', color: '#DC2626',
@@ -723,7 +1194,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* Loading skeleton */}
-                        {loading && !liveSearching && (
+                        {(!isAllInclusive || packStep === 1) && loading && !liveSearching && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {[1, 2, 3].map((i) => (
                                     <div key={i} style={{
@@ -737,7 +1208,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ PRICE VS AVERAGE CHART ═══ */}
-                        {avgPrice > 0 && sortedDeals.length > 1 && (
+                        {(!isAllInclusive || packStep === 1) && avgPrice > 0 && sortedDeals.length > 1 && (
                             <div style={{
                                 marginBottom: 16, padding: '14px 16px', borderRadius: 16,
                                 background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
@@ -839,8 +1310,921 @@ export default function DestinationPopup({
                             </div>
                         )}
 
+                        {/* ═══ STEP 2 — HOTEL SELECTION (All-Inclusive) ═══ */}
+                        {isAllInclusive && packStep === 2 && selectedFlight && (
+                            <div style={{ animation: 'destFadeIn 0.3s ease-out' }}>
+
+                                {/* Back button + selected flight summary */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                                    padding: '10px 14px', borderRadius: 12,
+                                    background: '#F0F9FF', border: '1px solid rgba(14,165,233,0.15)',
+                                    cursor: 'pointer',
+                                }} onClick={() => setPackStep(1)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                            Vol selectionne
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', fontFamily: "'Outfit', sans-serif", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            {formatDateFr(selectedFlight.departureDate)} - {formatDateFr(selectedFlight.returnDate)}
+                                            <span style={{ fontSize: 10, color: '#64748B' }}>
+                                                {selectedFlight.airline} &middot; {formatStops(selectedFlight.stops)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 18, fontWeight: 700, color: '#0EA5E9', flexShrink: 0 }}>
+                                        {Math.round(selectedFlight.price * flightMultiplier)} $
+                                    </div>
+                                </div>
+
+                                {/* Step 2 title */}
+                                <div style={{
+                                    fontSize: 14, fontWeight: 700, color: '#0F172A',
+                                    fontFamily: "'Fredoka', sans-serif",
+                                    marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8,
+                                }}>
+                                    <span style={{
+                                        width: 22, height: 22, borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                        color: '#fff', fontSize: 11, fontWeight: 800,
+                                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                        fontFamily: "'Fredoka', sans-serif",
+                                    }}>2</span>
+                                    Choisis ton hotel
+                                    <span style={{ fontSize: 10, fontWeight: 500, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                        ({selectedNights} nuits)
+                                    </span>
+                                </div>
+
+                                {/* Hotel loading */}
+                                {hotelsLoading && (
+                                    <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                        Recherche des hotels...
+                                    </div>
+                                )}
+
+                                {!hotelsLoading && hotels.length > 0 && (
+                                    <>
+                                        {/* ── HOTEL PRICE CHART ── */}
+                                        <div style={{
+                                            marginBottom: 14, padding: '14px 16px', borderRadius: 14,
+                                            background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
+                                            border: '1px solid #E0F2FE',
+                                        }}>
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                marginBottom: 10,
+                                            }}>
+                                                <span style={{
+                                                    fontSize: 12, fontWeight: 700, color: '#0F172A',
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    display: 'flex', alignItems: 'center', gap: 5,
+                                                }}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
+                                                    Comparatif prix / nuit
+                                                </span>
+                                                <span style={{
+                                                    fontSize: 11, fontWeight: 600, color: '#94A3B8',
+                                                    fontFamily: "'Fredoka', sans-serif",
+                                                }}>
+                                                    Moy. {hotelAvgPrice} $
+                                                </span>
+                                            </div>
+                                            {/* Bar chart */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                {hotels.map((hotel, i) => {
+                                                    const maxPrice = Math.max(hotelAvgPrice, ...hotels.map(h => h.pricePerNight));
+                                                    const barWidth = Math.max(15, (hotel.pricePerNight / maxPrice) * 100);
+                                                    const avgLinePos = (hotelAvgPrice / maxPrice) * 100;
+                                                    const isSelected = selectedHotel?.name === hotel.name;
+                                                    const isReco = recommendedHotel?.name === hotel.name;
+                                                    const isBelow = hotel.pricePerNight < hotelAvgPrice;
+
+                                                    return (
+                                                        <div key={i} style={{
+                                                            display: 'flex', alignItems: 'center', gap: 8,
+                                                            cursor: 'pointer', padding: '2px 0', borderRadius: 4,
+                                                            opacity: isSelected ? 1 : 0.75,
+                                                            transition: 'all 0.2s',
+                                                        }} onClick={() => setSelectedHotel(hotel)}>
+                                                            <span style={{
+                                                                fontSize: 9, fontWeight: 600, color: isSelected ? '#0F172A' : '#94A3B8',
+                                                                fontFamily: "'Outfit', sans-serif",
+                                                                width: 60, textAlign: 'right', flexShrink: 0,
+                                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                            }}>
+                                                                {hotel.name.split(' ').slice(0, 2).join(' ')}
+                                                            </span>
+                                                            <div style={{
+                                                                flex: 1, height: 18, position: 'relative',
+                                                                background: '#E2E8F0', borderRadius: 4, overflow: 'hidden',
+                                                            }}>
+                                                                <div style={{
+                                                                    height: '100%', borderRadius: 4,
+                                                                    width: `${barWidth}%`,
+                                                                    background: isReco
+                                                                        ? 'linear-gradient(90deg, #10B981, #34D399)'
+                                                                        : isBelow
+                                                                            ? 'linear-gradient(90deg, #0EA5E9, #38BDF8)'
+                                                                            : 'linear-gradient(90deg, #F59E0B, #FBBF24)',
+                                                                    transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                                                    paddingRight: 6,
+                                                                    outline: isSelected ? '2px solid #0EA5E9' : 'none',
+                                                                    outlineOffset: -1,
+                                                                }}>
+                                                                    <span style={{
+                                                                        fontSize: 9, fontWeight: 700, color: '#fff',
+                                                                        fontFamily: "'Fredoka', sans-serif",
+                                                                        textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                                                    }}>
+                                                                        {Math.round(hotel.pricePerNight)}$
+                                                                    </span>
+                                                                </div>
+                                                                <div style={{
+                                                                    position: 'absolute', top: 0, bottom: 0,
+                                                                    left: `${avgLinePos}%`,
+                                                                    width: 2, background: '#DC2626', opacity: 0.6,
+                                                                }} />
+                                                            </div>
+                                                            {/* Mini rating */}
+                                                            {hotel.rating > 0 && (
+                                                                <span style={{
+                                                                    fontSize: 9, fontWeight: 600, color: '#64748B',
+                                                                    fontFamily: "'Outfit', sans-serif", flexShrink: 0, width: 28,
+                                                                }}>
+                                                                    {hotel.rating}/5
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {/* Legend */}
+                                            <div style={{
+                                                display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
+                                                justifyContent: 'center',
+                                            }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} />
+                                                    Recommande
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                    <span style={{ width: 8, height: 8, borderRadius: 2, background: '#0EA5E9' }} />
+                                                    Sous la moyenne
+                                                </span>
+                                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                    <span style={{ width: 2, height: 10, background: '#DC2626', opacity: 0.6 }} />
+                                                    Moyenne
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* ── HOTEL CARDS LIST ── */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                                            {hotels.map((hotel, i) => {
+                                                const isSelected = selectedHotel?.name === hotel.name;
+                                                const isReco = recommendedHotel?.name === hotel.name;
+                                                const ratingPct = Math.min(100, (hotel.rating / 5) * 100);
+                                                const ratingColor = hotel.rating >= 4 ? '#10B981' : hotel.rating >= 3 ? '#F59E0B' : '#EF4444';
+
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        onClick={() => setSelectedHotel(hotel)}
+                                                        style={{
+                                                            display: 'flex', alignItems: 'center', gap: 12,
+                                                            padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
+                                                            background: isSelected
+                                                                ? 'linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.04))'
+                                                                : '#F8FAFC',
+                                                            border: isSelected
+                                                                ? '2px solid #0EA5E9'
+                                                                : '1px solid #E2E8F0',
+                                                            transition: 'all 0.2s',
+                                                            position: 'relative',
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (!isSelected) e.currentTarget.style.borderColor = 'rgba(14,165,233,0.3)';
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (!isSelected) e.currentTarget.style.borderColor = '#E2E8F0';
+                                                        }}
+                                                    >
+                                                        {/* Recommended badge */}
+                                                        {isReco && (
+                                                            <div style={{
+                                                                position: 'absolute', top: -8, left: 12,
+                                                                fontSize: 8, fontWeight: 800, padding: '2px 8px', borderRadius: 100,
+                                                                background: 'linear-gradient(135deg, #10B981, #059669)', color: '#fff',
+                                                                fontFamily: "'Fredoka', sans-serif",
+                                                                boxShadow: '0 2px 6px rgba(16,185,129,0.3)',
+                                                            }}>
+                                                                RECOMMANDE
+                                                            </div>
+                                                        )}
+
+                                                        {/* Hotel image */}
+                                                        {hotel.imageUrl && (
+                                                            <div style={{
+                                                                width: 56, height: 56, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                                                                background: '#E2E8F0',
+                                                            }}>
+                                                                <img src={hotel.imageUrl} alt={hotel.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            </div>
+                                                        )}
+
+                                                        {/* Hotel info */}
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{
+                                                                fontSize: 13, fontWeight: 600, color: '#0F172A',
+                                                                fontFamily: "'Outfit', sans-serif",
+                                                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                                            }}>
+                                                                {hotel.name}
+                                                            </div>
+                                                            <div style={{
+                                                                fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif",
+                                                                display: 'flex', alignItems: 'center', gap: 6, marginTop: 2,
+                                                            }}>
+                                                                {hotel.stars > 0 && (
+                                                                    <span style={{ color: '#F59E0B', letterSpacing: -1 }}>
+                                                                        {'★'.repeat(Math.min(hotel.stars, 5))}
+                                                                    </span>
+                                                                )}
+                                                                {hotel.isAllInclusive && (
+                                                                    <span style={{
+                                                                        fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+                                                                        background: 'rgba(14,165,233,0.1)', color: '#0284C7',
+                                                                    }}>
+                                                                        ALL-INCLUSIVE
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {/* Rating bar */}
+                                                            {hotel.rating > 0 && (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                                                                    <div style={{
+                                                                        width: 60, height: 5, borderRadius: 3,
+                                                                        background: '#E2E8F0', overflow: 'hidden',
+                                                                    }}>
+                                                                        <div style={{
+                                                                            height: '100%', borderRadius: 3,
+                                                                            width: `${ratingPct}%`,
+                                                                            background: ratingColor,
+                                                                            transition: 'width 0.5s',
+                                                                        }} />
+                                                                    </div>
+                                                                    <span style={{ fontSize: 10, fontWeight: 600, color: ratingColor, fontFamily: "'Fredoka', sans-serif" }}>
+                                                                        {hotel.rating}/5
+                                                                    </span>
+                                                                    {hotel.reviewCount > 0 && (
+                                                                        <span style={{ fontSize: 9, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                                                            ({hotel.reviewCount} avis)
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                            {/* Amenity badges */}
+                                                            {hotel.amenities && hotel.amenities.length > 0 && (
+                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+                                                                    {hotel.amenities.slice(0, 5).map((a, idx) => {
+                                                                        const icon = AMENITY_ICONS[a] || Object.entries(AMENITY_ICONS).find(([k]) => a.toLowerCase().includes(k.toLowerCase()))?.[1] || '';
+                                                                        return (
+                                                                            <span key={idx} style={{
+                                                                                fontSize: 9, padding: '1px 5px', borderRadius: 4,
+                                                                                background: 'rgba(14,165,233,0.06)', color: '#64748B',
+                                                                                fontFamily: "'Outfit', sans-serif", fontWeight: 500,
+                                                                                whiteSpace: 'nowrap',
+                                                                            }}>
+                                                                                {icon && <span style={{ marginRight: 2 }}>{icon}</span>}{a}
+                                                                            </span>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                            {/* AI summary */}
+                                                            {hotelSummaries[hotel.name] && (
+                                                                <div style={{
+                                                                    fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif",
+                                                                    fontStyle: 'italic', marginTop: 4, lineHeight: 1.3,
+                                                                    display: 'flex', alignItems: 'flex-start', gap: 4,
+                                                                }}>
+                                                                    <span style={{ fontSize: 10, flexShrink: 0, color: '#F59E0B' }}>&#9733;</span>
+                                                                    {hotelSummaries[hotel.name]}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Price + select */}
+                                                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 18, fontWeight: 700, color: isSelected ? '#0EA5E9' : '#0F172A' }}>
+                                                                {Math.round(hotel.pricePerNight)} $
+                                                            </div>
+                                                            <div style={{ fontSize: 9, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>/nuit</div>
+                                                            <div style={{ fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                                {Math.round(hotel.pricePerNight * selectedNights)} $ total
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Radio indicator */}
+                                                        <div style={{
+                                                            width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                                                            border: isSelected ? '2px solid #0EA5E9' : '2px solid #CBD5E1',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                            background: isSelected ? '#0EA5E9' : 'transparent',
+                                                            transition: 'all 0.2s',
+                                                        }}>
+                                                            {isSelected && (
+                                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* ── COMBINED TOTAL + CTAs ── */}
+                                        {selectedHotel && (
+                                            <div style={{
+                                                padding: '16px 18px', borderRadius: 16,
+                                                background: 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(6,182,212,0.06))',
+                                                border: '1px solid rgba(14,165,233,0.15)',
+                                            }}>
+                                                {/* Breakdown */}
+                                                <div style={{
+                                                    display: 'flex', flexDirection: 'column', gap: 4,
+                                                    fontSize: 13, fontFamily: "'Outfit', sans-serif", color: '#475569',
+                                                }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span>&#9992; Vol A/R {pricingMode === 'total-2' ? '(×2)' : pricingMode === 'family' ? `(${familyAdults}A + ${familyChildren}E)` : ''}</span>
+                                                        <span style={{ fontWeight: 600, fontFamily: "'Fredoka', sans-serif", color: '#0F172A' }}>
+                                                            {Math.round(selectedFlight.price * flightMultiplier)} $
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <span>
+                                                            &#127976; {selectedHotel.name.slice(0, 25)}{selectedHotel.name.length > 25 ? '...' : ''}
+                                                            {selectedHotel.stars > 0 ? ` ${'★'.repeat(selectedHotel.stars)}` : ''}
+                                                            {hotelRooms > 1 ? ` \u00d7 ${hotelRooms} ch.` : ''} &#215; {selectedNights}n
+                                                        </span>
+                                                        <span style={{ fontWeight: 600, fontFamily: "'Fredoka', sans-serif", color: '#0F172A' }}>
+                                                            {Math.round(selectedHotel.pricePerNight * selectedNights * hotelRooms)} $
+                                                        </span>
+                                                    </div>
+                                                    <div style={{
+                                                        borderTop: '2px solid rgba(14,165,233,0.15)', paddingTop: 8, marginTop: 4,
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                    }}>
+                                                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 16, fontWeight: 700, color: '#0F172A' }}>
+                                                            Total pack
+                                                        </span>
+                                                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 24, fontWeight: 700, color: '#0EA5E9' }}>
+                                                            {combinedTotal} $
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* CTA: Go to GeAI Analysis */}
+                                                <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                                                    <button
+                                                        onClick={() => setPackStep(3)}
+                                                        style={{
+                                                            flex: 1, textAlign: 'center', padding: '14px 0', borderRadius: 12,
+                                                            background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                                            color: '#fff', fontSize: 14, fontWeight: 700,
+                                                            fontFamily: "'Outfit', sans-serif",
+                                                            border: 'none', cursor: 'pointer',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                                            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                                                            transition: 'all 0.2s',
+                                                        }}
+                                                    >
+                                                        <img src="/logo_geai.png" alt="GeAI" width={20} height={20} style={{ borderRadius: '50%' }} />
+                                                        Voir l&apos;analyse GeAI
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ═══ STEP 3 — AI DEAL ANALYSIS ═══ */}
+                        {isAllInclusive && packStep === 3 && selectedFlight && selectedHotel && (
+                            <div style={{ animation: 'destFadeIn 0.3s ease-out' }}>
+
+                                {/* Back to Step 2 */}
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+                                    padding: '10px 14px', borderRadius: 12,
+                                    background: '#F0F9FF', border: '1px solid rgba(14,165,233,0.15)',
+                                    cursor: 'pointer',
+                                }} onClick={() => setPackStep(2)}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                            Pack selectionne
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>
+                                            {selectedFlight.airline} &middot; {selectedHotel.name}
+                                        </div>
+                                    </div>
+                                    <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 18, fontWeight: 700, color: '#0EA5E9', flexShrink: 0 }}>
+                                        {combinedTotal} $
+                                    </div>
+                                </div>
+
+                                {/* Loading state */}
+                                {analysisLoading && (
+                                    <div style={{
+                                        textAlign: 'center', padding: '40px 20px',
+                                    }}>
+                                        <div style={{
+                                            width: 50, height: 50, borderRadius: '50%', margin: '0 auto 16px',
+                                            background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            animation: 'geaiBob 2s ease-in-out infinite',
+                                            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                                        }}>
+                                            <img src="/logo_geai.png" alt="GeAI" width={32} height={32} style={{ borderRadius: '50%' }} />
+                                        </div>
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', fontFamily: "'Fredoka', sans-serif", marginBottom: 4 }}>
+                                            GeAI analyse ton pack...
+                                        </div>
+                                        <div style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                            Comparaison des prix, avis, tendances
+                                        </div>
+                                        <div style={{
+                                            marginTop: 16, height: 4, borderRadius: 2, background: '#E2E8F0',
+                                            overflow: 'hidden', maxWidth: 200, margin: '16px auto 0',
+                                        }}>
+                                            <div style={{
+                                                height: '100%', borderRadius: 2,
+                                                background: 'linear-gradient(90deg, #0EA5E9, #06B6D4)',
+                                                animation: 'destShimmer 1.5s ease-in-out infinite',
+                                                backgroundSize: '200% 100%',
+                                                width: '60%',
+                                            }} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Analysis loaded */}
+                                {!analysisLoading && packAnalysis && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                                        {/* ── VERDICT CARD ── */}
+                                        <div style={{
+                                            padding: '16px 18px', borderRadius: 16,
+                                            background: packAnalysis.aiAnalysis.verdict === 'achete'
+                                                ? 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.04))'
+                                                : packAnalysis.aiAnalysis.verdict === 'attends'
+                                                    ? 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.04))'
+                                                    : 'linear-gradient(135deg, rgba(14,165,233,0.08), rgba(6,182,212,0.04))',
+                                            border: `1px solid ${packAnalysis.aiAnalysis.verdict === 'achete' ? 'rgba(16,185,129,0.2)' : packAnalysis.aiAnalysis.verdict === 'attends' ? 'rgba(245,158,11,0.2)' : 'rgba(14,165,233,0.2)'}`,
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                                                <div style={{
+                                                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                                                    background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                }}>
+                                                    <img src="/logo_geai.png" alt="GeAI" width={26} height={26} style={{ borderRadius: '50%' }} />
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', fontFamily: "'Fredoka', sans-serif", display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        Analyse GeAI
+                                                        <span style={{
+                                                            fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                                                            background: packAnalysis.aiAnalysis.verdict === 'achete' ? '#10B981' : packAnalysis.aiAnalysis.verdict === 'attends' ? '#F59E0B' : '#0EA5E9',
+                                                            color: '#fff', fontFamily: "'Fredoka', sans-serif",
+                                                        }}>
+                                                            {packAnalysis.aiAnalysis.verdict === 'achete' ? 'ACHETE!' : packAnalysis.aiAnalysis.verdict === 'attends' ? 'ATTENDS' : 'BON DEAL'}
+                                                        </span>
+                                                        <span style={{ fontSize: 9, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                                            {packAnalysis.aiAnalysis.confidence}% confiance
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: 13, color: '#334155', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5, marginBottom: 12 }}>
+                                                {packAnalysis.aiAnalysis.summary}
+                                            </div>
+
+                                            {/* Pros */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                                                {(packAnalysis.aiAnalysis.pros || []).map((pro: string, i: number) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: '#059669', fontFamily: "'Outfit', sans-serif" }}>
+                                                        <span style={{ flexShrink: 0, marginTop: 1 }}>&#10003;</span>
+                                                        <span>{pro}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Cons */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                {(packAnalysis.aiAnalysis.cons || []).map((con: string, i: number) => (
+                                                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, color: '#D97706', fontFamily: "'Outfit', sans-serif" }}>
+                                                        <span style={{ flexShrink: 0, marginTop: 1 }}>&#9888;</span>
+                                                        <span>{con}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* ── PRICE COMPARISON CARD ── */}
+                                        <div style={{
+                                            padding: '14px 16px', borderRadius: 14,
+                                            background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                        }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif", marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
+                                                Comparaison 90 jours
+                                            </div>
+
+                                            {/* Current vs Median bar */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                {[
+                                                    { label: 'Ton pack', value: packAnalysis.history.currentPackPrice, color: '#0EA5E9', isCurrent: true },
+                                                    { label: 'Prix median vol', value: packAnalysis.history.medianFlightPrice90d, color: '#94A3B8', isCurrent: false },
+                                                    { label: 'Prix moyen vol', value: packAnalysis.history.avgFlightPrice90d, color: '#CBD5E1', isCurrent: false },
+                                                    { label: 'Meilleur prix vol', value: packAnalysis.history.minFlightPrice90d, color: '#10B981', isCurrent: false },
+                                                ].map((item, i) => {
+                                                    const maxVal = Math.max(packAnalysis.history.currentPackPrice, packAnalysis.history.avgFlightPrice90d * 1.5);
+                                                    const barW = Math.max(15, (item.value / maxVal) * 100);
+                                                    return (
+                                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 10, fontWeight: 600, color: '#64748B', fontFamily: "'Outfit', sans-serif", width: 80, textAlign: 'right', flexShrink: 0 }}>
+                                                                {item.label}
+                                                            </span>
+                                                            <div style={{ flex: 1, height: 16, background: '#E2E8F0', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                                                                <div style={{
+                                                                    height: '100%', borderRadius: 4,
+                                                                    width: `${barW}%`,
+                                                                    background: item.isCurrent ? 'linear-gradient(90deg, #0EA5E9, #06B6D4)' : item.color,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6,
+                                                                    transition: 'width 0.5s',
+                                                                }}>
+                                                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
+                                                                        {item.value}$
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {packAnalysis.history.dataPoints > 0 && (
+                                                <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 8, textAlign: 'center' }}>
+                                                    Base sur {packAnalysis.history.dataPoints} prix scannes en 90 jours
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* ── SAVINGS CARD ── */}
+                                        {packAnalysis.savings.vsBookingSeparately > 0 && (
+                                            <div style={{
+                                                padding: '14px 16px', borderRadius: 14,
+                                                background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.04))',
+                                                border: '1px solid rgba(16,185,129,0.15)',
+                                            }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#059669', fontFamily: "'Outfit', sans-serif", marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <span style={{ fontSize: 16 }}>&#128176;</span>
+                                                    Tes economies
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                                                    {packAnalysis.savings.vsMedian > 0 && (
+                                                        <div style={{ textAlign: 'center' }}>
+                                                            <div style={{ fontSize: 22, fontWeight: 700, color: '#059669', fontFamily: "'Fredoka', sans-serif" }}>
+                                                                -{packAnalysis.savings.vsMedian}$
+                                                            </div>
+                                                            <div style={{ fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>vs prix median</div>
+                                                        </div>
+                                                    )}
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 22, fontWeight: 700, color: '#059669', fontFamily: "'Fredoka', sans-serif" }}>
+                                                            ~{packAnalysis.savings.vsBookingSeparately}$
+                                                        </div>
+                                                        <div style={{ fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>vs reserver separement</div>
+                                                    </div>
+                                                    <div style={{ textAlign: 'center' }}>
+                                                        <div style={{ fontSize: 22, fontWeight: 700, color: '#059669', fontFamily: "'Fredoka', sans-serif" }}>
+                                                            {packAnalysis.savings.totalSavingsPercent}%
+                                                        </div>
+                                                        <div style={{ fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>economie totale</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ── HOTEL REVIEW CARD ── */}
+                                        <div style={{
+                                            padding: '14px 16px', borderRadius: 14,
+                                            background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                        }}>
+                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif", marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <span style={{ fontSize: 14 }}>&#127976;</span>
+                                                {selectedHotel.name}
+                                                <span style={{
+                                                    fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100,
+                                                    background: selectedHotel.rating >= 4 ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                                                    color: selectedHotel.rating >= 4 ? '#059669' : '#D97706',
+                                                }}>
+                                                    {packAnalysis.hotelHighlights.scoreDescription}
+                                                </span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                {selectedHotel.stars > 0 && (
+                                                    <span style={{ color: '#F59E0B', letterSpacing: -1, fontSize: 14 }}>
+                                                        {'★'.repeat(Math.min(selectedHotel.stars, 5))}
+                                                    </span>
+                                                )}
+                                                <span style={{ fontSize: 12, fontWeight: 600, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    {selectedHotel.rating}/5
+                                                </span>
+                                                {selectedHotel.reviewCount > 0 && (
+                                                    <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
+                                                        ({selectedHotel.reviewCount} avis)
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {/* AI review */}
+                                            <div style={{
+                                                fontSize: 12, color: '#475569', fontFamily: "'Outfit', sans-serif",
+                                                lineHeight: 1.5, fontStyle: 'italic',
+                                                padding: '10px 12px', borderRadius: 10,
+                                                background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.08)',
+                                            }}>
+                                                &laquo; {packAnalysis.hotelHighlights.aiReview} &raquo;
+                                            </div>
+                                            {/* Top amenities */}
+                                            {packAnalysis.hotelHighlights.topAmenities?.length > 0 && (
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                                                    {packAnalysis.hotelHighlights.topAmenities.map((a: string, i: number) => (
+                                                        <span key={i} style={{
+                                                            fontSize: 10, padding: '2px 8px', borderRadius: 6,
+                                                            background: 'rgba(14,165,233,0.08)', color: '#0284C7',
+                                                            fontFamily: "'Outfit', sans-serif", fontWeight: 600,
+                                                        }}>
+                                                            {a}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* ── BEST TIME ADVICE ── */}
+                                        <div style={{
+                                            padding: '12px 14px', borderRadius: 12,
+                                            background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                            border: '1px solid rgba(14,165,233,0.15)',
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                        }}>
+                                            <span style={{ fontSize: 20, flexShrink: 0 }}>&#9200;</span>
+                                            <div>
+                                                <div style={{ fontSize: 10, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif", marginBottom: 2 }}>
+                                                    Meilleur moment pour reserver
+                                                </div>
+                                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.4 }}>
+                                                    {packAnalysis.aiAnalysis.bestTimeAdvice}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* ── FINAL CTAs ── */}
+                                        <div style={{
+                                            padding: '16px 18px', borderRadius: 16,
+                                            background: 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(6,182,212,0.06))',
+                                            border: '1px solid rgba(14,165,233,0.15)',
+                                        }}>
+                                            {/* Price breakdown */}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                                <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    Total pack
+                                                </span>
+                                                <span style={{ fontSize: 24, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    {combinedTotal} $
+                                                </span>
+                                            </div>
+
+                                            {/* Booking buttons */}
+                                            <div style={{ display: 'flex', gap: 8 }}>
+                                                <a
+                                                    href={selectedFlight.bookingLink || `https://www.skyscanner.ca/transport/flights/yul/${activeCode.toLowerCase()}/`}
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    style={{
+                                                        flex: 1, textAlign: 'center', padding: '12px 0', borderRadius: 12,
+                                                        background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                                        color: '#fff', fontSize: 13, fontWeight: 700,
+                                                        fontFamily: "'Outfit', sans-serif", textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    &#9992; Reserver le vol
+                                                </a>
+                                                {selectedHotel.bookingUrl && (
+                                                    <a
+                                                        href={selectedHotel.bookingUrl}
+                                                        target="_blank" rel="noopener noreferrer"
+                                                        style={{
+                                                            flex: 1, textAlign: 'center', padding: '12px 0', borderRadius: 12,
+                                                            background: '#0F172A',
+                                                            color: '#fff', fontSize: 13, fontWeight: 700,
+                                                            fontFamily: "'Outfit', sans-serif", textDecoration: 'none',
+                                                        }}
+                                                    >
+                                                        &#127976; Reserver l&apos;hotel
+                                                    </a>
+                                                )}
+                                            </div>
+
+                                            {/* Pack alert */}
+                                            <button
+                                                onClick={async () => {
+                                                    if (!selectedFlight || !selectedHotel || !combinedTotal) return;
+                                                    try {
+                                                        const res = await fetch('/api/watchlist/pack', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                destination: activeCity,
+                                                                destination_code: activeCode,
+                                                                target_price: combinedTotal,
+                                                                flight_price: selectedFlight.price,
+                                                                hotel_price_per_night: selectedHotel.pricePerNight,
+                                                                hotel_name: selectedHotel.name,
+                                                                nights: selectedNights,
+                                                            }),
+                                                        });
+                                                        const data = await res.json();
+                                                        if (res.ok) {
+                                                            setPopupToast('Alerte pack activee!');
+                                                        } else {
+                                                            setPopupToast(data.error || 'Erreur');
+                                                        }
+                                                        setTimeout(() => setPopupToast(''), 3000);
+                                                    } catch {
+                                                        setPopupToast('Erreur de connexion');
+                                                        setTimeout(() => setPopupToast(''), 3000);
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '100%', marginTop: 10, padding: '10px 0', borderRadius: 10,
+                                                    border: '1px dashed rgba(14,165,233,0.3)', background: 'rgba(14,165,233,0.04)',
+                                                    cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#0284C7',
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                }}
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                                M&apos;alerter si ce pack baisse sous {combinedTotal} $
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Analysis failed - show basic CTAs */}
+                                {!analysisLoading && !packAnalysis && (
+                                    <div style={{
+                                        padding: '16px 18px', borderRadius: 16,
+                                        background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                        textAlign: 'center',
+                                    }}>
+                                        <div style={{ fontSize: 13, color: '#64748B', fontFamily: "'Outfit', sans-serif", marginBottom: 12 }}>
+                                            Analyse indisponible pour le moment
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            <a
+                                                href={selectedFlight.bookingLink || `https://www.skyscanner.ca/transport/flights/yul/${activeCode.toLowerCase()}/`}
+                                                target="_blank" rel="noopener noreferrer"
+                                                style={{
+                                                    flex: 1, textAlign: 'center', padding: '12px 0', borderRadius: 12,
+                                                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                                    color: '#fff', fontSize: 13, fontWeight: 700,
+                                                    fontFamily: "'Outfit', sans-serif", textDecoration: 'none',
+                                                }}
+                                            >
+                                                &#9992; Reserver le vol
+                                            </a>
+                                            {selectedHotel.bookingUrl && (
+                                                <a
+                                                    href={selectedHotel.bookingUrl}
+                                                    target="_blank" rel="noopener noreferrer"
+                                                    style={{
+                                                        flex: 1, textAlign: 'center', padding: '12px 0', borderRadius: 12,
+                                                        background: '#0F172A',
+                                                        color: '#fff', fontSize: 13, fontWeight: 700,
+                                                        fontFamily: "'Outfit', sans-serif", textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    &#127976; Reserver l&apos;hotel
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ═══ DATE FLEXIBILITY SCROLLER ═══ */}
+                        {(!isAllInclusive || packStep === 1) && dateFlexibility && (
+                            <div style={{
+                                marginBottom: 14, padding: '12px 14px', borderRadius: 14,
+                                background: '#F8FAFC', border: '1px solid #E2E8F0',
+                            }}>
+                                <div style={{
+                                    fontSize: 11, fontWeight: 700, color: '#0F172A',
+                                    fontFamily: "'Outfit', sans-serif", marginBottom: 8,
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                }}>
+                                    <span style={{ fontSize: 14 }}>&#x1F4C5;</span>
+                                    Flexibilit&eacute; des dates
+                                    <span style={{
+                                        fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+                                        background: 'rgba(16,185,129,0.1)', color: '#059669',
+                                    }}>
+                                        sem. la - ch&egrave;re : {dateFlexibility.cheapestWeek.minPrice}$
+                                    </span>
+                                </div>
+                                <div style={{
+                                    display: 'flex', gap: 6, overflowX: 'auto',
+                                    paddingBottom: 4,
+                                    scrollbarWidth: 'thin',
+                                }}>
+                                    {dateFlexibility.weeks.map((w, i) => {
+                                        const isCheapest = w.weekStart === dateFlexibility.cheapestWeek.weekStart;
+                                        const d = new Date(w.weekStart + 'T00:00:00');
+                                        const months = ['jan','f\u00e9v','mar','avr','mai','juin','juil','ao\u00fbt','sep','oct','nov','d\u00e9c'];
+                                        return (
+                                            <div key={i} style={{
+                                                flexShrink: 0, padding: '6px 10px', borderRadius: 10,
+                                                background: isCheapest
+                                                    ? 'linear-gradient(135deg, #10B981, #059669)'
+                                                    : 'rgba(14,165,233,0.06)',
+                                                border: isCheapest ? 'none' : '1px solid #E2E8F0',
+                                                textAlign: 'center', minWidth: 60,
+                                                cursor: 'pointer',
+                                                transition: 'all 0.2s',
+                                            }}
+                                            onClick={() => {
+                                                setSortMode('date');
+                                            }}
+                                            >
+                                                <div style={{
+                                                    fontSize: 10, fontWeight: 600,
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    color: isCheapest ? '#fff' : '#64748B',
+                                                }}>
+                                                    {d.getDate()} {months[d.getMonth()]}
+                                                </div>
+                                                <div style={{
+                                                    fontSize: 14, fontWeight: 700,
+                                                    fontFamily: "'Fredoka', sans-serif",
+                                                    color: isCheapest ? '#fff' : '#0F172A',
+                                                    marginTop: 2,
+                                                }}>
+                                                    {Math.round(w.minPrice)}$
+                                                </div>
+                                                {isCheapest && (
+                                                    <div style={{
+                                                        fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.9)',
+                                                        fontFamily: "'Fredoka', sans-serif", marginTop: 1,
+                                                    }}>
+                                                        MEILLEUR
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ═══ STEP 1 TITLE (All-Inclusive) ═══ */}
+                        {isAllInclusive && packStep === 1 && deals.length > 0 && hotels.length > 0 && (
+                            <div style={{
+                                fontSize: 14, fontWeight: 700, color: '#0F172A',
+                                fontFamily: "'Fredoka', sans-serif",
+                                marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8,
+                            }}>
+                                <span style={{
+                                    width: 22, height: 22, borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                    color: '#fff', fontSize: 11, fontWeight: 800,
+                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                    fontFamily: "'Fredoka', sans-serif",
+                                }}>1</span>
+                                Choisis ton vol
+                            </div>
+                        )}
+
                         {/* ═══ DEAL DATE CARDS ═══ */}
-                        {sortedDeals.length > 0 && (
+                        {(!isAllInclusive || packStep === 1) && sortedDeals.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {sortedDeals.map((deal, i) => {
                                     const isCheapest = deal.price === cheapestPrice;
@@ -850,26 +2234,39 @@ export default function DestinationPopup({
                                         : 0);
                                     const isBelow = avgPrice > 0 && deal.price < avgPrice;
 
+                                    const isFlightSelected = isAllInclusive && selectedFlight?.departureDate === deal.departureDate && selectedFlight?.returnDate === deal.returnDate && selectedFlight?.price === deal.price;
+                                    const CardTag = (isAllInclusive && hotels.length > 0) ? 'div' as const : 'a' as const;
+                                    const cardLinkProps = (isAllInclusive && hotels.length > 0)
+                                        ? {}
+                                        : { href: deal.bookingLink || fallbackUrl, target: '_blank' as const, rel: 'noopener noreferrer' };
+
                                     return (
-                                        <a
+                                        <CardTag
                                             key={`${deal.departureDate}-${deal.returnDate}-${i}`}
-                                            href={deal.bookingLink || fallbackUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            {...cardLinkProps}
+                                            onClick={(isAllInclusive && hotels.length > 0) ? () => {
+                                                setSelectedFlight(deal);
+                                                setSelectedHotel(null);
+                                                setPackStep(2);
+                                            } : undefined}
                                             style={{
                                                 display: 'flex', alignItems: 'center', gap: 12,
                                                 padding: '14px 16px',
                                                 borderRadius: 14,
-                                                background: isCheapest
-                                                    ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.03))'
-                                                    : isBelow
-                                                        ? 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(14,165,233,0.01))'
-                                                        : '#F8FAFC',
-                                                border: isCheapest
-                                                    ? '2px solid rgba(16,185,129,0.25)'
-                                                    : isBelow
-                                                        ? '1px solid rgba(14,165,233,0.15)'
-                                                        : '1px solid #E2E8F0',
+                                                background: isFlightSelected
+                                                    ? 'linear-gradient(135deg, rgba(14,165,233,0.08), rgba(6,182,212,0.06))'
+                                                    : isCheapest
+                                                        ? 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.03))'
+                                                        : isBelow
+                                                            ? 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(14,165,233,0.01))'
+                                                            : '#F8FAFC',
+                                                border: isFlightSelected
+                                                    ? '2px solid #0EA5E9'
+                                                    : isCheapest
+                                                        ? '2px solid rgba(16,185,129,0.25)'
+                                                        : isBelow
+                                                            ? '1px solid rgba(14,165,233,0.15)'
+                                                            : '1px solid #E2E8F0',
                                                 textDecoration: 'none', color: 'inherit',
                                                 transition: 'all 0.2s',
                                                 cursor: 'pointer',
@@ -997,6 +2394,16 @@ export default function DestinationPopup({
                                                         -{dealDiscount}%
                                                     </span>
                                                 )}
+                                                {isAllInclusive && pricingMode === 'total-2' && (
+                                                    <div style={{ fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                        {Math.round(deal.price * 2)} $ pour 2
+                                                    </div>
+                                                )}
+                                                {isAllInclusive && pricingMode === 'family' && (
+                                                    <div style={{ fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                        {Math.round(deal.price * flightMultiplier)} $ famille
+                                                    </div>
+                                                )}
                                                 {isCheapest && (
                                                     <div style={{
                                                         fontSize: 9, fontWeight: 700, color: '#059669',
@@ -1007,13 +2414,27 @@ export default function DestinationPopup({
                                                 )}
                                             </div>
 
-                                            {/* Arrow */}
-                                            <div style={{ flexShrink: 0, color: '#94A3B8' }}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                    <path d="M7 17L17 7M17 7H7M17 7v10" />
-                                                </svg>
+                                            {/* Arrow or Select indicator */}
+                                            <div style={{ flexShrink: 0, color: isFlightSelected ? '#0EA5E9' : '#94A3B8' }}>
+                                                {(isAllInclusive && hotels.length > 0) ? (
+                                                    <div style={{
+                                                        width: 20, height: 20, borderRadius: '50%',
+                                                        border: isFlightSelected ? '2px solid #0EA5E9' : '2px solid #CBD5E1',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        background: isFlightSelected ? '#0EA5E9' : 'transparent',
+                                                        transition: 'all 0.2s',
+                                                    }}>
+                                                        {isFlightSelected && (
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                        <path d="M7 17L17 7M17 7H7M17 7v10" />
+                                                    </svg>
+                                                )}
                                             </div>
-                                        </a>
+                                        </CardTag>
                                     );
                                 })}
 
@@ -1077,7 +2498,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ── Average price info ── */}
-                        {avgPrice > 0 && deals.length > 0 && (
+                        {(!isAllInclusive || packStep === 1) && avgPrice > 0 && deals.length > 0 && (
                             <div style={{
                                 marginTop: 12, padding: '10px 14px', borderRadius: 12,
                                 background: '#F8FAFC', border: '1px solid #E2E8F0',
@@ -1101,7 +2522,7 @@ export default function DestinationPopup({
 
 
                         {/* ── Share + Tip row ── */}
-                        <div style={{
+                        {(!isAllInclusive || packStep === 1) && <div style={{
                             marginTop: 12, display: 'flex', gap: 8,
                         }}>
                             <button
@@ -1129,10 +2550,35 @@ export default function DestinationPopup({
                                     fontSize: 10, color: '#64748B', lineHeight: 1.3,
                                     fontFamily: "'Outfit', sans-serif",
                                 }}>
-                                    Clique sur une date pour reserver sur Skyscanner
+                                    {isAllInclusive && hotels.length > 0 ? 'Clique sur un vol pour passer a l\'etape 2' : 'Clique sur une date pour reserver sur Skyscanner'}
                                 </span>
                             </div>
-                        </div>
+                        </div>}
+
+                        {/* Link to full destination page */}
+                        <a
+                            href={`/destination/${destinationCode}`}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6,
+                                padding: '10px 16px',
+                                marginTop: 8,
+                                borderRadius: 12,
+                                background: '#F0F9FF',
+                                border: '1px solid #BAE6FD',
+                                color: '#0284C7',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                fontFamily: "'Outfit', sans-serif",
+                                textDecoration: 'none',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            📊 Voir la page complète — historique, calendrier et stats
+                            <span style={{ fontSize: 16 }}>&rarr;</span>
+                        </a>
 
                         {/* Share toast */}
                         {popupToast && (

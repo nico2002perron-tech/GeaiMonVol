@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { calculateRealDiscount } from '@/lib/services/flights';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const name = searchParams.get('name');
+    const name = searchParams.get('name') || searchParams.get('destination');
+    const code = searchParams.get('code');
 
-    if (!name) {
-        return NextResponse.json({ error: 'Missing destination name' }, { status: 400 });
+    if (!name && !code) {
+        return NextResponse.json({ error: 'Missing destination name or code' }, { status: 400 });
     }
 
     try {
@@ -15,18 +17,22 @@ export async function GET(request: Request) {
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
+        // Build filter based on code or name
+        const filterCol = code ? 'destination_code' : 'destination';
+        const filterVal = code || name!;
+
         // Fetch recent scans + 90-day history for avg price
         const [scansResult, historyResult] = await Promise.all([
             supabase
                 .from('price_history')
                 .select('*')
-                .eq('destination', name)
+                .eq(filterCol, filterVal)
                 .gte('scanned_at', thirtyDaysAgo)
                 .order('price', { ascending: true }),
             supabase
                 .from('price_history')
                 .select('price')
-                .eq('destination', name)
+                .eq(filterCol, filterVal)
                 .gte('scanned_at', ninetyDaysAgo)
                 .neq('source', 'historical_seed')
                 .not('source', 'like', 'google_flights%'),
@@ -81,10 +87,9 @@ export async function GET(request: Request) {
                     ? rawLink
                     : buildSkyLink(d.departure_date, d.return_date, code);
 
-                // Per-deal discount vs 90-day median
-                const dealDiscount = histPrices.length >= 3 && refPrice > d.price
-                    ? Math.round(((refPrice - d.price) / refPrice) * 100)
-                    : 0;
+                // Per-deal discount + deal level using real discount engine
+                const historyForCalc = histPrices.map((p: number) => ({ price: p, scanned_at: '' }));
+                const discountInfo = calculateRealDiscount(d.price, historyForCalc);
 
                 return {
                     price: d.price,
@@ -104,14 +109,15 @@ export async function GET(request: Request) {
                     tags: d.raw_data?.tags || [],
                     seatsRemaining: d.raw_data?.seats_remaining,
                     totalOptions: d.raw_data?.total_options,
-                    discount: dealDiscount,
+                    discount: discountInfo.discount,
+                    dealLevel: discountInfo.dealLevel,
                     tripNights: d.raw_data?.trip_duration || 0,
                 };
             });
 
         return NextResponse.json({
-            destination: name,
-            destinationCode: scansResult.data?.[0]?.destination_code || '',
+            destination: name || scansResult.data?.[0]?.destination || code,
+            destinationCode: code || scansResult.data?.[0]?.destination_code || '',
             deals,
             count: deals.length,
             avgPrice,

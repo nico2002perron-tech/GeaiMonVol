@@ -84,14 +84,20 @@ async function getDeals() {
             });
         }
 
+        // Only show real deals: at least 5% below median (not 'normal' level)
+        const goodDeals = enriched.filter(d => {
+            if (d.historyCount < 3) return true;
+            return d.dealLevel !== 'normal';
+        });
+
         // Sort
         const order: Record<string, number> = { lowest_ever: 0, incredible: 1, great: 2, good: 3, slight: 4, normal: 5 };
-        enriched.sort((a, b) => {
+        goodDeals.sort((a, b) => {
             const d = (order[a.dealLevel] ?? 5) - (order[b.dealLevel] ?? 5);
             return d !== 0 ? d : b.discount - a.discount;
         });
 
-        return enriched;
+        return goodDeals;
     } catch {
         return [];
     }

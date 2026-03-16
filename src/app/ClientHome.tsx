@@ -11,8 +11,9 @@ const LandingGlobe = dynamic(() => import('@/components/map/CartoonGlobe'), {
   loading: () => <div className="lp-globe-placeholder" />,
 });
 import DestinationPopup from '@/components/map/DestinationPopup';
+import DestinationComparator from '@/components/DestinationComparator';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
-import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES } from '@/lib/constants/deals';
+import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import './landing.css';
@@ -120,6 +121,16 @@ interface DealItem {
   medianPrice: number;
   avgPrice: number;
   historyCount: number;
+  // Hotel / pack fields (enriched for tout-inclus)
+  hotelPrice?: number;
+  hotelTotal?: number;
+  hotelName?: string;
+  hotelStars?: number;
+  hotelRating?: number;
+  hotelImage?: string;
+  hotelBookingUrl?: string;
+  hotelNights?: number;
+  totalPackPrice?: number;
 }
 
 function formatDateShort(dateStr: string): string {
@@ -307,7 +318,8 @@ function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: 
   const levelInfo = DEAL_LEVELS[deal.dealLevel];
   const levelColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
     : deal.dealLevel === 'incredible' ? '#DC2626'
-    : deal.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
+    : deal.dealLevel === 'great' ? '#F59E0B'
+    : deal.dealLevel === 'good' ? '#10B981' : '#64748B';
   const cityImage = deal.image || CITY_IMAGES[deal.city] || DEFAULT_CITY_IMAGE;
 
   return (
@@ -338,8 +350,8 @@ function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: 
         {/* ── Price + key info row ── */}
         <div className="bp-info-row">
           <div className="bp-info-price-block">
-            <span className="bp-info-current">{Math.round(deal.price)} $</span>
-            {deal.oldPrice > deal.price && (
+            <span className="bp-info-current">{Math.round((deal as any).totalPackPrice || deal.price)} $</span>
+            {!(deal as any).totalPackPrice && deal.oldPrice > deal.price && (
               <span className="bp-info-old">{Math.round(deal.oldPrice)} $</span>
             )}
           </div>
@@ -417,7 +429,6 @@ const ArrowIcon = () => (
 function mapPricesToDeals(prices: any[]): DealItem[] {
   const deals: DealItem[] = [];
   const seen = new Set<string>();
-  const ALL_INCLUSIVE_CODES = ['CUN', 'PUJ', 'VRA', 'HAV', 'MBJ', 'SJO'];
 
   for (const p of prices) {
     const city = p.destination;
@@ -453,6 +464,16 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
       medianPrice: medianP,
       avgPrice: avgP,
       historyCount: p.historyCount || 0,
+      // Hotel / pack fields (from enriched API)
+      hotelPrice: p.hotelPrice,
+      hotelTotal: p.hotelTotal,
+      hotelName: p.hotelName,
+      hotelStars: p.hotelStars,
+      hotelRating: p.hotelRating,
+      hotelImage: p.hotelImage,
+      hotelBookingUrl: p.hotelBookingUrl,
+      hotelNights: p.hotelNights,
+      totalPackPrice: p.totalPackPrice,
     });
   }
 
@@ -477,6 +498,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const [shareToast, setShareToast] = useState('');
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const [expandedPacks, setExpandedPacks] = useState<Record<string, boolean>>({});
+  const [showComparator, setShowComparator] = useState(false);
   const [guideTab, setGuideTab] = useState(0);
   const [guideFade, setGuideFade] = useState(true); // true = visible
   const guideAutoRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -586,6 +610,14 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         setTimeout(() => setShareToast(''), 2000);
       }).catch(() => {});
     }
+  }, []);
+
+  const toggleCompare = useCallback((city: string) => {
+    setCompareList(prev => {
+      if (prev.includes(city)) return prev.filter(c => c !== city);
+      if (prev.length >= 3) return prev; // Max 3
+      return [...prev, city];
+    });
   }, []);
 
   // SSR deals mapped once — shown INSTANTLY on page load
@@ -703,7 +735,11 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
   // ── Filter + Search ──
   const filteredDeals = useMemo(() => {
-    let result = [...dealsWithImages];
+    // Only show real deals: at least 5% below median (dealLevel != 'normal')
+    let result = dealsWithImages.filter(d => {
+      if (d.historyCount < 3) return true; // not enough history to judge, keep it
+      return d.dealLevel !== 'normal';
+    });
 
     // Search filter
     if (searchQuery.trim()) {
@@ -725,6 +761,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       result = result.filter(d => favorites[d.city]);
     } else if (activeFilter === 'top') {
       result = result.filter(d => ['lowest_ever', 'incredible', 'great', 'good'].includes(d.dealLevel));
+    } else if (activeFilter === 'tout-inclus') {
+      result = result.filter(d => d.category === 'tout-inclus');
     } else if (activeFilter !== 'tous') {
       result = result.filter(d => d.category === activeFilter);
     }
@@ -741,7 +779,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         return b.discount - a.discount;
       });
     } else if (sortMode === 'price') {
-      result.sort((a, b) => a.price - b.price);
+      result.sort((a, b) => (a.totalPackPrice || a.price) - (b.totalPackPrice || b.price));
     } else if (sortMode === 'discount') {
       result.sort((a, b) => b.discount - a.discount);
     }
@@ -753,11 +791,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode, maxBudget]);
 
   const featured = filteredDeals[0];
-  const topDeals = filteredDeals.slice(0, 3); // top 3 spotlight
-  const rest = filteredDeals.slice(3); // rest starts at #4
-  const visibleRest = rest.slice(0, visibleCount);
-  const hasMore = rest.length > visibleCount;
-  const remainingCount = rest.length - visibleCount;
+  const allGridDeals = filteredDeals; // all deals in same grid
+  const visibleGridDeals = allGridDeals.slice(0, visibleCount);
+  const hasMore = allGridDeals.length > visibleCount;
+  const remainingCount = allGridDeals.length - visibleCount;
 
   // Time ago string
   const timeAgo = useMemo(() => {
@@ -779,6 +816,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         @keyframes rankShine{0%{left:-100%}100%{left:200%}}
         @keyframes topDealGlow{0%,100%{box-shadow:0 0 15px var(--glow-color,rgba(124,58,237,0.15)),0 4px 20px rgba(0,0,0,0.06)}50%{box-shadow:0 0 30px var(--glow-color,rgba(124,58,237,0.3)),0 8px 32px rgba(0,0,0,0.08)}}
         @keyframes topBannerShine{0%{background-position:200% center}100%{background-position:-200% center}}
+        @keyframes compareFadeIn{from{opacity:0}to{opacity:1}}
         @media(max-width:640px){.deal-featured{grid-template-columns:1fr !important;}.deal-featured>div:first-child{min-height:160px !important;}}
         .deal-top3-span{grid-column:1/-1;}
       `}</style>
@@ -956,7 +994,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 {[...Array(2)].map((_, i) => (
                   <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
                     {row1.map((d) => (
-                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
+                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}-${d.city}`}>
                         <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
                         {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
@@ -975,7 +1013,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 {[...Array(2)].map((_, i) => (
                   <div className="lp-ticker-list" key={i} aria-hidden={i === 1}>
                     {row2.map((d) => (
-                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}`}>
+                      <button type="button" onClick={() => openDealPopup(d)} className="lp-ticker-card" key={`${i}-${d.code}-${d.city}`}>
                         <span className="lp-ticker-emoji">{d.discount >= 35 ? '🔥' : d.discount >= 25 ? '✨' : '✈️'}</span>
                         {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
@@ -1347,144 +1385,76 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 }}>
                   <div style={{
                     height: 180,
-                    background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%)',
+                    backgroundImage: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%)',
                     backgroundSize: '400% 100%',
                     animation: 'shimmer 1.8s ease-in-out infinite',
                   }} />
                   <div style={{ padding: '18px 22px 22px' }}>
-                    <div style={{ height: 14, width: '40%', borderRadius: 6, background: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.15s', marginBottom: 10 }} />
-                    <div style={{ height: 22, width: '60%', borderRadius: 6, background: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.3s', marginBottom: 8 }} />
-                    <div style={{ height: 12, width: '80%', borderRadius: 6, background: 'linear-gradient(90deg, #F1F5F9 25%, #e2e8f0 37%, #F1F5F9 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.45s', marginBottom: 14 }} />
-                    <div style={{ height: 32, width: '45%', borderRadius: 6, background: 'linear-gradient(90deg, #E0F2FE 25%, #bae6fd 37%, #E0F2FE 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.6s' }} />
+                    <div style={{ height: 14, width: '40%', borderRadius: 6, backgroundImage: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.15s', marginBottom: 10 }} />
+                    <div style={{ height: 22, width: '60%', borderRadius: 6, backgroundImage: 'linear-gradient(90deg, #E2E8F0 25%, #d5dce6 37%, #E2E8F0 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.3s', marginBottom: 8 }} />
+                    <div style={{ height: 12, width: '80%', borderRadius: 6, backgroundImage: 'linear-gradient(90deg, #F1F5F9 25%, #e2e8f0 37%, #F1F5F9 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.45s', marginBottom: 14 }} />
+                    <div style={{ height: 32, width: '45%', borderRadius: 6, backgroundImage: 'linear-gradient(90deg, #E0F2FE 25%, #bae6fd 37%, #E0F2FE 63%)', backgroundSize: '400% 100%', animation: 'shimmer 1.8s ease-in-out infinite', animationDelay: '0.6s' }} />
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── TOP 3 SPOTLIGHT — En vedette ── */}
-          {topDeals.length > 0 && (
-            <div style={{ marginBottom: 32 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span style={{ fontSize: 22, fontFamily: "'Fredoka', sans-serif", fontWeight: 700, color: '#0F172A' }}>En vedette</span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: 'linear-gradient(135deg, #F59E0B, #FBBF24)', color: '#fff', fontFamily: "'Fredoka', sans-serif", letterSpacing: 0.5 }}>TOP 3</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }} className="spotlight-grid">
-                {topDeals.map((deal, idx) => {
-                  const rank = idx + 1;
-                  const rankBg = rank === 1 ? 'linear-gradient(135deg, #F59E0B, #FBBF24)' : rank === 2 ? 'linear-gradient(135deg, #94A3B8, #CBD5E1)' : 'linear-gradient(135deg, #D97706, #F59E0B)';
-                  const rankShadow = rank === 1 ? '0 2px 12px rgba(245,158,11,0.5)' : rank === 2 ? '0 2px 8px rgba(148,163,184,0.4)' : '0 2px 8px rgba(217,119,6,0.4)';
-                  const level = DEAL_LEVELS[deal.dealLevel];
-                  const topColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED' : deal.dealLevel === 'incredible' ? '#DC2626' : deal.dealLevel === 'great' ? '#EA580C' : '#0EA5E9';
-                  return (
-                    <div key={`top-${deal.code}-${deal.city}`}
-                      onClick={() => openDealPopup(deal)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
-                      role="button" tabIndex={0}
-                      aria-label={`Deal #${rank} : ${deal.city} à ${Math.round(deal.price)}$`}
-                      style={{
-                        position: 'relative', borderRadius: 20, overflow: 'hidden',
-                        background: '#fff', cursor: 'pointer',
-                        border: rank === 1 ? '2px solid rgba(245,158,11,0.35)' : '1px solid #E2E8F0',
-                        transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
-                        animation: `dealFadeIn 0.5s ease-out ${idx * 0.12}s both`,
-                        boxShadow: rank === 1 ? '0 4px 24px rgba(245,158,11,0.12)' : undefined,
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(15,23,42,0.12)'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = rank === 1 ? '0 4px 24px rgba(245,158,11,0.12)' : ''; }}
-                    >
-                      {/* Image */}
-                      <div style={{ position: 'relative', height: rank === 1 ? 200 : 170, overflow: 'hidden' }}>
-                        <Image src={deal.image} alt={deal.city} fill sizes="(max-width:640px) 100vw, 33vw" style={{ objectFit: 'cover', transition: 'transform 0.5s' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.06)'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                        />
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%)' }} />
-
-                        {/* Rank badge */}
-                        <div style={{
-                          position: 'absolute', top: 12, left: 12,
-                          padding: '5px 14px', borderRadius: 100,
-                          background: rankBg, color: '#fff',
-                          fontSize: rank === 1 ? 13 : 11, fontWeight: 800,
-                          fontFamily: "'Fredoka', sans-serif",
-                          boxShadow: rankShadow,
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}>{rank === 1 ? '👑' : rank === 2 ? '🥈' : '🥉'} #{rank}</div>
-
-                        {/* Discount */}
-                        {deal.discount > 0 && (
-                          <div style={{ position: 'absolute', top: 12, right: 12, padding: '4px 10px', borderRadius: 100, background: '#10B981', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", boxShadow: '0 2px 8px rgba(16,185,129,0.4)' }}>-{deal.discount}%</div>
-                        )}
-
-                        {/* City overlay */}
-                        <div style={{ position: 'absolute', bottom: 12, left: 14, right: 14 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>YUL → {deal.code}</span>
-                            {deal.stops === 0 && <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(16,185,129,0.9)', color: '#fff' }}>Direct</span>}
-                          </div>
-                          <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: rank === 1 ? 24 : 20, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.1, textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>{deal.city}</h3>
-                          {deal.country && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontFamily: "'Outfit', sans-serif" }}>{deal.country}</span>}
-                        </div>
-                      </div>
-
-                      {/* Body */}
-                      <div style={{ padding: '14px 16px 16px' }}>
-                        {/* Deal level badge */}
-                        {level && (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 100, marginBottom: 8, background: `linear-gradient(135deg, ${topColor}, ${topColor}CC)`, fontSize: 10, fontWeight: 800, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
-                            {level.icon} {level.label}
-                          </div>
-                        )}
-                        {/* Price */}
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
-                          {deal.oldPrice > deal.price && <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>}
-                          <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: rank === 1 ? 30 : 26, fontWeight: 700, color: '#0F172A', lineHeight: 1 }}>{Math.round(deal.price)} $</span>
-                          <span style={{ fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
-                        </div>
-                        {/* Tags */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-                          {deal.departureDate && (
-                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#E0F2FE', color: '#0284C7', fontFamily: "'Outfit', sans-serif" }}>
-                              {formatDateRange(deal.departureDate, deal.returnDate)}
-                              {(() => { const n = getTripNights(deal.departureDate, deal.returnDate); return n > 0 ? ` · ${n}n` : ''; })()}
-                            </span>
-                          )}
-                          {deal.airline && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#F1F5F9', color: '#334155', fontFamily: "'Outfit', sans-serif" }}>{deal.airline}</span>}
-                        </div>
-                        {/* CTA */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{ flex: 1, textAlign: 'center', padding: '8px 0', borderRadius: 10, background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)', color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                            Voir ce deal →
-                          </div>
-                          <button onClick={(e) => toggleFavorite(deal.city, e)} aria-label="Favoris" style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: favorites[deal.city] ? 'rgba(239,68,68,0.08)' : '#F1F5F9', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>
-                            {favorites[deal.city] ? '❤️' : '🤍'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* ── DEAL LEVEL LEGEND ── */}
+          {allDeals.length > 0 && (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16,
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              {[
+                { level: 'lowest_ever', color: '#7C3AED', label: 'Prix record', icon: '⚡' },
+                { level: 'incredible', color: '#DC2626', label: 'Incroyable', icon: '🔥' },
+                { level: 'great', color: '#F59E0B', label: 'Super deal', icon: '✨', dark: true },
+                { level: 'good', color: '#10B981', label: 'Bon prix', icon: '👍' },
+                { level: 'slight', color: '#64748B', label: 'Correct', icon: '👌' },
+                { level: 'normal', color: '#CBD5E1', label: 'Normal', icon: '📊', dark: true },
+              ].map((item) => (
+                <div
+                  key={item.level}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 100,
+                    background: `${item.color}15`,
+                    border: `1px solid ${item.color}30`,
+                  }}
+                >
+                  <span style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: item.color, flexShrink: 0,
+                  }} />
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: '#475569',
+                    fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap',
+                  }}>
+                    {item.icon} {item.label}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
 
-          {/* ── DEALS GRID / LIST ── */}
-          {rest.length > 0 && viewMode === 'grid' && (
+          {/* ── DEALS GRID ── */}
+          {allGridDeals.length > 0 && viewMode === 'grid' && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
               gap: 20,
             }}>
-              {visibleRest.map((deal, idx) => {
-                const rank = idx + 4;
-                const rankColor = undefined;
+              {visibleGridDeals.map((deal, idx) => {
+                const rank = idx + 1;
+                const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const viewers = getViewerCount(deal.city, deal.discount);
-                const isTopDeal = ['lowest_ever', 'incredible', 'great'].includes(deal.dealLevel);
+                const isTopDeal = ['lowest_ever', 'incredible', 'great', 'good'].includes(deal.dealLevel);
                 const topColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
                   : deal.dealLevel === 'incredible' ? '#DC2626'
-                  : deal.dealLevel === 'great' ? '#EA580C' : null;
+                  : deal.dealLevel === 'great' ? '#F59E0B'
+                  : deal.dealLevel === 'good' ? '#10B981' : null;
                 const isAnimatedGlow = ['lowest_ever', 'incredible'].includes(deal.dealLevel);
 
                 return (
@@ -1528,7 +1498,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         </button>
                       </div>
                     )}
-                    {/* ── REGULAR GRID CARD ── */}
+                    {/* ── UNIFIED GRID CARD ── */}
                     <div
                       onClick={() => openDealPopup(deal)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
@@ -1564,23 +1534,27 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       {/* ── TOP DEAL BANNER ── */}
                       {isTopDeal && level && topColor && (
                         <div style={{
-                          background: `linear-gradient(135deg, ${topColor}, ${topColor}CC)`,
+                          backgroundImage: deal.dealLevel === 'great'
+                            ? `linear-gradient(135deg, #F59E0B, #D97706)`
+                            : `linear-gradient(135deg, ${topColor}, ${topColor}CC)`,
                           backgroundSize: '400% 100%',
                           padding: '7px 16px',
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         }}>
                           <span style={{
                             display: 'flex', alignItems: 'center', gap: 5,
-                            fontSize: 11, fontWeight: 800, color: '#fff',
+                            fontSize: 11, fontWeight: 800,
+                            color: deal.dealLevel === 'great' ? '#78350F' : '#fff',
                             fontFamily: "'Fredoka', sans-serif",
                             letterSpacing: 0.5,
                           }}>
                             {level.icon} {level.label}
                           </span>
                           <span style={{
-                            fontSize: 12, fontWeight: 800, color: '#fff',
+                            fontSize: 12, fontWeight: 800,
+                            color: deal.dealLevel === 'great' ? '#78350F' : '#fff',
                             fontFamily: "'Fredoka', sans-serif",
-                            background: 'rgba(255,255,255,0.2)',
+                            background: deal.dealLevel === 'great' ? 'rgba(120,53,15,0.15)' : 'rgba(255,255,255,0.2)',
                             padding: '2px 10px', borderRadius: 100,
                           }}>
                             -{deal.discount}%
@@ -1647,6 +1621,24 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           </div>
                         )}
 
+                        {/* Tout-inclus ribbon on image */}
+                        {deal.category === 'tout-inclus' && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: 0, left: 0, right: 0,
+                            padding: '5px 14px',
+                            background: 'linear-gradient(90deg, rgba(14,165,233,0.92), rgba(6,182,212,0.88))',
+                            backdropFilter: 'blur(4px)',
+                            color: '#fff',
+                            fontSize: 10, fontWeight: 700,
+                            fontFamily: "'Fredoka', sans-serif",
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                            letterSpacing: 0.5,
+                          }}>
+                            ✈ PACK VOL + HOTEL 🏨
+                          </div>
+                        )}
+
                         {/* Discount */}
                         {deal.discount > 0 && (
                           <div style={{
@@ -1669,11 +1661,11 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             onClick={(e) => toggleFavorite(deal.city, e)}
                             aria-label={favorites[deal.city] ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                             style={{
-                              width: 44, height: 44, borderRadius: '50%', border: 'none',
+                              width: 36, height: 36, borderRadius: '50%', border: 'none',
                               background: favorites[deal.city] ? 'rgba(239,68,68,0.9)' : 'rgba(0,0,0,0.35)',
                               backdropFilter: 'blur(8px)',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              transition: 'all 0.2s', fontSize: 16,
+                              transition: 'all 0.2s', fontSize: 14,
                               color: '#fff',
                             }}
                           >
@@ -1683,19 +1675,37 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             onClick={(e) => shareDeal(deal, e)}
                             aria-label="Partager ce deal"
                             style={{
-                              width: 44, height: 44, borderRadius: '50%', border: 'none',
+                              width: 36, height: 36, borderRadius: '50%', border: 'none',
                               background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)',
                               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               transition: 'all 0.2s',
                             }}
                           >
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                           </button>
+                          {/* Compare checkbox */}
+                          <div
+                            onClick={(e) => { e.stopPropagation(); toggleCompare(deal.city); }}
+                            style={{
+                              width: 24, height: 24, borderRadius: 6,
+                              border: compareList.includes(deal.city) ? '2px solid #0EA5E9' : '2px solid rgba(255,255,255,0.6)',
+                              background: compareList.includes(deal.city) ? '#0EA5E9' : 'rgba(0,0,0,0.2)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', transition: 'all 0.2s',
+                              backdropFilter: 'blur(4px)',
+                              alignSelf: 'center',
+                            }}
+                          >
+                            {compareList.includes(deal.city) && (
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Body */}
-                      <div style={{ padding: '16px 20px 18px' }}>
+                      {/* ═══ UNIFIED CARD BODY ═══ */}
+                      <div style={{ padding: '14px 18px 16px' }}>
+                        {/* City + route */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <h3 style={{
                             fontFamily: "'Fredoka', sans-serif",
@@ -1709,7 +1719,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           }}>YUL → {deal.code}</span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        {/* Country + airline */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                           <span style={{
                             fontSize: 12, color: '#94A3B8',
                             fontFamily: "'Outfit', sans-serif",
@@ -1729,45 +1740,44 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             </span>
                           )}
                         </div>
-                        {/* Baggage info */}
-                        {deal.airline && AIRLINE_BAGGAGE[deal.airline] && (
-                          <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '2px 8px', borderRadius: 6, marginBottom: 6,
-                            fontSize: 10, fontWeight: 600,
-                            fontFamily: "'Outfit', sans-serif",
-                            background: AIRLINE_BAGGAGE[deal.airline].checked
-                              ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[deal.airline].cabin
-                                ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
-                            color: AIRLINE_BAGGAGE[deal.airline].checked
-                              ? '#059669' : AIRLINE_BAGGAGE[deal.airline].cabin
-                                ? '#0284C7' : '#DC2626',
-                          }}>
-                            {AIRLINE_BAGGAGE[deal.airline].checked ? '🧳 Bagage inclus' : AIRLINE_BAGGAGE[deal.airline].cabin ? '🎒 Cabine seulement' : '⚠️ Aucun bagage inclus'}
-                          </div>
-                        )}
 
-                        {deal.departureDate && (
-                          <div style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '3px 10px', borderRadius: 8,
-                            background: '#E0F2FE',
-                            fontSize: 11, fontWeight: 600, color: '#0284C7',
-                            fontFamily: "'Outfit', sans-serif", marginBottom: 10,
-                          }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-                            {formatDateRange(deal.departureDate, deal.returnDate)}
-                            {(() => {
-                              const nights = getTripNights(deal.departureDate, deal.returnDate);
-                              return nights > 0 ? (
-                                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(99,102,241,0.08)', color: '#6366F1', fontFamily: "'Fredoka', sans-serif" }}>
-                                  {nights} nuits
-                                </span>
-                              ) : null;
-                            })()}
-                          </div>
-                        )}
+                        {/* Tags row: baggage + dates */}
+                        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+                          {deal.airline && AIRLINE_BAGGAGE[deal.airline] && (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 3,
+                              padding: '2px 8px', borderRadius: 6,
+                              fontSize: 10, fontWeight: 600,
+                              fontFamily: "'Outfit', sans-serif",
+                              background: AIRLINE_BAGGAGE[deal.airline].checked
+                                ? 'rgba(16,185,129,0.08)' : AIRLINE_BAGGAGE[deal.airline].cabin
+                                  ? 'rgba(14,165,233,0.08)' : 'rgba(239,68,68,0.08)',
+                              color: AIRLINE_BAGGAGE[deal.airline].checked
+                                ? '#059669' : AIRLINE_BAGGAGE[deal.airline].cabin
+                                  ? '#0284C7' : '#DC2626',
+                            }}>
+                              {AIRLINE_BAGGAGE[deal.airline].checked ? '🧳 Inclus' : AIRLINE_BAGGAGE[deal.airline].cabin ? '🎒 Cabine' : '⚠️ Aucun'}
+                            </span>
+                          )}
+                          {deal.departureDate && (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                              padding: '2px 8px', borderRadius: 6,
+                              background: '#E0F2FE',
+                              fontSize: 10, fontWeight: 600, color: '#0284C7',
+                              fontFamily: "'Outfit', sans-serif",
+                            }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                              {formatDateRange(deal.departureDate, deal.returnDate)}
+                              {(() => {
+                                const nights = getTripNights(deal.departureDate, deal.returnDate);
+                                return nights > 0 ? ` · ${nights}n` : '';
+                              })()}
+                            </span>
+                          )}
+                        </div>
 
+                        {/* Price + CTA */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>
                             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -1797,6 +1807,118 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
                           </div>
                         </div>
+
+                        {/* ── Pack toggle button ── */}
+                        {deal.category === 'tout-inclus' && deal.hotelPrice && deal.totalPackPrice && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedPacks(prev => ({ ...prev, [deal.city]: !prev[deal.city] }));
+                            }}
+                            style={{
+                              marginTop: 10,
+                              padding: '8px 12px',
+                              borderRadius: 10,
+                              background: expandedPacks[deal.city]
+                                ? 'linear-gradient(135deg, rgba(14,165,233,0.08), rgba(6,182,212,0.1))'
+                                : 'linear-gradient(135deg, rgba(14,165,233,0.04), rgba(6,182,212,0.06))',
+                              border: '1px solid rgba(14,165,233,0.15)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            {/* Toggle header */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 12, fontFamily: "'Outfit', sans-serif", fontWeight: 700, color: '#0284C7' }}>
+                                  ✈ + 🏨 Pack Vol + Hôtel
+                                </span>
+                                <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 14, fontWeight: 700, color: '#0EA5E9' }}>
+                                  {Math.round(deal.totalPackPrice)} $
+                                </span>
+                              </div>
+                              <svg
+                                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2.5" strokeLinecap="round"
+                                style={{ transition: 'transform 0.25s', transform: expandedPacks[deal.city] ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                              >
+                                <path d="M6 9l6 6 6-6" />
+                              </svg>
+                            </div>
+
+                            {/* Expanded content */}
+                            <div style={{
+                              maxHeight: expandedPacks[deal.city] ? 200 : 0,
+                              overflow: 'hidden',
+                              transition: 'max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease',
+                              opacity: expandedPacks[deal.city] ? 1 : 0,
+                              marginTop: expandedPacks[deal.city] ? 10 : 0,
+                            }}>
+                              {/* Hotel info */}
+                              <div style={{
+                                display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+                                padding: '8px 10px', borderRadius: 8,
+                                background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                              }}>
+                                {deal.hotelImage && (
+                                  <div style={{ width: 40, height: 40, borderRadius: 6, overflow: 'hidden', flexShrink: 0, border: '1.5px solid rgba(14,165,233,0.3)' }}>
+                                    <img src={deal.hotelImage} alt={deal.hotelName || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  </div>
+                                )}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: "'Outfit', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {deal.hotelName || 'Resort'}
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
+                                    {deal.hotelStars != null && deal.hotelStars > 0 && (
+                                      <span style={{ color: '#F59E0B', letterSpacing: -1, fontSize: 10 }}>{'★'.repeat(Math.min(deal.hotelStars, 5))}</span>
+                                    )}
+                                    {deal.hotelRating != null && deal.hotelRating > 0 && (
+                                      <span style={{ fontSize: 9, fontWeight: 600, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>{deal.hotelRating}/5</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>{Math.round(deal.hotelPrice!)} $</div>
+                                  <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>/nuit</div>
+                                </div>
+                              </div>
+
+                              {/* Price breakdown */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 11, fontFamily: "'Outfit', sans-serif", color: '#475569' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>✈ Vol A/R</span>
+                                  <span style={{ fontWeight: 600, fontFamily: "'Fredoka', sans-serif" }}>{Math.round(deal.price)} $</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <span>🏨 {deal.hotelStars ? '★'.repeat(deal.hotelStars) + ' ' : ''}× {deal.hotelNights || 7}n</span>
+                                  <span style={{ fontWeight: 600, fontFamily: "'Fredoka', sans-serif" }}>{Math.round(deal.hotelTotal!)} $</span>
+                                </div>
+                                <div style={{ borderTop: '1.5px solid rgba(14,165,233,0.15)', paddingTop: 5, marginTop: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Total pack</span>
+                                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 18, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.totalPackPrice)} $</span>
+                                </div>
+                              </div>
+
+                              {/* CTA to open popup */}
+                              <div
+                                onClick={(e) => { e.stopPropagation(); openDealPopup(deal); }}
+                                style={{
+                                  marginTop: 8,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                  padding: '8px 14px', borderRadius: 10,
+                                  background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                  color: '#fff', fontSize: 12, fontWeight: 700,
+                                  fontFamily: "'Outfit', sans-serif",
+                                  transition: 'all 0.2s',
+                                }}
+                              >
+                                <img src="/logo_geai.png" alt="" width={14} height={14} style={{ borderRadius: '50%' }} />
+                                Voir le pack complet
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </React.Fragment>
@@ -1806,16 +1928,17 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           )}
 
           {/* ── DEALS LIST VIEW ── */}
-          {rest.length > 0 && viewMode === 'list' && (
+          {allGridDeals.length > 0 && viewMode === 'list' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {visibleRest.map((deal, idx) => {
+              {visibleGridDeals.map((deal, idx) => {
                 const rank = idx + 2;
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const nights = getTripNights(deal.departureDate, deal.returnDate);
                 const viewers = getViewerCount(deal.city, deal.discount);
                 const listTopColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
                   : deal.dealLevel === 'incredible' ? '#DC2626'
-                  : deal.dealLevel === 'great' ? '#EA580C' : null;
+                  : deal.dealLevel === 'great' ? '#F59E0B'
+                  : deal.dealLevel === 'good' ? '#10B981' : null;
                 const isListTop = !!listTopColor;
 
                 return (
@@ -1870,11 +1993,15 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       </div>
                       <span style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
                         {deal.country}{deal.airline ? ` · ${deal.airline}` : ''}
+                        {deal.category === 'tout-inclus' && deal.hotelName ? ` · 🏨 ${deal.hotelName}` : ''}
                       </span>
                     </div>
 
                     {/* Badges */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                      {deal.category === 'tout-inclus' && deal.hotelPrice && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)', color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>PACK</span>
+                      )}
                       {deal.stops === 0 && (
                         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(16,185,129,0.1)', color: '#059669', fontFamily: "'Outfit', sans-serif" }}>Direct</span>
                       )}
@@ -1911,10 +2038,19 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                     {/* Price */}
                     <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 80 }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end' }}>
-                        {deal.oldPrice > deal.price && (
-                          <span style={{ fontSize: 11, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)}$</span>
+                        {deal.category === 'tout-inclus' && deal.totalPackPrice ? (
+                          <>
+                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: listTopColor || '#0EA5E9' }}>{Math.round(deal.totalPackPrice)}$</span>
+                            <span style={{ fontSize: 9, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>pack</span>
+                          </>
+                        ) : (
+                          <>
+                            {deal.oldPrice > deal.price && (
+                              <span style={{ fontSize: 11, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)}$</span>
+                            )}
+                            <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: listTopColor || '#0EA5E9' }}>{Math.round(deal.price)}$</span>
+                          </>
                         )}
-                        <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: listTopColor || '#0EA5E9' }}>{Math.round(deal.price)}$</span>
                       </div>
                       {deal.discount > 0 && (
                         <span style={{
@@ -1922,6 +2058,22 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                           color: '#fff', padding: '1px 7px', borderRadius: 100,
                           background: listTopColor || '#10B981',
                         }}>-{deal.discount}%</span>
+                      )}
+                    </div>
+
+                    {/* Compare checkbox */}
+                    <div
+                      onClick={(e) => { e.stopPropagation(); toggleCompare(deal.city); }}
+                      style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        border: compareList.includes(deal.city) ? '2px solid #0EA5E9' : '2px solid #CBD5E1',
+                        background: compareList.includes(deal.city) ? '#0EA5E9' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                      }}
+                    >
+                      {compareList.includes(deal.city) && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>
                       )}
                     </div>
 
@@ -2841,6 +2993,69 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         medianPrice={popupDeal?.medianPrice}
         avgPrice={popupDeal?.avgPrice}
         historyCount={popupDeal?.historyCount}
+      />
+
+      {/* Floating compare bar */}
+      {compareList.length >= 2 && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 100, display: 'flex', gap: 8, alignItems: 'center',
+          padding: '12px 20px', borderRadius: 16,
+          background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          animation: 'compareFadeIn 0.3s ease-out',
+        }}>
+          <span style={{ fontSize: 13, color: '#fff', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
+            {compareList.length} destinations
+          </span>
+          <button
+            onClick={() => setShowComparator(true)}
+            style={{
+              padding: '8px 16px', borderRadius: 10, border: 'none',
+              background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+              color: '#fff', fontSize: 13, fontWeight: 700,
+              fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+            }}
+          >
+            Comparer
+          </button>
+          <button
+            onClick={() => setCompareList([])}
+            style={{
+              padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)',
+              background: 'transparent', color: '#94A3B8', fontSize: 12, fontWeight: 600,
+              fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+            }}
+          >
+            Effacer
+          </button>
+        </div>
+      )}
+
+      {/* Destination comparator modal */}
+      <DestinationComparator
+        isOpen={showComparator}
+        onClose={() => setShowComparator(false)}
+        deals={compareList.map(city => {
+          const deal = filteredDeals.find((d: DealItem) => d.city === city) || allDeals.find((d: DealItem) => d.city === city);
+          return deal ? {
+            destination: deal.city,
+            destination_code: deal.code,
+            price: deal.price,
+            totalPackPrice: deal.totalPackPrice,
+            airline: deal.airline,
+            stops: deal.stops,
+            dealLevel: deal.dealLevel,
+            discount: deal.discount,
+            hotelPrice: deal.hotelPrice,
+            hotelName: deal.hotelName,
+            hotelStars: deal.hotelStars,
+            hotelRating: deal.hotelRating,
+            departure_date: deal.departureDate,
+            return_date: deal.returnDate,
+          } : null;
+        }).filter(Boolean) as any[]}
+        onRemove={(dest) => setCompareList(prev => prev.filter(d => d !== dest))}
       />
     </div>
   );

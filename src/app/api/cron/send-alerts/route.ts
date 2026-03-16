@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { sendDealAlert } from '@/lib/services/email';
 import { calculateRealDiscount } from '@/lib/services/flights';
+import { createDealNotifications } from '@/features/notifications/notification.service';
 
 export const maxDuration = 60;
 
@@ -95,10 +96,44 @@ export async function GET(request: Request) {
             }
         }
 
+        // ── Create in-app notifications for matching users ──
+        let notificationsCreated = 0;
+        try {
+            const dealsForMatching = Object.entries(uniqueDeals).map(([dest, p]: [string, any]) => ({
+                destination: dest,
+                destination_code: p.destination_code || '',
+                price: p.price,
+                discount: 0, // Will be recalculated in the service
+                dealLevel: 'normal',
+                airline: p.airline || '',
+                departureDate: p.departure_date,
+                returnDate: p.return_date,
+            }));
+
+            // Enrich with discount info
+            for (const deal of dealsForMatching) {
+                const { data: history } = await supabase
+                    .from('price_history')
+                    .select('price, scanned_at')
+                    .eq('destination', deal.destination)
+                    .gte('scanned_at', thirtyDaysAgo)
+                    .limit(200);
+
+                const discountInfo = calculateRealDiscount(deal.price, history || []);
+                deal.discount = discountInfo.discount;
+                deal.dealLevel = discountInfo.dealLevel;
+            }
+
+            notificationsCreated = await createDealNotifications(dealsForMatching);
+        } catch (notifError) {
+            console.error('[Alerts] Notification creation error:', notifError);
+        }
+
         return NextResponse.json({
             message: 'Alerts processed',
             usersNotified: totalSent,
-            dealsProcessed: Object.keys(uniqueDeals).length
+            dealsProcessed: Object.keys(uniqueDeals).length,
+            notificationsCreated,
         });
     } catch (error: any) {
         console.error('Send alerts error:', error);

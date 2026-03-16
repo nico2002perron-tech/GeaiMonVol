@@ -1,11 +1,20 @@
-export const DEAL_LEVELS: Record<string, { label: string; bg: string; icon: string }> = {
-    lowest_ever: { label: 'PRIX RECORD', bg: '#7C3AED', icon: '⚡' },
-    incredible: { label: 'INCROYABLE', bg: '#DC2626', icon: '🔥' },
-    great: { label: 'SUPER DEAL', bg: '#EA580C', icon: '✨' },
-    good: { label: 'BON PRIX', bg: '#2E7DDB', icon: '👍' },
+export const DEAL_LEVELS: Record<string, { label: string; bg: string; icon: string; textColor?: string }> = {
+    lowest_ever: { label: 'PRIX RECORD', bg: '#7C3AED', icon: '⚡' },        // violet vif — rare, exceptionnel
+    incredible:  { label: 'INCROYABLE',  bg: '#DC2626', icon: '🔥' },        // rouge — 40%+ rabais
+    great:       { label: 'SUPER DEAL',  bg: '#F59E0B', icon: '✨' },        // jaune/or — 25-39% rabais
+    good:        { label: 'BON PRIX',    bg: '#10B981', icon: '👍' },        // vert — 15-24% rabais
+    slight:      { label: 'CORRECT',     bg: '#64748B', icon: '👌', textColor: '#fff' }, // gris — 5-14%
+    normal:      { label: 'PRIX NORMAL', bg: '#CBD5E1', icon: '📊', textColor: '#475569' }, // gris clair
 };
 
 export const CANADA_CODES = ['YYZ', 'YOW', 'YVR', 'YYC', 'YEG', 'YWG', 'YHZ', 'YQB'];
+
+// 15 all-inclusive / beach destinations (Caribbean + Central America)
+export const ALL_INCLUSIVE_CODES = [
+    'CUN', 'PUJ', 'VRA', 'HAV', 'MBJ', 'SJO',  // original 6
+    'NAS', 'BGI', 'CCC', 'PVR',                   // group 2
+    'SJD', 'LIR', 'POP', 'SDQ', 'FPO',            // group 3
+];
 
 // ── Country → Cities mapping for explore deals (country-level) ──
 // When a deal is country-level (code = "MX", "BS", etc.), show these sub-destinations

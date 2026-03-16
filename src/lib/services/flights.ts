@@ -447,8 +447,9 @@ export function calculateRealDiscount(
 // ============================================
 
 const BATCH_SIZE = 2; // 2 destinations × 12 mois × 2 durées = 48 appels ≈ 55s
-const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE); // 14
-const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1; // +1 pour la phase Explore
+const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE); // 20
+const HOTEL_PHASES = 3; // 3 phases for all-inclusive hotel scanning
+const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1 + HOTEL_PHASES; // +1 Explore + 3 hotel phases
 
 export type ScanPhase = number;
 
@@ -465,10 +466,27 @@ export function getPhaseForToday(): ScanPhase {
     return dayOfYear % TOTAL_PHASES;
 }
 
+// Hotel phase group indices (which TOUT_INCLUS destinations to scan)
+const HOTEL_GROUPS = [
+    [0, 1, 2, 3, 4],    // Phase N+1: CUN, PUJ, VRA, HAV, MBJ
+    [5, 6, 7, 8, 9],    // Phase N+2: SJO, NAS, BGI, CCC, PVR
+    [10, 11, 12, 13, 14], // Phase N+3: SJD, LIR, POP, SDQ, FPO
+];
+
 export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
     const effectivePhase = phase ?? getPhaseForToday();
+    const flightPhasesEnd = TOTAL_DEEP_BATCHES + 1; // phases 0 to TOTAL_DEEP_BATCHES are flight phases
+    const isHotelPhase = effectivePhase >= flightPhasesEnd;
 
-    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase}/${TOTAL_PHASES - 1} (Skyscanner)`);
+    console.log(`[GeaiMonVol] Chunked scan — Phase ${effectivePhase}/${TOTAL_PHASES - 1} (${isHotelPhase ? 'Hotels' : 'Skyscanner'})`);
+
+    // Hotel phases return empty FlightDeal[] (hotels are stored separately)
+    if (isHotelPhase) {
+        const hotelGroupIdx = effectivePhase - flightPhasesEnd;
+        console.log(`--- Phase ${effectivePhase}: Hotel scan group ${hotelGroupIdx + 1}/3 ---`);
+        // Hotel scanning is handled in the cron route directly
+        return [];
+    }
 
     const allDeals: FlightDeal[] = [];
 
@@ -479,7 +497,7 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         allDeals.push(...exploreDeals);
 
     } else {
-        // Phase 1-14 : Deep scan d'un batch de 3 destinations × 12 mois
+        // Phase 1-N : Deep scan d'un batch de 2 destinations × 12 mois
         const batchIndex = effectivePhase - 1;
         const startIdx = batchIndex * BATCH_SIZE;
         const batch = PRIORITY_DESTINATIONS.slice(startIdx, startIdx + BATCH_SIZE);
@@ -490,7 +508,6 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         }
 
         const isCanada = batch.every(d => d.country === 'Canada');
-        const source = isCanada ? 'skyscanner_canada' : 'skyscanner_deep';
 
         console.log(`--- Phase ${effectivePhase}: Deep scan [${batch.map(d => d.city).join(', ')}] × 12 mois ---`);
 
@@ -520,6 +537,8 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
     console.log(`[GeaiMonVol] Phase ${effectivePhase} complete — ${uniqueDeals.length} unique deals`);
     return uniqueDeals;
 }
+
+export { HOTEL_GROUPS, HOTEL_PHASES };
 
 // Export pour backward compatibility
 export async function scanFlightPrices(): Promise<FlightDeal[]> {

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from '@/lib/auth/AuthProvider';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
     onOpenHowItWorks?: () => void;
@@ -34,7 +35,9 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                     </button>
                 </li>
                 <li><Link href="/explore">Globe</Link></li>
+                <li><Link href="/expeditions">Expéditions</Link></li>
                 <li><Link href="/pricing">Tarifs</Link></li>
+                {user && <li style={{ display: 'flex', alignItems: 'center' }}><NotificationBell /></li>}
                 {user ? (
                     <li><Link href="/profile" className="nav-cta">Mon profil</Link></li>
                 ) : (
@@ -62,7 +65,9 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
                         Comment ça marche
                     </button>
                     <Link href="/explore" onClick={() => setMenuOpen(false)}>Globe</Link>
+                    <Link href="/expeditions" onClick={() => setMenuOpen(false)}>Expéditions</Link>
                     <Link href="/pricing" onClick={() => setMenuOpen(false)}>Tarifs</Link>
+                    {user && <Link href="/inbox" onClick={() => setMenuOpen(false)}>🔔 Notifications</Link>}
                     {user ? (
                         <Link href="/profile" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
                             Mon profil

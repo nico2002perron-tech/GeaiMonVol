@@ -57,7 +57,7 @@ export async function resolveEntityId(iataCode: string): Promise<string> {
         console.log(`[Skyscanner] Resolving unknown code via API: ${iataCode}`);
         const res = await fetch(
             `${BASE_URL}/flights/auto-complete?query=${encodeURIComponent(iataCode)}&locale=fr-FR`,
-            { headers: getHeaders() }
+            { headers: getHeaders(), signal: AbortSignal.timeout(10000) }
         );
 
         if (!res.ok) {
@@ -140,7 +140,7 @@ export async function searchEverywhere(
         console.log(`[Skyscanner] searchEverywhere from ${originIata} (skyId: ${originSkyId})...`);
         const res = await fetch(
             `${BASE_URL}/flights/search-everywhere?${params}`,
-            { headers: getHeaders() }
+            { headers: getHeaders(), signal: AbortSignal.timeout(15000) }
         );
 
         if (!res.ok) {
@@ -261,7 +261,7 @@ export async function searchRoundTrip(
 
         const res = await fetch(
             `${BASE_URL}/flights/search-roundtrip?${params}`,
-            { headers: getHeaders() }
+            { headers: getHeaders(), signal: AbortSignal.timeout(15000) }
         );
 
         if (!res.ok) {

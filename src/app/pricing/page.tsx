@@ -77,27 +77,29 @@ function PricingContent() {
 
         {/* Plans grid */}
         <div className="pr-plans">
-          {/* FREE — Launch offer */}
+          {/* FREE */}
           <div className="pr-plan">
-            <div className="pr-plan-badge pr-badge-launch">Offre de lancement</div>
+            <div className="pr-plan-badge pr-badge-launch">Gratuit pour toujours</div>
             <div className="pr-plan-top">
               <div className="pr-plan-name">Gratuit</div>
-              <div className="pr-plan-price">0$<span>/durée limitée</span></div>
-              <p className="pr-plan-desc">Essaie l&apos;expérience Premium avec un guide Québec complet.</p>
+              <div className="pr-plan-price">0$<span>/pour toujours</span></div>
+              <p className="pr-plan-desc">Tout ce qu&apos;il faut pour trouver des deals et réserver tes tout-inclus.</p>
             </div>
             <ul className="pr-plan-features">
-              <li><span className="pr-ck">&#10003;</span>1 guide IA Premium — Québec</li>
-              <li><span className="pr-ck">&#10003;</span>Expérience Premium complète incluse</li>
-              <li><span className="pr-ck">&#10003;</span>Tips d&apos;initiés, plan B pluie, gems cachées</li>
-              <li><span className="pr-ck">&#10003;</span>Jusqu&apos;à 7 jours de voyage</li>
-              <li><span className="pr-ck">&#10003;</span>3 destinations en watchlist</li>
+              <li><span className="pr-ck">&#10003;</span>Palmarès des deals en temps réel</li>
+              <li><span className="pr-ck">&#10003;</span>Packs tout-inclus (vol + hôtel)</li>
+              <li><span className="pr-ck">&#10003;</span>Pages destination avec historique &amp; calendrier</li>
               <li><span className="pr-ck">&#10003;</span>Carte interactive</li>
-              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Destinations internationales</li>
-              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Guides illimités</li>
+              <li><span className="pr-ck">&#10003;</span>Alertes courriel basiques</li>
+              <li><span className="pr-ck">&#10003;</span>3 destinations en watchlist</li>
+              <li><span className="pr-ck">&#10003;</span>1 guide IA — Québec</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Packs Expédition nomade</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Boîte de réception personnalisée</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Alertes avancées par préférences</li>
             </ul>
             <div className="pr-plan-bottom">
               {!user ? (
-                <a href="/auth" className="pr-btn pr-btn-outline">Récupérer mon guide gratuit</a>
+                <a href="/auth" className="pr-btn pr-btn-outline">Commencer gratuitement</a>
               ) : (
                 <span className="pr-btn pr-btn-outline pr-btn-current">
                   {isPremium ? 'Ancien plan' : 'Plan actuel'}
@@ -115,17 +117,18 @@ function PricingContent() {
               <div className="pr-plan-price">
                 {PREMIUM_PRICE}$<span>/mois CAD</span>
               </div>
-              <div className="pr-plan-per-day">Moins de 0.17$/jour</div>
-              <p className="pr-plan-desc">Tout illimité. L&apos;expérience complète pour les vrais chasseurs de deals.</p>
+              <div className="pr-plan-per-day">Moins de 0.17$/jour — rentabilisé dès ton premier deal</div>
+              <p className="pr-plan-desc">L&apos;outil indispensable pour planifier tes voyages et économiser gros.</p>
             </div>
             <ul className="pr-plan-features">
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Tout le plan gratuit inclus</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Packs Expédition nomade multi-étapes</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Boîte de réception personnalisée</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Alertes avancées (destination, budget, mois)</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Watchlist illimitée</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides IA illimités — monde entier</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Alertes prioritaires</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides jusqu&apos;à 21 jours</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Plan B pluie par jour</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Tips d&apos;initiés &amp; codes promo</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Expériences cachées locales</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Accès prioritaire aux nouveautés</li>
             </ul>
             <div className="pr-plan-bottom">
               {loading ? (
