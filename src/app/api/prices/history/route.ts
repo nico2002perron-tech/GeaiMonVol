@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { MAX_PRICE } from '@/lib/constants/deals';
 
 export async function GET(req: NextRequest) {
     const destination = req.nextUrl.searchParams.get('destination');
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
             .from('price_history')
             .select('price, scanned_at')
             .gte('scanned_at', since)
+            .lte('price', MAX_PRICE)
             .order('scanned_at', { ascending: true });
 
         // Filter by code (IATA) or destination name
@@ -43,9 +45,21 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const points = Object.entries(byDay)
+        const allPoints = Object.entries(byDay)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([date, price]) => ({ date, price }));
+
+        // IQR outlier filter — remove aberrant prices from chart & stats
+        let points = allPoints;
+        if (allPoints.length >= 4) {
+            const sorted = [...allPoints].sort((a, b) => a.price - b.price);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)].price;
+            const q3 = sorted[Math.floor(sorted.length * 0.75)].price;
+            const iqr = q3 - q1;
+            const lower = q1 - 1.5 * iqr;
+            const upper = q3 + 1.5 * iqr;
+            points = allPoints.filter(p => p.price >= lower && p.price <= upper);
+        }
 
         const prices = points.map(p => p.price);
         const avg = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;

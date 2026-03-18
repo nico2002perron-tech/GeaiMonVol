@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { chunkedScan, getPhaseForToday, HOTEL_GROUPS, HOTEL_PHASES } from '@/lib/services/flights';
+import { MAX_PRICE } from '@/lib/constants/deals';
 import type { ScanPhase } from '@/lib/services/flights';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
@@ -80,8 +81,8 @@ export async function GET(request: Request) {
 
         const supabase = await createServerSupabase();
 
-        // Sauvegarder tous les deals
-        const records = deals.map((d) => ({
+        // Sauvegarder les deals (exclure prix > MAX_PRICE)
+        const records = deals.filter(d => d.price <= MAX_PRICE).map((d) => ({
             origin: 'YUL',
             destination: d.city,
             destination_code: d.airportCode,
@@ -180,6 +181,9 @@ export async function GET(request: Request) {
 
                 const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
 
+                const lowestPrice = prices90.length > 0 ? Math.min(...prices90) : null;
+                const lowestRecord = (hist || []).find(r => r.price === lowestPrice);
+
                 await adminSupabase
                     .from('destination_meta')
                     .upsert({
@@ -190,8 +194,8 @@ export async function GET(request: Request) {
                         avg_price_7d: avg(prices7),
                         avg_price_30d: avg(prices30),
                         avg_price_90d: avg(prices90),
-                        lowest_price_ever: prices90.length > 0 ? Math.min(...prices90) : null,
-                        lowest_price_date: prices90.length > 0 ? hist![0].scanned_at : null,
+                        lowest_price_ever: lowestPrice,
+                        lowest_price_date: lowestRecord?.scanned_at || null,
                         updated_at: new Date().toISOString(),
                     }, { onConflict: 'destination_code' });
             }

@@ -600,7 +600,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
   const shareDeal = useCallback((deal: DealItem, e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = `Vol Montréal → ${deal.city} à ${Math.round(deal.price)}$ A/R${deal.discount > 0 ? ` (-${deal.discount}%)` : ''}`;
+    const displayPrice = deal.totalPackPrice ? Math.round(deal.totalPackPrice) : Math.round(deal.price);
+    const priceLabel = deal.totalPackPrice ? 'vol+hôtel/pers' : 'A/R';
+    const text = `Vol Montréal → ${deal.city} à ${displayPrice}$ ${priceLabel}${deal.discount > 0 ? ` (-${deal.discount}%)` : ''}`;
     const url = window.location.href;
     if (navigator.share) {
       navigator.share({ title: `Deal GeaiMonVol - ${deal.city}`, text, url }).catch(() => {});
@@ -974,7 +976,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               stops: d.stops, isLive: d.isLive, departureDate: d.departureDate,
               returnDate: d.returnDate, bookingLink: d.bookingLink, duration: d.duration,
               scannedAt: d.scannedAt, medianPrice: d.medianPrice, avgPrice: d.avgPrice,
-              historyCount: d.historyCount,
+              historyCount: d.historyCount, totalPackPrice: d.totalPackPrice,
             }))
           : STATIC_DEALS.map(d => ({
               city: d.city, code: d.code, price: d.price,
@@ -982,7 +984,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
               image: d.image, category: d.category as 'canada' | 'monde' | 'tout-inclus',
               country: CITY_COUNTRY[d.city] || '', dealLevel: 'normal', airline: '',
               stops: -1, isLive: false, departureDate: '', returnDate: '', bookingLink: '', duration: 0,
-              scannedAt: '', medianPrice: d.oldPrice, avgPrice: d.oldPrice, historyCount: 0,
+              scannedAt: '', medianPrice: d.oldPrice, avgPrice: d.oldPrice, historyCount: 0, totalPackPrice: undefined as number | undefined,
             }));
         const half = Math.ceil(tickerDeals.length / 2);
         const row1 = tickerDeals.slice(0, half);
@@ -999,8 +1001,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
                         <span className="lp-ticker-arrow">✈</span>
-                        {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
-                        <span className="lp-ticker-price">{Math.round(d.price)}$</span>
+                        {d.oldPrice > d.price && !d.totalPackPrice && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
+                        <span className="lp-ticker-price">{Math.round(d.totalPackPrice || d.price)}$</span>
+                        {d.totalPackPrice && <span style={{ fontSize: 8, color: '#0284C7', fontWeight: 600 }}>pack</span>}
                         <span className="lp-ticker-pct">-{d.discount}%</span>
                       </button>
                     ))}
@@ -1018,8 +1021,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         {COUNTRY_FLAGS[d.country] && <span className="lp-ticker-flag">{COUNTRY_FLAGS[d.country]}</span>}
                         <span className="lp-ticker-city">{d.city}</span>
                         <span className="lp-ticker-arrow">✈</span>
-                        {d.oldPrice > d.price && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
-                        <span className="lp-ticker-price">{Math.round(d.price)}$</span>
+                        {d.oldPrice > d.price && !d.totalPackPrice && <span className="lp-ticker-old">{Math.round(d.oldPrice)}$</span>}
+                        <span className="lp-ticker-price">{Math.round(d.totalPackPrice || d.price)}$</span>
+                        {d.totalPackPrice && <span style={{ fontSize: 8, color: '#0284C7', fontWeight: 600 }}>pack</span>}
                         <span className="lp-ticker-pct">-{d.discount}%</span>
                       </button>
                     ))}
@@ -1780,13 +1784,26 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                         {/* Price + CTA */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                              {deal.oldPrice > deal.price && (
-                                <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
-                              )}
-                              <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
-                              <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
-                            </div>
+                            {deal.category === 'tout-inclus' && deal.totalPackPrice ? (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.totalPackPrice)} $</span>
+                                </div>
+                                <div style={{ fontSize: 10, color: '#0284C7', fontFamily: "'Outfit', sans-serif", marginTop: 1, fontWeight: 600 }}>
+                                  par personne · vol + hôtel
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                  {deal.oldPrice > deal.price && (
+                                    <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>{Math.round(deal.oldPrice)} $</span>
+                                  )}
+                                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 26, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.price)} $</span>
+                                  <span style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>A/R</span>
+                                </div>
+                              </>
+                            )}
                             {deal.scannedAt && (
                               <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
                                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
@@ -1894,7 +1911,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                                   <span style={{ fontWeight: 600, fontFamily: "'Fredoka', sans-serif" }}>{Math.round(deal.hotelTotal!)} $</span>
                                 </div>
                                 <div style={{ borderTop: '1.5px solid rgba(14,165,233,0.15)', paddingTop: 5, marginTop: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Total pack</span>
+                                  <div>
+                                    <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Total pack</span>
+                                    <span style={{ fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif", marginLeft: 4 }}>par personne</span>
+                                  </div>
                                   <span style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 18, fontWeight: 700, color: '#0EA5E9' }}>{Math.round(deal.totalPackPrice)} $</span>
                                 </div>
                               </div>

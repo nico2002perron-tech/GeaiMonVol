@@ -372,9 +372,9 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
 export function calculateRealDiscount(
     currentPrice: number,
     priceHistory: Array<{ price: number; scanned_at: string }>
-): { discount: number; avgPrice: number; medianPrice: number; lowestEver: number; isGoodDeal: boolean; dealLevel: string; historyCount: number } {
+): { discount: number; avgPrice: number; medianPrice: number; lowestEver: number; isGoodDeal: boolean; dealLevel: string; historyCount: number; confidence: 'low' | 'medium' | 'high' } {
     if (!priceHistory || priceHistory.length === 0) {
-        return { discount: 0, avgPrice: currentPrice, medianPrice: currentPrice, lowestEver: currentPrice, isGoodDeal: false, dealLevel: 'normal', historyCount: 0 };
+        return { discount: 0, avgPrice: currentPrice, medianPrice: currentPrice, lowestEver: currentPrice, isGoodDeal: false, dealLevel: 'normal', historyCount: 0, confidence: 'low' };
     }
 
     const prices = priceHistory.map(p => p.price);
@@ -392,9 +392,12 @@ export function calculateRealDiscount(
     // Use MEDIAN as primary reference for discount (more reliable than average)
     const discount = medianPrice > 0 ? Math.round(((medianPrice - currentPrice) / medianPrice) * 100) : 0;
 
+    // Confidence level based on data points
+    const confidence: 'low' | 'medium' | 'high' = prices.length >= 15 ? 'high' : prices.length >= 5 ? 'medium' : 'low';
+
     // Require minimum 3 data points before showing any discount
     if (prices.length < 3) {
-        return { discount: 0, avgPrice, medianPrice, lowestEver, isGoodDeal: false, dealLevel: 'normal', historyCount: prices.length };
+        return { discount: 0, avgPrice, medianPrice, lowestEver, isGoodDeal: false, dealLevel: 'normal', historyCount: prices.length, confidence };
     }
 
     // Classify the deal based on discount percentage (primary)
@@ -436,6 +439,7 @@ export function calculateRealDiscount(
         isGoodDeal,
         dealLevel,
         historyCount: prices.length,
+        confidence,
     };
 }
 

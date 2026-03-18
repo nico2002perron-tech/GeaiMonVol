@@ -4,6 +4,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_SUBDESTINATIONS, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import type { SubDestination } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
+import { useAuth } from '@/lib/auth/AuthProvider';
+import { TIERS } from '@/lib/constants/premium';
+import PriceHistoryChart from '@/components/ui/PriceHistoryChart';
 
 interface DestinationDeal {
     price: number;
@@ -208,6 +211,10 @@ export default function DestinationPopup({
     avgPrice: propAvgPrice,
     historyCount: propHistoryCount,
 }: DestinationPopupProps) {
+    const { profile } = useAuth();
+    const isPremium = profile?.plan === 'premium';
+    const tier = isPremium ? TIERS.premium : TIERS.free;
+
     const [deals, setDeals] = useState<DestinationDeal[]>([]);
     const [loading, setLoading] = useState(false);
     const [liveSearching, setLiveSearching] = useState(false);
@@ -238,6 +245,82 @@ export default function DestinationPopup({
     // AI hotel summaries
     const [hotelSummaries, setHotelSummaries] = useState<Record<string, string>>({});
     const summariesFetched = useRef(false);
+
+    // Premium: price history chart data
+    const [historyPoints, setHistoryPoints] = useState<{ date: string; price: number }[]>([]);
+    const [historyStats, setHistoryStats] = useState<{ avg: number; min: number; max: number }>({ avg: 0, min: 0, max: 0 });
+    const [historyDays, setHistoryDays] = useState<30 | 60 | 90>(90);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+
+    // Premium: Google Flights price insights (6-12 month historical)
+    const [priceInsights, setPriceInsights] = useState<{
+        lowest_price: number;
+        price_level: 'low' | 'typical' | 'high';
+        typical_price_range: [number, number];
+        price_history: Array<[number, number]>;
+    } | null>(null);
+    const [insightsLoading, setInsightsLoading] = useState(false);
+
+    // Premium: monthly historical analysis (1-3 years)
+    interface MonthStats { month: number; median: number; avg: number; min: number; max: number; p25: number; p75: number; count: number; topAirline: string | null }
+    const [monthlyData, setMonthlyData] = useState<{
+        months: MonthStats[];
+        grid: Record<string, Record<number, { median: number; avg: number; min: number; max: number; count: number } | null>>;
+        totalDataPoints: number;
+    } | null>(null);
+    const [monthlyYears, setMonthlyYears] = useState<1 | 2 | 3>(1);
+    const [monthlyLoading, setMonthlyLoading] = useState(false);
+
+    // Premium: predictive forecast
+    interface ForecastData {
+        verdict: 'BUY_NOW' | 'BUY_SOON' | 'WAIT' | 'NEUTRAL';
+        verdictScore: number;
+        confidence: number;
+        reasoning: string[];
+        predicted7d: number;
+        predicted14d: number;
+        predicted30d: number;
+        curve: Array<{ day: number; predicted: number; lower95: number; upper95: number }>;
+        signals: Array<{ name: string; direction: 'bullish' | 'bearish' | 'neutral'; strength: number; score: number; label: string; detail: string }>;
+        optimalWindow: { min: number; max: number; label: string };
+        dataQuality: { points: number; spanDays: number; level: string };
+        savingsDetail?: {
+            currentPrice: number;
+            avgHistorical: number;
+            vsAvg: number;
+            vsAvgPct: number;
+            lowestSeen: number;
+            highestSeen: number;
+            potentialSaving7d: number;
+            potentialSaving30d: number;
+        };
+        nextMonthComparison?: {
+            currentMonth: string;
+            nextMonth: string;
+            currentMedian: number;
+            nextMedian: number;
+            difference: number;
+            recommendation: string;
+        } | null;
+        priceContext?: string;
+        pronostic?: {
+            verdictLine: string;
+            reasons: Array<{
+                icon: string;
+                text: string;
+                impact: 'positive' | 'negative' | 'neutral';
+            }>;
+            monthlyOutlook: Array<{
+                month: string;
+                medianPrice: number;
+                vsCurrent: number;
+            }> | null;
+            confidenceNote: string;
+        };
+    }
+    const [forecast, setForecast] = useState<ForecastData | null>(null);
+    const [forecastLoading, setForecastLoading] = useState(false);
 
     const flightMultiplier = pricingMode === 'total-2' ? 2 : pricingMode === 'family' ? familyAdults + familyChildren * 0.75 : 1;
     const hotelRooms = pricingMode === 'family' ? Math.ceil(familyAdults / 2) : 1;
@@ -272,6 +355,13 @@ export default function DestinationPopup({
         summariesFetched.current = false;
         setPackAnalysis(null);
         setAnalysisLoading(false);
+        setHistoryPoints([]);
+        setHistoryStats({ avg: 0, min: 0, max: 0 });
+        setHistoryDays(90);
+        setPriceInsights(null);
+        setMonthlyData(null);
+        setMonthlyYears(1);
+        setForecast(null);
     }, [isOpen]);
 
     // Fetch hotels for all-inclusive destinations
@@ -296,6 +386,88 @@ export default function DestinationPopup({
             .catch(() => setHotels([]))
             .finally(() => setHotelsLoading(false));
     }, [isOpen, activeCode, isAllInclusive]);
+
+    // Premium: fetch price history (90-day time-series)
+    useEffect(() => {
+        if (!isOpen || !activeCity || !isPremium) return;
+        setHistoryLoading(true);
+        const param = activeCode.length >= 3 ? `code=${encodeURIComponent(activeCode)}` : `destination=${encodeURIComponent(activeCity)}`;
+        fetch(`/api/prices/history?${param}&days=${historyDays}`)
+            .then(res => res.json())
+            .then(data => {
+                setHistoryPoints(data.points || []);
+                setHistoryStats({ avg: data.avg || 0, min: data.min || 0, max: data.max || 0 });
+            })
+            .catch(() => { setHistoryPoints([]); })
+            .finally(() => setHistoryLoading(false));
+    }, [isOpen, activeCity, activeCode, isPremium, historyDays]);
+
+
+    // Premium: fetch Google Flights price insights (6-12 month historical)
+    useEffect(() => {
+        if (!isOpen || !activeCode || activeCode.length < 3 || !isPremium) return;
+        setInsightsLoading(true);
+        fetch(`/api/prices/insights?destination=${encodeURIComponent(activeCode)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.price_history && data.price_history.length > 0) {
+                    setPriceInsights({
+                        lowest_price: data.lowest_price,
+                        price_level: data.price_level,
+                        typical_price_range: data.typical_price_range,
+                        price_history: data.price_history,
+                    });
+                }
+            })
+            .catch(() => { setPriceInsights(null); })
+            .finally(() => setInsightsLoading(false));
+    }, [isOpen, activeCode, isPremium]);
+
+    // Premium: fetch monthly historical price data (1-3 years)
+    useEffect(() => {
+        if (!isOpen || !activeCode || activeCode.length < 3 || !isPremium) return;
+        setMonthlyLoading(true);
+        const param = activeCode.length >= 3 ? `code=${encodeURIComponent(activeCode)}` : `destination=${encodeURIComponent(activeCity)}`;
+        fetch(`/api/prices/monthly?${param}&years=${monthlyYears}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.months) {
+                    setMonthlyData({
+                        months: data.months,
+                        grid: data.grid || {},
+                        totalDataPoints: data.totalDataPoints || 0,
+                    });
+                }
+            })
+            .catch(() => { setMonthlyData(null); })
+            .finally(() => setMonthlyLoading(false));
+    }, [isOpen, activeCode, activeCity, isPremium, monthlyYears]);
+
+    // Premium: fetch predictive forecast (needs deals loaded first for cheapestPrice)
+    useEffect(() => {
+        if (!isOpen || !activeCode || activeCode.length < 3 || !isPremium) return;
+        if (deals.length === 0) return; // wait for deals
+        // Use IQR-filtered best price to avoid outliers skewing forecast
+        let filteredPrices = deals.map(d => d.price);
+        if (filteredPrices.length >= 4) {
+            const sorted = [...filteredPrices].sort((a, b) => a - b);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)];
+            const q3 = sorted[Math.floor(sorted.length * 0.75)];
+            const upper = q3 + 1.5 * (q3 - q1);
+            filteredPrices = filteredPrices.filter(p => p <= upper);
+        }
+        const best = Math.min(...filteredPrices);
+        if (best <= 0) return;
+        setForecastLoading(true);
+        const param = activeCode.length >= 3 ? `code=${encodeURIComponent(activeCode)}` : `destination=${encodeURIComponent(activeCity)}`;
+        fetch(`/api/prices/forecast?${param}&price=${best}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.verdict) setForecast(data);
+            })
+            .catch(() => { setForecast(null); })
+            .finally(() => setForecastLoading(false));
+    }, [isOpen, activeCode, activeCity, isPremium, deals]);
 
     // Recommended hotel: best price/rating combo
     const recommendedHotel = useMemo(() => {
@@ -398,13 +570,17 @@ export default function DestinationPopup({
         return Math.round(hotels.reduce((s, h) => s + h.pricePerNight, 0) / hotels.length);
     }, [hotels]);
 
-    // Best time to book — trend indicator
+    // Best time to book — trend indicator based on SCAN dates (market observation)
     const priceTrend = useMemo(() => {
-        if (deals.length < 2) return null;
-        // Sort by date and look at recent vs older prices
-        const sorted = [...deals].sort((a, b) => a.departureDate.localeCompare(b.departureDate));
-        const recentHalf = sorted.slice(Math.floor(sorted.length / 2));
-        const olderHalf = sorted.slice(0, Math.floor(sorted.length / 2));
+        if (deals.length < 4) return null;
+        // Sort by scannedAt date (when the price was observed) to detect market trends
+        const withScanDate = deals.filter(d => d.scannedAt);
+        if (withScanDate.length < 4) return null;
+
+        const sorted = [...withScanDate].sort((a, b) => a.scannedAt.localeCompare(b.scannedAt));
+        const midpoint = Math.floor(sorted.length / 2);
+        const olderHalf = sorted.slice(0, midpoint);
+        const recentHalf = sorted.slice(midpoint);
 
         if (olderHalf.length === 0 || recentHalf.length === 0) return null;
 
@@ -442,6 +618,196 @@ export default function DestinationPopup({
         const cheapestWeek = weeks.reduce((best, w) => w.minPrice < best.minPrice ? w : best);
         return { weeks, cheapestWeek };
     }, [deals]);
+
+    // ── Premium Analytics (computed from REAL deal data only, outliers removed) ──
+    const premiumAnalytics = useMemo(() => {
+        if (deals.length < 2) return null;
+
+        // IQR outlier filter
+        let filteredDeals = deals;
+        if (deals.length >= 4) {
+            const sorted = [...deals].sort((a, b) => a.price - b.price);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)].price;
+            const q3 = sorted[Math.floor(sorted.length * 0.75)].price;
+            const iqr = q3 - q1;
+            const upper = q3 + 1.5 * iqr;
+            filteredDeals = deals.filter(d => d.price <= upper);
+        }
+        if (filteredDeals.length < 2) return null;
+
+        const prices = filteredDeals.map(d => d.price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const priceRange = maxPrice - minPrice || 1;
+        const currentBest = minPrice;
+        const refPrice = medianPrice || avgPrice;
+
+        // 1. Deal Score (0–100) — how good is current best vs historical median/avg
+        let dealScore = 0;
+        const avgCurrent = prices.reduce((s, p) => s + p, 0) / prices.length;
+        if (refPrice > 0 && historyCount >= 3) {
+            // How far below historical median/avg is the current best? (0-65 points)
+            const historyScore = Math.max(0, Math.min(65, Math.round(((refPrice - currentBest) / refPrice) * 200)));
+            // How much better than the average current deal? (0-35 points)
+            const spreadScore = avgCurrent > currentBest
+                ? Math.max(0, Math.min(35, Math.round(((avgCurrent - currentBest) / avgCurrent) * 120)))
+                : 0;
+            dealScore = Math.min(100, historyScore + spreadScore);
+        } else if (prices.length >= 4) {
+            // No history but multiple deals — score based on spread
+            const spreadScore = avgCurrent > currentBest
+                ? Math.max(20, Math.min(70, Math.round(((avgCurrent - currentBest) / avgCurrent) * 200)))
+                : 35;
+            dealScore = spreadScore;
+        } else {
+            dealScore = 50; // neutral if no data
+        }
+
+        // 2. Cheapest month
+        const monthMap: Record<number, { total: number; count: number; min: number }> = {};
+        for (const deal of filteredDeals) {
+            const m = new Date(deal.departureDate + 'T00:00:00').getMonth();
+            if (!monthMap[m]) monthMap[m] = { total: 0, count: 0, min: Infinity };
+            monthMap[m].total += deal.price;
+            monthMap[m].count++;
+            if (deal.price < monthMap[m].min) monthMap[m].min = deal.price;
+        }
+        const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+        const monthEntries = Object.entries(monthMap).map(([m, data]) => ({
+            month: parseInt(m),
+            name: monthNames[parseInt(m)],
+            avg: Math.round(data.total / data.count),
+            min: Math.round(data.min),
+            count: data.count,
+        })).sort((a, b) => a.avg - b.avg);
+        const cheapestMonth = monthEntries[0] || null;
+        const expensiveMonth = monthEntries[monthEntries.length - 1] || null;
+        const monthSaving = (cheapestMonth && expensiveMonth && expensiveMonth.avg > cheapestMonth.avg)
+            ? expensiveMonth.avg - cheapestMonth.avg : 0;
+
+        // 3. Direct vs stops analysis
+        const directDeals = filteredDeals.filter(d => d.stops === 0);
+        const stopDeals = filteredDeals.filter(d => d.stops > 0);
+        const avgDirect = directDeals.length > 0 ? Math.round(directDeals.reduce((s, d) => s + d.price, 0) / directDeals.length) : 0;
+        const avgWithStops = stopDeals.length > 0 ? Math.round(stopDeals.reduce((s, d) => s + d.price, 0) / stopDeals.length) : 0;
+        const stopsSaving = avgDirect > avgWithStops && avgWithStops > 0 ? avgDirect - avgWithStops : 0;
+
+        // 4. Best airline (cheapest average)
+        const airlineMap: Record<string, { total: number; count: number; min: number }> = {};
+        for (const deal of filteredDeals) {
+            const airline = deal.airline || 'Inconnu';
+            if (!airlineMap[airline]) airlineMap[airline] = { total: 0, count: 0, min: Infinity };
+            airlineMap[airline].total += deal.price;
+            airlineMap[airline].count++;
+            if (deal.price < airlineMap[airline].min) airlineMap[airline].min = deal.price;
+        }
+        const airlines = Object.entries(airlineMap)
+            .map(([name, data]) => ({ name, avg: Math.round(data.total / data.count), min: Math.round(data.min), count: data.count }))
+            .sort((a, b) => a.avg - b.avg);
+        const bestAirline = airlines[0] || null;
+
+        // 5. Best trip duration (cheapest per night)
+        const withNights = filteredDeals.filter(d => {
+            const n = d.tripNights || getTripNights(d.departureDate, d.returnDate);
+            return n > 0;
+        }).map(d => {
+            const n = d.tripNights || getTripNights(d.departureDate, d.returnDate);
+            return { ...d, nights: n, perNight: Math.round(d.price / n) };
+        }).sort((a, b) => a.perNight - b.perNight);
+        const bestPerNight = withNights[0] || null;
+
+        // 6. Buy recommendation
+        let recommendation: { action: string; reason: string; urgency: 'buy' | 'wait' | 'neutral' } = {
+            action: 'Prix correct', reason: 'Pas assez de données pour une recommandation précise.', urgency: 'neutral',
+        };
+        if (priceTrend && refPrice > 0) {
+            if (priceTrend.direction === 'up' && dealScore >= 60) {
+                recommendation = { action: 'Acheter maintenant', reason: 'Les prix montent et le deal actuel est bon — risque de payer plus cher en attendant.', urgency: 'buy' };
+            } else if (priceTrend.direction === 'down' && dealScore < 50) {
+                recommendation = { action: 'Attendre quelques jours', reason: 'Les prix sont en baisse — tu pourrais trouver mieux bientôt.', urgency: 'wait' };
+            } else if (dealScore >= 75) {
+                recommendation = { action: 'Excellent moment pour acheter', reason: `Ce prix est dans le top 25% des prix scannés sur ${historyCount} observations.`, urgency: 'buy' };
+            } else if (priceTrend.direction === 'down') {
+                recommendation = { action: 'Bon moment, mais surveille', reason: 'La tendance est à la baisse — bon prix mais ça pourrait encore descendre.', urgency: 'neutral' };
+            } else {
+                recommendation = { action: 'Prix dans la moyenne', reason: `Basé sur ${historyCount} scans. Ni exceptionnel ni mauvais.`, urgency: 'neutral' };
+            }
+        } else if (dealScore >= 70) {
+            recommendation = { action: 'Bon prix détecté', reason: 'Ce prix est compétitif par rapport aux autres options disponibles.', urgency: 'buy' };
+        }
+
+        // Enhance with Google Flights price insights if available
+        if (priceInsights) {
+            if (priceInsights.price_level === 'low' && recommendation.urgency !== 'buy') {
+                recommendation = {
+                    action: 'Acheter maintenant',
+                    reason: `Google Flights confirme: les prix sont actuellement BAS (fourchette typique: ${Math.round(priceInsights.typical_price_range[0])}$–${Math.round(priceInsights.typical_price_range[1])}$). C'est le bon moment!`,
+                    urgency: 'buy',
+                };
+            } else if (priceInsights.price_level === 'high' && recommendation.urgency === 'buy') {
+                recommendation = {
+                    action: 'Bon deal, mais prix élevés',
+                    reason: `Google Flights indique que les prix sont actuellement au-dessus de la normale (typique: ${Math.round(priceInsights.typical_price_range[0])}$–${Math.round(priceInsights.typical_price_range[1])}$). Surveille pour une baisse.`,
+                    urgency: 'neutral',
+                };
+            }
+        }
+
+        // 7. Savings vs average (for "TON ÉCONOMIE" banner)
+        const savingsVsAvg = refPrice > 0 ? Math.round(refPrice - currentBest) : 0;
+
+        // 8. Price rarity — how rare is this price level?
+        const atOrBelowBest = filteredDeals.filter(d => d.price <= currentBest * 1.02).length;
+        const rarityPct = Math.round((atOrBelowBest / filteredDeals.length) * 100);
+        let rarityLabel = '';
+        if (rarityPct <= 5) rarityLabel = 'Extrêmement rare';
+        else if (rarityPct <= 15) rarityLabel = 'Très rare';
+        else if (rarityPct <= 30) rarityLabel = 'Peu fréquent';
+        else rarityLabel = 'Fréquent';
+        const priceRarity = { count: atOrBelowBest, total: filteredDeals.length, pct: rarityPct, label: rarityLabel };
+
+        // 9. Best combination (price + direct + duration score)
+        const scored = filteredDeals.filter(d => d.departureDate && d.returnDate).map(d => {
+            const dur = d.durationMinutes || 999;
+            const nights = d.tripNights || getTripNights(d.departureDate, d.returnDate);
+            // Normalize scores (lower is better for all)
+            const priceNorm = minPrice > 0 ? d.price / minPrice : 1;
+            const stopsNorm = d.stops === 0 ? 0 : d.stops * 0.3;
+            const durNorm = dur < 999 ? dur / 300 : 1; // 300 min = ~5h baseline
+            // Weighted combo score (lower = better)
+            const comboScore = priceNorm * 0.5 + stopsNorm * 0.3 + durNorm * 0.2;
+            return { ...d, nights, comboScore };
+        }).sort((a, b) => a.comboScore - b.comboScore);
+        const bestCombo = scored[0] || null;
+
+        // 10. Target price (for alert CTA)
+        const targetPrice = historyCount >= 3
+            ? Math.round(Math.min(currentBest * 0.95, minPrice + priceRange * 0.15))
+            : Math.round(currentBest * 0.9);
+
+        return {
+            dealScore,
+            cheapestMonth,
+            expensiveMonth,
+            monthSaving,
+            monthEntries,
+            avgDirect,
+            avgWithStops,
+            stopsSaving,
+            directCount: directDeals.length,
+            stopsCount: stopDeals.length,
+            bestAirline,
+            airlines,
+            bestPerNight,
+            recommendation,
+            priceMin: minPrice,
+            priceMax: maxPrice,
+            savingsVsAvg,
+            priceRarity,
+            bestCombo,
+            targetPrice,
+        };
+    }, [deals, avgPrice, medianPrice, historyCount, priceTrend, priceInsights]);
 
     // Fetch deals when destination changes
     useEffect(() => {
@@ -544,6 +910,37 @@ export default function DestinationPopup({
     });
 
     const cheapestPrice = deals.length > 0 ? Math.min(...deals.map(d => d.price)) : 0;
+
+    // ── Premium lock overlay for gated sections ──
+    const PremiumLock = ({ label, children }: { label: string; children: React.ReactNode }) => (
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+            <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>
+                {children}
+            </div>
+            <div style={{
+                position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.7)', borderRadius: 14,
+            }}>
+                <span style={{ fontSize: 22 }}>&#x1F512;</span>
+                <span style={{
+                    fontSize: 12, fontWeight: 700, color: '#0F172A',
+                    fontFamily: "'Outfit', sans-serif", textAlign: 'center',
+                }}>
+                    {label}
+                </span>
+                <a href="/pricing" style={{
+                    fontSize: 11, fontWeight: 700, color: '#fff',
+                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                    padding: '6px 16px', borderRadius: 100, textDecoration: 'none',
+                    fontFamily: "'Outfit', sans-serif",
+                    boxShadow: '0 2px 8px rgba(14,165,233,0.3)',
+                }}>
+                    Premium — Débloquer
+                </a>
+            </div>
+        </div>
+    );
 
     const shareDestination = () => {
         const text = `Vol Montréal → ${destination} dès ${cheapestPrice}$ A/R sur GeaiMonVol`;
@@ -1140,6 +1537,7 @@ export default function DestinationPopup({
 
                         {/* ── TREND INDICATOR ── */}
                         {(!isAllInclusive || packStep === 1) && priceTrend && !loading && deals.length > 0 && (
+                            tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 12, padding: '10px 14px', borderRadius: 12,
                                 background: priceTrend.direction === 'down'
@@ -1180,6 +1578,1304 @@ export default function DestinationPopup({
                                     </div>
                                 </div>
                             </div>
+                            ) : (
+                            <PremiumLock label="Tendance des prix">
+                                <div style={{
+                                    marginBottom: 12, padding: '10px 14px', borderRadius: 12,
+                                    background: priceTrend.direction === 'down'
+                                        ? 'rgba(16,185,129,0.06)'
+                                        : priceTrend.direction === 'up'
+                                            ? 'rgba(239,68,68,0.06)'
+                                            : 'rgba(245,158,11,0.06)',
+                                    border: `1px solid ${priceTrend.direction === 'down'
+                                        ? 'rgba(16,185,129,0.15)'
+                                        : priceTrend.direction === 'up'
+                                            ? 'rgba(239,68,68,0.15)'
+                                            : 'rgba(245,158,11,0.15)'}`,
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                }}>
+                                    <span style={{ fontSize: 18, flexShrink: 0 }}>{priceTrend.icon}</span>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, color: priceTrend.color,
+                                            fontFamily: "'Outfit', sans-serif",
+                                            display: 'flex', alignItems: 'center', gap: 6,
+                                        }}>
+                                            {priceTrend.label}
+                                            {priceTrend.pct > 0 && (
+                                                <span style={{
+                                                    fontSize: 10, fontWeight: 600, padding: '1px 6px',
+                                                    borderRadius: 4, background: `${priceTrend.color}15`,
+                                                    color: priceTrend.color,
+                                                }}>
+                                                    {priceTrend.direction === 'down' ? '-' : '+'}{priceTrend.pct}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{
+                                            fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif",
+                                            marginTop: 2,
+                                        }}>
+                                            {priceTrend.advice}
+                                        </div>
+                                    </div>
+                                </div>
+                            </PremiumLock>
+                            )
+                        )}
+
+                        {/* ═══ PREMIUM INTELLIGENCE PANEL ═══ */}
+                        {(!isAllInclusive || packStep === 1) && !loading && deals.length >= 2 && premiumAnalytics && (
+                            tier.priceInsights ? (
+                            <div style={{
+                                marginBottom: 16, borderRadius: 18,
+                                background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                                border: '1px solid rgba(14,165,233,0.2)',
+                                overflow: 'hidden',
+                            }}>
+                                {/* Header */}
+                                <div style={{
+                                    padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 10,
+                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                }}>
+                                    <div style={{
+                                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                        background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 2px 10px rgba(14,165,233,0.4)',
+                                    }}>
+                                        <img src="/logo_geai.png" alt="GeAI" width={22} height={22} style={{ borderRadius: '50%' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                            Intelligence GeAI
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
+                                            {deals.length} vols · {historyCount > 0 ? `${historyCount} scans historiques` : 'analyse en cours'}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        marginLeft: 'auto', padding: '3px 10px', borderRadius: 100,
+                                        background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                                        fontSize: 9, fontWeight: 800, color: '#5C4A00',
+                                        fontFamily: "'Fredoka', sans-serif",
+                                    }}>PREMIUM</div>
+                                </div>
+
+                                {/* ── 0. TON ÉCONOMIE GEAI — savings banner ── */}
+                                {premiumAnalytics.savingsVsAvg > 15 && (
+                                    <div style={{
+                                        padding: '12px 16px',
+                                        background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.08) 100%)',
+                                        borderBottom: '1px solid rgba(16,185,129,0.15)',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{
+                                                width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                                                background: 'linear-gradient(135deg, #10B981, #06B6D4)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: '0 4px 15px rgba(16,185,129,0.4)',
+                                            }}>
+                                                <span style={{ fontSize: 20 }}>💸</span>
+                                            </div>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(16,185,129,0.7)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>
+                                                    TON ÉCONOMIE GEAI
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                    <span style={{ fontSize: 24, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {premiumAnalytics.savingsVsAvg}$
+                                                    </span>
+                                                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>
+                                                        de moins que la moyenne
+                                                    </span>
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                    Sur un couple: <strong style={{ color: '#10B981' }}>{premiumAnalytics.savingsVsAvg * 2}$ d&apos;économie</strong>
+                                                    {premiumAnalytics.savingsVsAvg >= 50 && <span> · Ça vaut bien 5$/mois non? 😏</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── 1. VERDICT: Score + Recommandation (upgraded) ── */}
+                                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                                            {/* Animated score ring */}
+                                            <div style={{
+                                                width: 68, height: 68, borderRadius: '50%', position: 'relative',
+                                                background: `conic-gradient(${premiumAnalytics.dealScore >= 70 ? '#10B981' : premiumAnalytics.dealScore >= 40 ? '#F59E0B' : '#EF4444'} ${premiumAnalytics.dealScore * 3.6}deg, rgba(255,255,255,0.06) 0deg)`,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                boxShadow: premiumAnalytics.dealScore >= 70
+                                                    ? '0 0 20px rgba(16,185,129,0.3), inset 0 0 20px rgba(16,185,129,0.1)'
+                                                    : premiumAnalytics.dealScore >= 40
+                                                    ? '0 0 15px rgba(245,158,11,0.2)'
+                                                    : '0 0 15px rgba(239,68,68,0.2)',
+                                            }}>
+                                                <div style={{
+                                                    width: 54, height: 54, borderRadius: '50%',
+                                                    background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <span style={{
+                                                        fontSize: 22, fontWeight: 800, fontFamily: "'Fredoka', sans-serif", lineHeight: 1,
+                                                        color: premiumAnalytics.dealScore >= 70 ? '#10B981' : premiumAnalytics.dealScore >= 40 ? '#F59E0B' : '#EF4444',
+                                                    }}>{premiumAnalytics.dealScore}</span>
+                                                    <span style={{ fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>/100</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginTop: 4, letterSpacing: 0.5 }}>
+                                                {historyCount >= 15 ? 'HAUTE FIABILITÉ' : historyCount >= 5 ? 'FIABILITÉ MOY.' : 'DONNÉES LIMITÉES'}
+                                            </div>
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{
+                                                fontSize: 14, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                color: premiumAnalytics.recommendation.urgency === 'buy' ? '#10B981' : premiumAnalytics.recommendation.urgency === 'wait' ? '#F59E0B' : '#94A3B8',
+                                                display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4,
+                                            }}>
+                                                {premiumAnalytics.recommendation.urgency === 'buy' ? '✅' : premiumAnalytics.recommendation.urgency === 'wait' ? '⏳' : '➡️'}
+                                                {premiumAnalytics.recommendation.action}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>
+                                                {premiumAnalytics.recommendation.reason}
+                                            </div>
+                                            {/* Rarity badge */}
+                                            {premiumAnalytics.priceRarity.pct <= 30 && (
+                                                <div style={{
+                                                    marginTop: 6, display: 'inline-flex', alignItems: 'center', gap: 5,
+                                                    padding: '4px 10px', borderRadius: 8,
+                                                    background: premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.08)',
+                                                    border: `1px solid ${premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.15)'}`,
+                                                }}>
+                                                    <span style={{ fontSize: 11 }}>{premiumAnalytics.priceRarity.pct <= 10 ? '🔥' : '⚡'}</span>
+                                                    <span style={{
+                                                        fontSize: 10, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                        color: premiumAnalytics.priceRarity.pct <= 10 ? '#EF4444' : '#F59E0B',
+                                                    }}>
+                                                        {premiumAnalytics.priceRarity.label} — ce prix n&apos;apparaît que {premiumAnalytics.priceRarity.pct}% du temps
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* "ET SI?" Retrospective */}
+                                    {historyPoints.length >= 7 && (() => {
+                                        const now = new Date();
+                                        const ago7 = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0];
+                                        const ago14 = new Date(now.getTime() - 14 * 86400000).toISOString().split('T')[0];
+                                        const price7d = historyPoints.find(p => p.date >= ago7)?.price;
+                                        const price14d = historyPoints.find(p => p.date >= ago14)?.price;
+                                        const currentBest = premiumAnalytics.priceMin;
+                                        const bestEver = historyStats.min;
+                                        if (!price7d && !price14d) return null;
+                                        return (
+                                            <div style={{
+                                                marginTop: 10, padding: '10px 12px', borderRadius: 10,
+                                                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                                            }}>
+                                                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5, marginBottom: 6 }}>
+                                                    ET SI TU AVAIS ACHETÉ...
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                    {price7d && (
+                                                        <div style={{
+                                                            flex: 1, padding: '6px 8px', borderRadius: 8, textAlign: 'center',
+                                                            background: price7d > currentBest ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                                                            border: `1px solid ${price7d > currentBest ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)'}`,
+                                                        }}>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>Il y a 7 jours</div>
+                                                            <div style={{
+                                                                fontSize: 14, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                                                                color: price7d > currentBest ? '#10B981' : '#EF4444',
+                                                            }}>
+                                                                {price7d > currentBest ? '+' : ''}{Math.round(price7d - currentBest)}$
+                                                            </div>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>
+                                                                {price7d > currentBest ? 'tu aurais payé plus' : 'c\'était moins cher'}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {price14d && (
+                                                        <div style={{
+                                                            flex: 1, padding: '6px 8px', borderRadius: 8, textAlign: 'center',
+                                                            background: price14d > currentBest ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+                                                            border: `1px solid ${price14d > currentBest ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.1)'}`,
+                                                        }}>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>Il y a 14 jours</div>
+                                                            <div style={{
+                                                                fontSize: 14, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                                                                color: price14d > currentBest ? '#10B981' : '#EF4444',
+                                                            }}>
+                                                                {price14d > currentBest ? '+' : ''}{Math.round(price14d - currentBest)}$
+                                                            </div>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>
+                                                                {price14d > currentBest ? 'tu aurais payé plus' : 'c\'était moins cher'}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {bestEver > 0 && bestEver < currentBest * 0.95 && (
+                                                        <div style={{
+                                                            flex: 1, padding: '6px 8px', borderRadius: 8, textAlign: 'center',
+                                                            background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.12)',
+                                                        }}>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>Meilleur moment</div>
+                                                            <div style={{ fontSize: 14, fontWeight: 800, fontFamily: "'Fredoka', sans-serif", color: '#A78BFA' }}>
+                                                                -{Math.round(currentBest - bestEver)}$
+                                                            </div>
+                                                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>
+                                                                le plus bas vu: {bestEver}$
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* ── 1b. EST-CE LE BON MOMENT? — Hero forecast section ── */}
+                                {(forecastLoading || forecast) && (
+                                    <div style={{ padding: '18px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 100%)' }}>
+                                        <div style={{ marginBottom: 14 }}>
+                                            <div style={{
+                                                fontSize: 14, fontWeight: 800, color: '#E2E8F0',
+                                                fontFamily: "'Fredoka', sans-serif", letterSpacing: 0.5,
+                                                display: 'flex', alignItems: 'center', gap: 8,
+                                            }}>
+                                                <span style={{
+                                                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                    width: 28, height: 28, borderRadius: 8,
+                                                    background: 'linear-gradient(135deg, #8B5CF6, #0EA5E9)',
+                                                    fontSize: 14,
+                                                }}>🎯</span>
+                                                EST-CE LE BON MOMENT?
+                                                <span style={{
+                                                    fontSize: 8, padding: '3px 8px', borderRadius: 6,
+                                                    background: 'linear-gradient(135deg, rgba(139,92,246,0.25), rgba(14,165,233,0.25))',
+                                                    color: '#A78BFA', fontWeight: 800, letterSpacing: 0.3,
+                                                    border: '1px solid rgba(139,92,246,0.3)',
+                                                }}>IA BETA</span>
+                                            </div>
+                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
+                                                Notre analyse prédictive basée sur l&apos;historique réel des prix
+                                            </div>
+                                        </div>
+
+                                        {forecastLoading ? (
+                                            <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Outfit', sans-serif" }}>
+                                                Analyse en cours...
+                                            </div>
+                                        ) : forecast?.pronostic && (
+                                            <>
+                                                {/* Verdict + 3 reasons */}
+                                                <div style={{
+                                                    padding: '14px 16px', borderRadius: 14, marginBottom: 12,
+                                                    background: forecast.verdict === 'BUY_NOW' ? 'rgba(16,185,129,0.12)' : forecast.verdict === 'BUY_SOON' ? 'rgba(52,211,153,0.1)' : forecast.verdict === 'WAIT' ? 'rgba(245,158,11,0.1)' : 'rgba(148,163,184,0.08)',
+                                                    border: `1px solid ${forecast.verdict === 'BUY_NOW' ? 'rgba(16,185,129,0.25)' : forecast.verdict === 'BUY_SOON' ? 'rgba(52,211,153,0.2)' : forecast.verdict === 'WAIT' ? 'rgba(245,158,11,0.2)' : 'rgba(148,163,184,0.15)'}`,
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                                        <span style={{ fontSize: 28, lineHeight: 1 }}>
+                                                            {forecast.verdict === 'BUY_NOW' ? '🔥' : forecast.verdict === 'BUY_SOON' ? '👀' : forecast.verdict === 'WAIT' ? '⏳' : '👌'}
+                                                        </span>
+                                                        <div style={{
+                                                            fontSize: 15, fontWeight: 800, lineHeight: 1.4,
+                                                            color: forecast.verdict === 'BUY_NOW' ? '#10B981' : forecast.verdict === 'BUY_SOON' ? '#34D399' : forecast.verdict === 'WAIT' ? '#F59E0B' : '#94A3B8',
+                                                            fontFamily: "'Fredoka', sans-serif",
+                                                        }}>
+                                                            {forecast.pronostic.verdictLine}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 3 clear reasons */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                                        {forecast.pronostic.reasons.map((r, i) => (
+                                                            <div key={i} style={{
+                                                                display: 'flex', alignItems: 'center', gap: 10,
+                                                                padding: '8px 12px', borderRadius: 10,
+                                                                background: 'rgba(255,255,255,0.03)',
+                                                                borderLeft: `3px solid ${r.impact === 'positive' ? 'rgba(16,185,129,0.5)' : r.impact === 'negative' ? 'rgba(239,68,68,0.4)' : 'rgba(148,163,184,0.3)'}`,
+                                                            }}>
+                                                                <span style={{ fontSize: 16, flexShrink: 0 }}>{r.icon}</span>
+                                                                <span style={{
+                                                                    fontSize: 12, fontWeight: 600, lineHeight: 1.4,
+                                                                    color: r.impact === 'positive' ? '#10B981' : r.impact === 'negative' ? '#EF4444' : 'rgba(255,255,255,0.6)',
+                                                                    fontFamily: "'Outfit', sans-serif",
+                                                                }}>{r.text}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Monthly outlook */}
+                                                {forecast.pronostic.monthlyOutlook && forecast.pronostic.monthlyOutlook.length >= 2 && (
+                                                    <div style={{
+                                                        padding: '12px 14px', borderRadius: 14, marginBottom: 12,
+                                                        background: 'rgba(14,165,233,0.04)',
+                                                        border: '1px solid rgba(14,165,233,0.1)',
+                                                    }}>
+                                                        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>
+                                                            PROCHAINS MOIS (saisonnier)
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                            {forecast.pronostic.monthlyOutlook.map((mo, idx) => (
+                                                                <div key={idx} style={{
+                                                                    flex: 1, padding: '8px 4px', borderRadius: 10, textAlign: 'center',
+                                                                    background: mo.vsCurrent < -15 ? 'rgba(16,185,129,0.08)' : mo.vsCurrent > 15 ? 'rgba(239,68,68,0.06)' : 'rgba(255,255,255,0.03)',
+                                                                    border: `1px solid ${mo.vsCurrent < -15 ? 'rgba(16,185,129,0.15)' : mo.vsCurrent > 15 ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.06)'}`,
+                                                                }}>
+                                                                    <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.45)', fontFamily: "'Outfit', sans-serif" }}>
+                                                                        {mo.month}
+                                                                    </div>
+                                                                    <div style={{
+                                                                        fontSize: 16, fontWeight: 800, fontFamily: "'Fredoka', sans-serif", marginTop: 3,
+                                                                        color: mo.vsCurrent < -15 ? '#10B981' : mo.vsCurrent > 15 ? '#EF4444' : '#0EA5E9',
+                                                                    }}>
+                                                                        {mo.medianPrice}$
+                                                                    </div>
+                                                                    <div style={{
+                                                                        fontSize: 10, fontWeight: 700, marginTop: 2,
+                                                                        color: mo.vsCurrent < -5 ? '#10B981' : mo.vsCurrent > 5 ? '#EF4444' : 'rgba(255,255,255,0.3)',
+                                                                        fontFamily: "'Outfit', sans-serif",
+                                                                    }}>
+                                                                        {mo.vsCurrent > 0 ? '+' : ''}{mo.vsCurrent}$
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", marginTop: 6, textAlign: 'center' }}>
+                                                            Médianes saisonnières vs votre prix actuel
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Confidence */}
+                                                <div style={{
+                                                    display: 'flex', alignItems: 'center', gap: 6,
+                                                    padding: '5px 10px', borderRadius: 8,
+                                                    background: 'rgba(255,255,255,0.02)',
+                                                }}>
+                                                    <span style={{ fontSize: 9 }}>
+                                                        {forecast.confidence >= 70 ? '🟢' : forecast.confidence >= 45 ? '🟡' : '🟠'}
+                                                    </span>
+                                                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>
+                                                        {forecast.pronostic.confidenceNote}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ── 2. PRICE HISTORY CHART (real data from API) ── */}
+                                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <PriceHistoryChart
+                                        points={historyPoints}
+                                        avg={historyStats.avg}
+                                        min={historyStats.min}
+                                        max={historyStats.max}
+                                        days={historyDays}
+                                        onDaysChange={(d) => setHistoryDays(d as 30 | 60 | 90)}
+                                        loading={historyLoading}
+                                    />
+                                </div>
+
+                                {/* ── 2b. GOOGLE FLIGHTS PRICE INSIGHTS (6-12 month historical) ── */}
+                                {(priceInsights || insightsLoading) && (
+                                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginBottom: 10, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            ANALYSE DE PRIX GOOGLE FLIGHTS
+                                            <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontWeight: 500 }}>6-12 mois d&apos;historique</span>
+                                        </div>
+
+                                        {insightsLoading ? (
+                                            <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Outfit', sans-serif" }}>
+                                                Chargement des données Google Flights...
+                                            </div>
+                                        ) : priceInsights && (
+                                            <>
+                                                {/* Price Level Badge + Typical Range */}
+                                                <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                                                    <div style={{
+                                                        flex: '1 1 140px', padding: '10px 12px', borderRadius: 12,
+                                                        background: priceInsights.price_level === 'low' ? 'rgba(16,185,129,0.1)' : priceInsights.price_level === 'high' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                                                        border: `1px solid ${priceInsights.price_level === 'low' ? 'rgba(16,185,129,0.2)' : priceInsights.price_level === 'high' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                                                    }}>
+                                                        <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>NIVEAU DE PRIX ACTUEL</div>
+                                                        <div style={{
+                                                            fontSize: 16, fontWeight: 800, fontFamily: "'Fredoka', sans-serif", marginTop: 4,
+                                                            color: priceInsights.price_level === 'low' ? '#10B981' : priceInsights.price_level === 'high' ? '#EF4444' : '#F59E0B',
+                                                        }}>
+                                                            {priceInsights.price_level === 'low' ? 'Bas' : priceInsights.price_level === 'high' ? 'Élevé' : 'Normal'}
+                                                        </div>
+                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                            {priceInsights.price_level === 'low' ? 'Prix sous la moyenne — bon moment!' : priceInsights.price_level === 'high' ? 'Prix au-dessus de la moyenne' : 'Prix dans la fourchette habituelle'}
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{
+                                                        flex: '1 1 140px', padding: '10px 12px', borderRadius: 12,
+                                                        background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.15)',
+                                                    }}>
+                                                        <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>FOURCHETTE TYPIQUE</div>
+                                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 4 }}>
+                                                            <span style={{ fontSize: 16, fontWeight: 800, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                                                {Math.round(priceInsights.typical_price_range[0])}$
+                                                            </span>
+                                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>—</span>
+                                                            <span style={{ fontSize: 16, fontWeight: 800, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                                                {Math.round(priceInsights.typical_price_range[1])}$
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                            Prix habituel aller-retour
+                                                        </div>
+                                                        {priceInsights.lowest_price > 0 && (
+                                                            <div style={{ fontSize: 10, fontWeight: 600, color: '#10B981', fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
+                                                                Plus bas trouvé : {Math.round(priceInsights.lowest_price)}$
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Long-term Price History Graph (SVG) */}
+                                                {priceInsights.price_history.length > 2 && (() => {
+                                                    const pts = priceInsights.price_history
+                                                        .filter(([ts, p]) => ts > 0 && p > 0)
+                                                        .sort((a, b) => a[0] - b[0]);
+                                                    if (pts.length < 3) return null;
+
+                                                    const prices = pts.map(([, p]) => p);
+                                                    const minP = Math.min(...prices);
+                                                    const maxP = Math.max(...prices);
+                                                    const rangeP = maxP - minP || 1;
+
+                                                    const W = 300;
+                                                    const H = 100;
+                                                    const padX = 0;
+                                                    const padY = 8;
+
+                                                    const pathPoints = pts.map(([ts, p], i) => {
+                                                        const x = padX + (i / (pts.length - 1)) * (W - padX * 2);
+                                                        const y = padY + (1 - (p - minP) / rangeP) * (H - padY * 2);
+                                                        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+                                                    }).join(' ');
+
+                                                    // Area fill
+                                                    const areaPath = pathPoints
+                                                        + ` L${(padX + (W - padX * 2)).toFixed(1)},${H} L${padX},${H} Z`;
+
+                                                    // Typical range band
+                                                    const typLow = priceInsights.typical_price_range[0];
+                                                    const typHigh = priceInsights.typical_price_range[1];
+                                                    const bandTop = padY + (1 - (typHigh - minP) / rangeP) * (H - padY * 2);
+                                                    const bandBot = padY + (1 - (typLow - minP) / rangeP) * (H - padY * 2);
+
+                                                    // Date labels (GF timestamps are in seconds, not ms)
+                                                    const toMs = (t: number) => t < 10000000000 ? t * 1000 : t;
+                                                    const firstDate = new Date(toMs(pts[0][0]));
+                                                    const lastDate = new Date(toMs(pts[pts.length - 1][0]));
+                                                    const monthsFr = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
+                                                    const startLabel = `${monthsFr[firstDate.getMonth()]} ${firstDate.getFullYear()}`;
+                                                    const endLabel = `${monthsFr[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
+
+                                                    return (
+                                                        <div>
+                                                            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>
+                                                                Évolution des prix ({startLabel} → {endLabel})
+                                                            </div>
+                                                            <svg viewBox={`0 0 ${W} ${H + 20}`} width="100%" height="auto" style={{ display: 'block' }}>
+                                                                {/* Typical range band */}
+                                                                <rect x={padX} y={Math.max(0, bandTop)} width={W - padX * 2}
+                                                                    height={Math.max(0, bandBot - bandTop)}
+                                                                    fill="rgba(14,165,233,0.08)" rx="2" />
+                                                                <line x1={padX} y1={bandTop} x2={W - padX} y2={bandTop}
+                                                                    stroke="rgba(14,165,233,0.2)" strokeWidth="0.5" strokeDasharray="3,3" />
+                                                                <line x1={padX} y1={bandBot} x2={W - padX} y2={bandBot}
+                                                                    stroke="rgba(14,165,233,0.2)" strokeWidth="0.5" strokeDasharray="3,3" />
+
+                                                                {/* Area under curve */}
+                                                                <path d={areaPath} fill="url(#insights-grad)" opacity="0.3" />
+
+                                                                {/* Price line */}
+                                                                <path d={pathPoints} fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+
+                                                                {/* Gradient def */}
+                                                                <defs>
+                                                                    <linearGradient id="insights-grad" x1="0" y1="0" x2="0" y2="1">
+                                                                        <stop offset="0%" stopColor="#0EA5E9" stopOpacity="0.4" />
+                                                                        <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0" />
+                                                                    </linearGradient>
+                                                                </defs>
+
+                                                                {/* Min/Max labels */}
+                                                                <text x={padX + 2} y={padY + (1 - (maxP - minP) / rangeP) * (H - padY * 2) - 3}
+                                                                    fill="#10B981" fontSize="8" fontFamily="Fredoka" fontWeight="700">{Math.round(maxP)}$</text>
+                                                                <text x={padX + 2} y={padY + (H - padY * 2) + 10}
+                                                                    fill="#10B981" fontSize="8" fontFamily="Fredoka" fontWeight="700">{Math.round(minP)}$</text>
+
+                                                                {/* Typical range labels */}
+                                                                <text x={W - padX - 2} y={bandTop - 2}
+                                                                    fill="rgba(14,165,233,0.5)" fontSize="7" fontFamily="Outfit" textAnchor="end">{Math.round(typHigh)}$</text>
+                                                                <text x={W - padX - 2} y={bandBot + 9}
+                                                                    fill="rgba(14,165,233,0.5)" fontSize="7" fontFamily="Outfit" textAnchor="end">{Math.round(typLow)}$</text>
+
+                                                                {/* Date axis */}
+                                                                <text x={padX} y={H + 14} fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Outfit">{startLabel}</text>
+                                                                <text x={W - padX} y={H + 14} fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Outfit" textAnchor="end">{endLabel}</text>
+                                                            </svg>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                    <div style={{ width: 12, height: 2, borderRadius: 1, background: '#0EA5E9' }} />
+                                                                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>Prix observé</span>
+                                                                </div>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                    <div style={{ width: 12, height: 6, borderRadius: 1, background: 'rgba(14,165,233,0.15)' }} />
+                                                                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>Fourchette typique</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ── 2c. MONTHLY PRICE COMPASS — Best Month to Fly ── */}
+                                {(monthlyLoading || (monthlyData && monthlyData.months.some(m => m.count > 0))) && (
+                                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        {/* Header with year selector */}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>
+                                                MEILLEUR MOIS POUR PARTIR
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 2 }}>
+                                                {([1, 2, 3] as const).map(y => (
+                                                    <button key={y} onClick={() => setMonthlyYears(y)}
+                                                        style={{
+                                                            padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                                                            fontSize: 10, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                            background: monthlyYears === y ? 'linear-gradient(135deg, #0EA5E9, #06B6D4)' : 'transparent',
+                                                            color: monthlyYears === y ? '#fff' : 'rgba(255,255,255,0.35)',
+                                                            transition: 'all 0.2s',
+                                                        }}>
+                                                        {y}A
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {monthlyLoading ? (
+                                            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: "'Outfit', sans-serif" }}>
+                                                Analyse des prix sur {monthlyYears} an{monthlyYears > 1 ? 's' : ''}...
+                                            </div>
+                                        ) : monthlyData && (() => {
+                                            const monthsFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                                            const monthsFullFr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                                            const withData = monthlyData.months.filter(m => m.count > 0);
+                                            if (withData.length < 2) {
+                                                return (
+                                                    <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.35)', fontSize: 11, fontFamily: "'Outfit', sans-serif" }}>
+                                                        Pas encore assez de données historiques. Cette analyse deviendra plus riche au fil des scans.
+                                                    </div>
+                                                );
+                                            }
+                                            const medians = withData.map(m => m.median);
+                                            const cheapest = withData.reduce((a, b) => a.median < b.median ? a : b);
+                                            const expensive = withData.reduce((a, b) => a.median > b.median ? a : b);
+                                            const saving = expensive.median - cheapest.median;
+                                            const savingPct = expensive.median > 0 ? Math.round((saving / expensive.median) * 100) : 0;
+                                            const globalMin = Math.min(...medians);
+                                            const globalMax = Math.max(...medians);
+                                            const globalRange = globalMax - globalMin || 1;
+
+                                            // Color function: green (cheap) → yellow → red (expensive)
+                                            const getColor = (median: number) => {
+                                                const ratio = (median - globalMin) / globalRange;
+                                                if (ratio < 0.33) return { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', text: '#10B981', ring: '#10B981' };
+                                                if (ratio < 0.66) return { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', text: '#F59E0B', ring: '#F59E0B' };
+                                                return { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', text: '#EF4444', ring: '#EF4444' };
+                                            };
+
+                                            // SVG Compass dimensions
+                                            const CX = 140, CY = 140, R = 105, nodeR = 24;
+
+                                            return (
+                                                <>
+                                                    {/* ── Hero insight card ── */}
+                                                    <div style={{
+                                                        padding: '14px 16px', borderRadius: 14, marginBottom: 14,
+                                                        background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(6,182,212,0.08) 100%)',
+                                                        border: '1px solid rgba(16,185,129,0.2)',
+                                                        display: 'flex', alignItems: 'center', gap: 14,
+                                                    }}>
+                                                        <div style={{
+                                                            width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                                                            background: 'linear-gradient(135deg, #10B981, #06B6D4)',
+                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                            boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
+                                                        }}>
+                                                            <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>PARS EN</span>
+                                                            <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: "'Fredoka', sans-serif", lineHeight: 1.1 }}>
+                                                                {monthsFr[cheapest.month]}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#10B981', fontFamily: "'Outfit', sans-serif", marginBottom: 2 }}>
+                                                                {monthsFullFr[cheapest.month]} est le mois le moins cher
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>
+                                                                Médiane de <strong style={{ color: '#10B981' }}>{cheapest.median}$</strong> (min. {cheapest.min}$)
+                                                                {saving > 30 && (
+                                                                    <> — <strong style={{ color: '#10B981' }}>{saving}$ de moins</strong> ({savingPct}%) vs {monthsFullFr[expensive.month]}</>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                                Basé sur {monthlyData.totalDataPoints} prix scannés · {monthlyYears} an{monthlyYears > 1 ? 's' : ''}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── Circular Month Compass (SVG) ── */}
+                                                    <svg viewBox={`0 0 ${CX * 2} ${CY * 2}`} width="100%" style={{ display: 'block', maxWidth: 320, margin: '0 auto' }}>
+                                                        <defs>
+                                                            <filter id="glow-best">
+                                                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                                                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                                                            </filter>
+                                                            <radialGradient id="compass-bg" cx="50%" cy="50%" r="50%">
+                                                                <stop offset="0%" stopColor="rgba(14,165,233,0.06)" />
+                                                                <stop offset="100%" stopColor="transparent" />
+                                                            </radialGradient>
+                                                        </defs>
+
+                                                        {/* Background circle */}
+                                                        <circle cx={CX} cy={CY} r={R + 10} fill="url(#compass-bg)" />
+
+                                                        {/* Connecting lines from center to each month */}
+                                                        {monthlyData.months.map((m, i) => {
+                                                            if (m.count === 0) return null;
+                                                            const angle = (i * 30 - 90) * Math.PI / 180;
+                                                            const x = CX + R * Math.cos(angle);
+                                                            const y = CY + R * Math.sin(angle);
+                                                            return <line key={`line-${i}`} x1={CX} y1={CY} x2={x} y2={y}
+                                                                stroke="rgba(255,255,255,0.04)" strokeWidth="1" />;
+                                                        })}
+
+                                                        {/* Filled area polygon connecting median-scaled positions */}
+                                                        {(() => {
+                                                            const areaPoints = monthlyData.months.map((m, i) => {
+                                                                const angle = (i * 30 - 90) * Math.PI / 180;
+                                                                // Invert: cheaper = further from center (more desirable = bigger area)
+                                                                const scale = m.count > 0 ? 0.35 + 0.55 * (1 - (m.median - globalMin) / globalRange) : 0.35;
+                                                                const r = R * scale;
+                                                                return `${(CX + r * Math.cos(angle)).toFixed(1)},${(CY + r * Math.sin(angle)).toFixed(1)}`;
+                                                            });
+                                                            return (
+                                                                <polygon points={areaPoints.join(' ')}
+                                                                    fill="rgba(14,165,233,0.08)" stroke="rgba(14,165,233,0.25)"
+                                                                    strokeWidth="1.5" strokeLinejoin="round" />
+                                                            );
+                                                        })()}
+
+                                                        {/* Month nodes */}
+                                                        {monthlyData.months.map((m, i) => {
+                                                            const angle = (i * 30 - 90) * Math.PI / 180;
+                                                            const x = CX + R * Math.cos(angle);
+                                                            const y = CY + R * Math.sin(angle);
+                                                            const isBest = m.month === cheapest.month;
+                                                            const isWorst = m.month === expensive.month;
+                                                            const hasData = m.count > 0;
+                                                            const col = hasData ? getColor(m.median) : { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.08)', text: 'rgba(255,255,255,0.15)', ring: 'rgba(255,255,255,0.1)' };
+
+                                                            return (
+                                                                <g key={i} filter={isBest ? 'url(#glow-best)' : undefined}>
+                                                                    {/* Outer ring */}
+                                                                    <circle cx={x} cy={y} r={nodeR + 2}
+                                                                        fill="none" stroke={col.ring} strokeWidth={isBest ? 2.5 : 1}
+                                                                        opacity={isBest ? 1 : 0.4} />
+                                                                    {/* Node background */}
+                                                                    <circle cx={x} cy={y} r={nodeR}
+                                                                        fill={isBest ? 'rgba(16,185,129,0.25)' : isWorst ? 'rgba(239,68,68,0.15)' : col.bg}
+                                                                        stroke={col.border} strokeWidth="1" />
+                                                                    {/* Month label */}
+                                                                    <text x={x} y={hasData ? y - 5 : y + 1}
+                                                                        textAnchor="middle" dominantBaseline="middle"
+                                                                        fill={hasData ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)'}
+                                                                        fontSize="8" fontWeight="700" fontFamily="Outfit">
+                                                                        {monthsFr[i]}
+                                                                    </text>
+                                                                    {/* Price */}
+                                                                    {hasData && (
+                                                                        <text x={x} y={y + 7}
+                                                                            textAnchor="middle" dominantBaseline="middle"
+                                                                            fill={col.text} fontSize={isBest ? '11' : '9'}
+                                                                            fontWeight="800" fontFamily="Fredoka">
+                                                                            {m.median}$
+                                                                        </text>
+                                                                    )}
+                                                                    {/* Best badge */}
+                                                                    {isBest && hasData && (
+                                                                        <>
+                                                                            <circle cx={x + nodeR - 2} cy={y - nodeR + 2} r={6}
+                                                                                fill="#10B981" stroke="#0F172A" strokeWidth="1.5" />
+                                                                            <text x={x + nodeR - 2} y={y - nodeR + 3}
+                                                                                textAnchor="middle" dominantBaseline="middle"
+                                                                                fill="#fff" fontSize="7" fontWeight="800">&#10003;</text>
+                                                                        </>
+                                                                    )}
+                                                                </g>
+                                                            );
+                                                        })}
+
+                                                        {/* Center label */}
+                                                        <circle cx={CX} cy={CY} r={28} fill="rgba(15,23,42,0.9)" stroke="rgba(14,165,233,0.2)" strokeWidth="1" />
+                                                        <text x={CX} y={CY - 6} textAnchor="middle" dominantBaseline="middle"
+                                                            fill="rgba(255,255,255,0.4)" fontSize="7" fontWeight="700" fontFamily="Outfit">MÉDIANE</text>
+                                                        <text x={CX} y={CY + 7} textAnchor="middle" dominantBaseline="middle"
+                                                            fill="#0EA5E9" fontSize="12" fontWeight="800" fontFamily="Fredoka">
+                                                            {monthlyYears}A
+                                                        </text>
+                                                    </svg>
+
+                                                    {/* ── Year-by-Month Heatmap Grid ── */}
+                                                    {Object.keys(monthlyData.grid).length > 0 && (
+                                                        <div style={{ marginTop: 14 }}>
+                                                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginBottom: 6, letterSpacing: 0.5 }}>
+                                                                GRILLE ANNÉE × MOIS (MÉDIANE)
+                                                            </div>
+                                                            {/* Column headers */}
+                                                            <div style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+                                                                <div style={{ width: 32, flexShrink: 0 }} />
+                                                                {monthsFr.map(m => (
+                                                                    <div key={m} style={{
+                                                                        flex: 1, textAlign: 'center', fontSize: 7, fontWeight: 700,
+                                                                        color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif",
+                                                                    }}>{m}</div>
+                                                                ))}
+                                                            </div>
+                                                            {/* Year rows */}
+                                                            {Object.entries(monthlyData.grid).sort(([a], [b]) => a.localeCompare(b)).map(([year, months]) => (
+                                                                <div key={year} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+                                                                    <div style={{
+                                                                        width: 32, flexShrink: 0, fontSize: 9, fontWeight: 700,
+                                                                        color: 'rgba(255,255,255,0.4)', fontFamily: "'Fredoka', sans-serif",
+                                                                        display: 'flex', alignItems: 'center',
+                                                                    }}>{year}</div>
+                                                                    {Array.from({ length: 12 }, (_, i) => {
+                                                                        const cell = months[i];
+                                                                        if (!cell) return (
+                                                                            <div key={i} style={{
+                                                                                flex: 1, height: 26, borderRadius: 4,
+                                                                                background: 'rgba(255,255,255,0.02)',
+                                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                            }}>
+                                                                                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.1)' }}>—</span>
+                                                                            </div>
+                                                                        );
+                                                                        const col = getColor(cell.median);
+                                                                        const isBestCell = cell.median === cheapest.median;
+                                                                        return (
+                                                                            <div key={i} title={`${monthsFullFr[i]} ${year}: médiane ${cell.median}$, min ${cell.min}$, max ${cell.max}$ (${cell.count} prix)`}
+                                                                                style={{
+                                                                                    flex: 1, height: 26, borderRadius: 4,
+                                                                                    background: col.bg, border: `1px solid ${isBestCell ? '#10B981' : col.border}`,
+                                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                                    cursor: 'default', transition: 'transform 0.15s',
+                                                                                }}
+                                                                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
+                                                                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                                                                                <span style={{
+                                                                                    fontSize: 8, fontWeight: 800, color: col.text,
+                                                                                    fontFamily: "'Fredoka', sans-serif",
+                                                                                }}>{cell.median}$</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ))}
+                                                            {/* Legend */}
+                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 6 }}>
+                                                                {[
+                                                                    { color: '#10B981', label: 'Pas cher' },
+                                                                    { color: '#F59E0B', label: 'Moyen' },
+                                                                    { color: '#EF4444', label: 'Cher' },
+                                                                ].map(l => (
+                                                                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                                                        <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, opacity: 0.3 }} />
+                                                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>{l.label}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* ── Detailed Month Bars with IQR ── */}
+                                                    <div style={{ marginTop: 14 }}>
+                                                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginBottom: 8, letterSpacing: 0.5 }}>
+                                                            DÉTAIL PAR MOIS · MÉDIANE + ÉTENDUE
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                                            {withData.sort((a, b) => a.median - b.median).map((m, i) => {
+                                                                const barW = globalMax > 0 ? Math.max(10, (m.median / globalMax) * 100) : 50;
+                                                                const isBest = m.month === cheapest.month;
+                                                                const col = getColor(m.median);
+                                                                // IQR range as percentage of the bar width
+                                                                const rangeStart = globalMax > 0 ? (m.min / globalMax) * 100 : 0;
+                                                                const rangeEnd = globalMax > 0 ? (m.max / globalMax) * 100 : 100;
+                                                                return (
+                                                                    <div key={m.month} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                        <span style={{
+                                                                            fontSize: 9, fontWeight: 700, width: 30, textAlign: 'right', flexShrink: 0,
+                                                                            color: isBest ? '#10B981' : 'rgba(255,255,255,0.4)',
+                                                                            fontFamily: "'Outfit', sans-serif",
+                                                                        }}>{monthsFr[m.month]}</span>
+                                                                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: 'rgba(255,255,255,0.03)', position: 'relative', overflow: 'hidden' }}>
+                                                                            {/* Min-Max range band */}
+                                                                            <div style={{
+                                                                                position: 'absolute', top: 6, height: 8, borderRadius: 4,
+                                                                                left: `${rangeStart}%`, width: `${rangeEnd - rangeStart}%`,
+                                                                                background: 'rgba(255,255,255,0.04)',
+                                                                            }} />
+                                                                            {/* Median bar */}
+                                                                            <div style={{
+                                                                                height: '100%', borderRadius: 5, width: `${barW}%`,
+                                                                                background: isBest
+                                                                                    ? 'linear-gradient(90deg, #10B981, #34D399)'
+                                                                                    : `linear-gradient(90deg, ${col.ring}66, ${col.ring}33)`,
+                                                                                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6,
+                                                                                transition: 'width 0.4s ease-out',
+                                                                            }}>
+                                                                                <span style={{
+                                                                                    fontSize: 9, fontWeight: 800, color: '#fff',
+                                                                                    fontFamily: "'Fredoka', sans-serif", textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                                                                                }}>{m.median}$</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div style={{ flexShrink: 0, textAlign: 'right', width: 55 }}>
+                                                                            <span style={{
+                                                                                fontSize: 8, color: 'rgba(255,255,255,0.25)',
+                                                                                fontFamily: "'Outfit', sans-serif",
+                                                                            }}>{m.min}–{m.max}$</span>
+                                                                        </div>
+                                                                        <span style={{
+                                                                            fontSize: 8, color: 'rgba(255,255,255,0.2)', width: 16, textAlign: 'right', flexShrink: 0,
+                                                                            fontFamily: "'Outfit', sans-serif",
+                                                                        }}>{m.count}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* ── Pro tips ── */}
+                                                    {saving > 30 && (
+                                                        <div style={{
+                                                            marginTop: 12, padding: '10px 12px', borderRadius: 10,
+                                                            background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(6,182,212,0.04))',
+                                                            border: '1px solid rgba(16,185,129,0.12)',
+                                                        }}>
+                                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.6 }}>
+                                                                <strong style={{ color: '#10B981' }}>Astuce GeAI :</strong> En choisissant {monthsFullFr[cheapest.month]} plutôt que {monthsFullFr[expensive.month]}, tu économises en moyenne <strong style={{ color: '#10B981' }}>{saving}$</strong> par personne ({savingPct}%). Sur un couple, c&apos;est <strong style={{ color: '#10B981' }}>{saving * 2}$ d&apos;économie</strong>.
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+
+
+                                {/* ── 3. AIRLINE RANKING — improved ── */}
+                                {premiumAnalytics.airlines.length > 1 && (() => {
+                                    const topAirlines = premiumAnalytics.airlines.slice(0, 5);
+                                    const cheapestAirline = topAirlines[0];
+                                    const mostExpensive = topAirlines[topAirlines.length - 1];
+                                    const savingVsWorst = mostExpensive && cheapestAirline ? mostExpensive.avg - cheapestAirline.avg : 0;
+                                    return (
+                                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginBottom: 10, letterSpacing: 0.5 }}>
+                                            QUELLE COMPAGNIE CHOISIR?
+                                        </div>
+
+                                        {/* Hero: best airline highlight */}
+                                        {cheapestAirline && (
+                                            <div style={{
+                                                padding: '12px 14px', borderRadius: 12, marginBottom: 10,
+                                                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(14,165,233,0.08))',
+                                                border: '1px solid rgba(16,185,129,0.2)',
+                                                display: 'flex', alignItems: 'center', gap: 12,
+                                            }}>
+                                                <div style={{
+                                                    width: 44, height: 44, borderRadius: 12,
+                                                    background: 'rgba(16,185,129,0.15)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 20,
+                                                }}>✈️</div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {cheapestAirline.name}
+                                                    </div>
+                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 1 }}>
+                                                        La moins chère en moyenne sur cette destination
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {cheapestAirline.min}$
+                                                    </div>
+                                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>
+                                                        à partir de
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Saving tip */}
+                                        {savingVsWorst > 20 && (
+                                            <div style={{
+                                                padding: '6px 10px', borderRadius: 8, marginBottom: 10,
+                                                background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.1)',
+                                                fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif",
+                                                display: 'flex', alignItems: 'center', gap: 6,
+                                            }}>
+                                                <span>💡</span>
+                                                <span>En choisissant <strong style={{ color: '#10B981' }}>{cheapestAirline.name}</strong> plutôt que {mostExpensive.name}, tu économises en moyenne <strong style={{ color: '#10B981' }}>{savingVsWorst}$</strong></span>
+                                            </div>
+                                        )}
+
+                                        {/* Airline list with visual price bar */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            {topAirlines.map((a, i) => {
+                                                const airlineDeals = deals.filter(d => d.airline === a.name);
+                                                const hasDirect = airlineDeals.some(d => d.stops === 0);
+                                                const hasStopsOnly = !hasDirect && airlineDeals.some(d => d.stops > 0);
+                                                const avgDur = airlineDeals.filter(d => d.durationMinutes > 0);
+                                                const avgDuration = avgDur.length > 0 ? Math.round(avgDur.reduce((s, d) => s + d.durationMinutes, 0) / avgDur.length) : 0;
+                                                const bag = AIRLINE_BAGGAGE[a.name];
+                                                // Price bar relative to cheapest
+                                                const barMax = topAirlines[topAirlines.length - 1].avg;
+                                                const barMin = topAirlines[0].avg;
+                                                const barRange = barMax - barMin || 1;
+                                                const barPct = Math.max(20, Math.round(((a.avg - barMin) / barRange) * 80 + 20));
+                                                const barColor = i === 0 ? '#10B981' : i === 1 ? '#34D399' : a.avg > barMin + barRange * 0.7 ? '#F59E0B' : '#0EA5E9';
+
+                                                return (
+                                                    <div key={a.name} style={{
+                                                        padding: '8px 10px', borderRadius: 10,
+                                                        background: i === 0 ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
+                                                        border: `1px solid ${i === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)'}`,
+                                                    }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                                            <span style={{ fontSize: 11, fontWeight: 800, color: barColor, fontFamily: "'Fredoka', sans-serif", width: 14 }}>
+                                                                {i + 1}
+                                                            </span>
+                                                            <span style={{ fontSize: 12, fontWeight: 700, color: i === 0 ? '#10B981' : 'rgba(255,255,255,0.8)', fontFamily: "'Outfit', sans-serif", flex: 1 }}>
+                                                                {a.name}
+                                                            </span>
+                                                            <span style={{ fontSize: 15, fontWeight: 800, color: barColor, fontFamily: "'Fredoka', sans-serif" }}>
+                                                                {a.min}$
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Price bar */}
+                                                        <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', marginBottom: 4, overflow: 'hidden' }}>
+                                                            <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 2, background: barColor, opacity: 0.6 }} />
+                                                        </div>
+
+                                                        {/* Tags row */}
+                                                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                                            {hasDirect && (
+                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                                                                    Vol direct
+                                                                </span>
+                                                            )}
+                                                            {hasStopsOnly && (
+                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#F59E0B', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
+                                                                    Avec escale
+                                                                </span>
+                                                            )}
+                                                            {avgDuration > 0 && (
+                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
+                                                                    ~{formatDuration(avgDuration)}
+                                                                </span>
+                                                            )}
+                                                            {bag && (
+                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
+                                                                    {bag.checked ? '🧳 Bagage inclus' : bag.cabin ? '🎒 Cabine seulement' : '⚠️ Pas de bagage'}
+                                                                </span>
+                                                            )}
+                                                            <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
+                                                                {a.count} vol{a.count > 1 ? 's' : ''} · moy. {a.avg}$
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    );
+                                })()}
+
+                                {/* ── 5. STATS GRID: Month / Direct vs Stops / $/night ── */}
+                                <div style={{ padding: '12px 16px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                    {premiumAnalytics.cheapestMonth && (
+                                        <div style={{ flex: '1 1 45%', minWidth: 120, padding: '10px 12px', borderRadius: 12, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                                            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>MOIS LE - CHER</div>
+                                            <div style={{ fontSize: 15, fontWeight: 700, color: '#10B981', fontFamily: "'Fredoka', sans-serif", marginTop: 2 }}>{premiumAnalytics.cheapestMonth.name}</div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>dès {premiumAnalytics.cheapestMonth.min}$ · moy. {premiumAnalytics.cheapestMonth.avg}$</div>
+                                            {premiumAnalytics.monthSaving > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#10B981', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>-{premiumAnalytics.monthSaving}$ vs {premiumAnalytics.expensiveMonth?.name}</div>}
+                                        </div>
+                                    )}
+                                    {premiumAnalytics.directCount > 0 && premiumAnalytics.stopsCount > 0 && (
+                                        <div style={{ flex: '1 1 45%', minWidth: 120, padding: '10px 12px', borderRadius: 12, background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)' }}>
+                                            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>DIRECT VS ESCALE</div>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 2 }}>
+                                                <span style={{ fontSize: 15, fontWeight: 700, color: '#818CF8', fontFamily: "'Fredoka', sans-serif" }}>{premiumAnalytics.avgDirect}$</span>
+                                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>direct</span>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                <span style={{ fontSize: 13, fontWeight: 700, color: '#A78BFA', fontFamily: "'Fredoka', sans-serif" }}>{premiumAnalytics.avgWithStops}$</span>
+                                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>escale</span>
+                                            </div>
+                                            {premiumAnalytics.stopsSaving > 0 && <div style={{ fontSize: 10, fontWeight: 600, color: '#818CF8', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>-{premiumAnalytics.stopsSaving}$ avec escale</div>}
+                                        </div>
+                                    )}
+                                    {premiumAnalytics.bestPerNight && (
+                                        <div style={{ flex: '1 1 45%', minWidth: 120, padding: '10px 12px', borderRadius: 12, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                                            <div style={{ fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>MEILLEUR $/NUIT</div>
+                                            <div style={{ fontSize: 15, fontWeight: 700, color: '#F59E0B', fontFamily: "'Fredoka', sans-serif", marginTop: 2 }}>{premiumAnalytics.bestPerNight.perNight}$/nuit</div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>{premiumAnalytics.bestPerNight.nights}n · {Math.round(premiumAnalytics.bestPerNight.price)}$ total</div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>{formatDateFr(premiumAnalytics.bestPerNight.departureDate)} — {formatDateFr(premiumAnalytics.bestPerNight.returnDate)}</div>
+                                        </div>
+                                    )}
+                                </div>
+
+
+                                {/* ── NOTRE RECOMMANDATION VOL — best combo ── */}
+                                {premiumAnalytics.bestCombo && (
+                                    <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginBottom: 10, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            NOTRE RECOMMANDATION
+                                            <span style={{
+                                                fontSize: 7, padding: '2px 6px', borderRadius: 4,
+                                                background: 'linear-gradient(135deg, rgba(255,184,0,0.15), rgba(255,215,0,0.1))',
+                                                color: '#FFD700', fontWeight: 800,
+                                            }}>GEAI PICK</span>
+                                        </div>
+                                        <div style={{
+                                            padding: '14px', borderRadius: 14,
+                                            background: 'linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(139,92,246,0.06) 100%)',
+                                            border: '1px solid rgba(14,165,233,0.2)',
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                                <div style={{
+                                                    width: 40, height: 40, borderRadius: 10,
+                                                    background: 'linear-gradient(135deg, #0EA5E9, #8B5CF6)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    boxShadow: '0 4px 15px rgba(14,165,233,0.3)',
+                                                }}>
+                                                    <span style={{ fontSize: 18 }}>✈️</span>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {premiumAnalytics.bestCombo.airline}
+                                                    </div>
+                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>
+                                                        {premiumAnalytics.bestCombo.stops === 0 ? 'Vol direct' : `${premiumAnalytics.bestCombo.stops} escale${premiumAnalytics.bestCombo.stops > 1 ? 's' : ''}`}
+                                                        {premiumAnalytics.bestCombo.durationMinutes > 0 && ` · ${formatDuration(premiumAnalytics.bestCombo.durationMinutes)}`}
+                                                        {premiumAnalytics.bestCombo.nights > 0 && ` · ${premiumAnalytics.bestCombo.nights} nuits`}
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {Math.round(premiumAnalytics.bestCombo.price)}$
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>
+                                                    {formatDateFr(premiumAnalytics.bestCombo.departureDate)} → {formatDateFr(premiumAnalytics.bestCombo.returnDate)}
+                                                </span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: 10, color: 'rgba(255,255,255,0.45)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5,
+                                                padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.03)',
+                                            }}>
+                                                Meilleur rapport prix / confort / durée parmi {deals.length} options analysées.
+                                                {premiumAnalytics.bestCombo.stops === 0 && premiumAnalytics.bestCombo.price <= premiumAnalytics.priceMin * 1.1 &&
+                                                    ' Vol direct ET parmi les moins chers — combo rare!'
+                                                }
+                                            </div>
+                                            {premiumAnalytics.bestCombo.bookingLink && (
+                                                <a href={premiumAnalytics.bestCombo.bookingLink} target="_blank" rel="noopener noreferrer"
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                        marginTop: 8, padding: '10px', borderRadius: 10,
+                                                        background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                                        color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                        textDecoration: 'none', cursor: 'pointer',
+                                                        boxShadow: '0 4px 15px rgba(14,165,233,0.4)',
+                                                    }}>
+                                                    Réserver ce vol →
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Price Range Gauge ── */}
+                                <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginBottom: 8, letterSpacing: 0.5 }}>
+                                        POSITION DU MEILLEUR PRIX ACTUEL
+                                    </div>
+                                    <div style={{ position: 'relative', height: 8, borderRadius: 4, background: 'linear-gradient(90deg, #10B981, #F59E0B, #EF4444)' }}>
+                                        {(() => {
+                                            const range = premiumAnalytics.priceMax - premiumAnalytics.priceMin || 1;
+                                            const pos = Math.max(0, Math.min(100, ((bestPrice || premiumAnalytics.priceMin) - premiumAnalytics.priceMin) / range * 100));
+                                            return <div style={{
+                                                position: 'absolute', top: -4, left: `calc(${pos}% - 8px)`,
+                                                width: 16, height: 16, borderRadius: '50%',
+                                                background: '#fff', border: '3px solid #0EA5E9',
+                                                boxShadow: '0 2px 8px rgba(14,165,233,0.5)',
+                                            }} />;
+                                        })()}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>{premiumAnalytics.priceMin}$</span>
+                                        <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>fourchette scannée</span>
+                                        <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', fontFamily: "'Fredoka', sans-serif" }}>{premiumAnalytics.priceMax}$</span>
+                                    </div>
+                                </div>
+
+                                {/* ── ALERTE PRIX — CTA ── */}
+                                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div style={{
+                                        padding: '14px', borderRadius: 14,
+                                        background: 'linear-gradient(135deg, rgba(255,184,0,0.06) 0%, rgba(255,215,0,0.03) 100%)',
+                                        border: '1px solid rgba(255,215,0,0.15)',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                            <span style={{ fontSize: 22 }}>🔔</span>
+                                            <div>
+                                                <div style={{ fontSize: 12, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    Surveille ce prix pour moi
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>
+                                                    On te notifie quand le prix descend à <strong style={{ color: '#10B981' }}>{premiumAnalytics.targetPrice}$</strong> ou moins
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                fetch('/api/watchlist', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        destination: activeCity,
+                                                        destination_code: activeCode,
+                                                        target_price: premiumAnalytics.targetPrice,
+                                                    }),
+                                                }).then(() => {
+                                                    setPopupToast(`Alerte créée! On te prévient quand ${activeCity} descend à ${premiumAnalytics.targetPrice}$ ou moins.`);
+                                                    setTimeout(() => setPopupToast(''), 4000);
+                                                }).catch(() => {
+                                                    setPopupToast('Erreur — réessaie plus tard.');
+                                                    setTimeout(() => setPopupToast(''), 3000);
+                                                });
+                                            }}
+                                            style={{
+                                                width: '100%', padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                                                background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                                                color: '#5C4A00', fontSize: 12, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                                                boxShadow: '0 4px 15px rgba(255,184,0,0.3)',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                            }}>
+                                            Activer l&apos;alerte à {premiumAnalytics.targetPrice}$ →
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ── Arrogant Premium closer ── */}
+                                <div style={{
+                                    padding: '12px 16px', textAlign: 'center',
+                                }}>
+                                    <div style={{
+                                        padding: '10px 14px', borderRadius: 12,
+                                        background: 'linear-gradient(135deg, rgba(14,165,233,0.05), rgba(139,92,246,0.04))',
+                                        border: '1px solid rgba(14,165,233,0.1)',
+                                    }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>
+                                            {premiumAnalytics.savingsVsAvg >= 100
+                                                ? <>Tu viens d&apos;économiser <strong style={{ color: '#10B981' }}>{premiumAnalytics.savingsVsAvg}$</strong> grâce à cette analyse. Ton abonnement Premium vient de se rentabiliser <strong style={{ color: '#FFD700' }}>20 fois</strong>. De rien. 😎</>
+                                                : premiumAnalytics.savingsVsAvg >= 30
+                                                ? <>Score de deal, prévisions, rareté du prix, meilleure compagnie, alerte automatique... tout ça pour 5$/mois. Honnêtement, c&apos;est <strong style={{ color: '#FFD700' }}>donné</strong>. 🤷</>
+                                                : <>10 analyses, données en temps réel, pronostics personnalisés. Avoue que ça vaut <strong style={{ color: '#FFD700' }}>largement</strong> 5$/mois. On dit merci qui? 😏</>
+                                            }
+                                        </div>
+                                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
+                                            GeAI Intelligence · Données mises à jour quotidiennement
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            ) : (
+                            /* ── Premium Intelligence Teaser for free users ── */
+                            <PremiumLock label="Intelligence GeAI — Tu passes à côté de ça">
+                                <div style={{
+                                    marginBottom: 16, padding: '16px', borderRadius: 18,
+                                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                                    border: '1px solid rgba(14,165,233,0.2)',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                                        <div style={{
+                                            width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            <img src="/logo_geai.png" alt="GeAI" width={22} height={22} style={{ borderRadius: '50%' }} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>Intelligence GeAI</div>
+                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>12 analyses Premium · 5$/mois</div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {[
+                                            { icon: '💸', label: 'Combien tu économises vs la moyenne (ça rentabilise l\'abo)' },
+                                            { icon: '🎯', label: 'Score du deal sur 100 + recommandation achat/attendre' },
+                                            { icon: '🔥', label: 'Indice de rareté — ce prix apparaît combien de fois?' },
+                                            { icon: '⏪', label: '"Et si?" — aurais-tu mieux fait d\'acheter avant?' },
+                                            { icon: '🔮', label: 'Pronostic concret: attends X jours, économise ~Y$' },
+                                            { icon: '📈', label: 'Historique des prix 90 jours + prévisions 30 jours' },
+                                            { icon: '🧭', label: 'Boussole: le meilleur mois pour partir (1-3 ans de data)' },
+                                            { icon: '✈️', label: 'Notre recommandation vol (prix + confort + durée)' },
+                                            { icon: '🏆', label: 'Classement des compagnies + infos bagages' },
+                                            { icon: '🔔', label: 'Alerte prix automatique à ton prix cible' },
+                                        ].map((item, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+                                                <span style={{ fontSize: 14 }}>{item.icon}</span>
+                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: "'Outfit', sans-serif" }}>{item.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{
+                                        marginTop: 12, padding: '10px', borderRadius: 10, textAlign: 'center',
+                                        background: 'linear-gradient(135deg, rgba(255,184,0,0.08), rgba(255,215,0,0.04))',
+                                        border: '1px solid rgba(255,215,0,0.15)',
+                                    }}>
+                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#FFD700', fontFamily: "'Outfit', sans-serif" }}>
+                                            Tout ça pour le prix d&apos;un café par mois. Sérieusement. ☕
+                                        </div>
+                                    </div>
+                                </div>
+                            </PremiumLock>
+                            )
                         )}
 
                         {/* Error */}
@@ -1209,6 +2905,7 @@ export default function DestinationPopup({
 
                         {/* ═══ PRICE VS AVERAGE CHART ═══ */}
                         {(!isAllInclusive || packStep === 1) && avgPrice > 0 && sortedDeals.length > 1 && (
+                            tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 16, padding: '14px 16px', borderRadius: 16,
                                 background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
@@ -1308,6 +3005,87 @@ export default function DestinationPopup({
                                     </span>
                                 </div>
                             </div>
+                            ) : (
+                            <PremiumLock label="Historique des prix">
+                                <div style={{
+                                    marginBottom: 16, padding: '14px 16px', borderRadius: 16,
+                                    background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
+                                    border: '1px solid #E0F2FE',
+                                }}>
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        marginBottom: 10,
+                                    }}>
+                                        <span style={{
+                                            fontSize: 12, fontWeight: 700, color: '#0F172A',
+                                            fontFamily: "'Outfit', sans-serif",
+                                            display: 'flex', alignItems: 'center', gap: 5,
+                                        }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
+                                            Prix vs moyenne 90 jours
+                                        </span>
+                                        <span style={{
+                                            fontSize: 11, fontWeight: 600, color: '#94A3B8',
+                                            fontFamily: "'Fredoka', sans-serif",
+                                        }}>
+                                            Moy. {avgPrice} $
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {sortedDeals.slice(0, 8).map((deal, i) => {
+                                            const maxPrice = Math.max(avgPrice, ...sortedDeals.map(d => d.price));
+                                            const barWidth = Math.max(15, (deal.price / maxPrice) * 100);
+                                            const avgLinePos = (avgPrice / maxPrice) * 100;
+                                            const isBelow = deal.price < avgPrice;
+                                            const isCheap = deal.price === cheapestPrice;
+                                            return (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <span style={{
+                                                        fontSize: 9, fontWeight: 600, color: '#94A3B8',
+                                                        fontFamily: "'Outfit', sans-serif",
+                                                        width: 36, textAlign: 'right', flexShrink: 0,
+                                                    }}>
+                                                        {formatDateFr(deal.departureDate).split(' ')[0]}{' '}
+                                                        {['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
+                                                    </span>
+                                                    <div style={{
+                                                        flex: 1, height: 18, position: 'relative',
+                                                        background: '#E2E8F0', borderRadius: 4, overflow: 'hidden',
+                                                    }}>
+                                                        <div style={{
+                                                            height: '100%', borderRadius: 4,
+                                                            width: `${barWidth}%`,
+                                                            background: isCheap
+                                                                ? 'linear-gradient(90deg, #10B981, #34D399)'
+                                                                : isBelow
+                                                                    ? 'linear-gradient(90deg, #0EA5E9, #38BDF8)'
+                                                                    : 'linear-gradient(90deg, #F59E0B, #FBBF24)',
+                                                            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                                                            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                                                            paddingRight: 6,
+                                                        }}>
+                                                            <span style={{
+                                                                fontSize: 9, fontWeight: 700, color: '#fff',
+                                                                fontFamily: "'Fredoka', sans-serif",
+                                                                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                                            }}>
+                                                                {Math.round(deal.price)}$
+                                                            </span>
+                                                        </div>
+                                                        <div style={{
+                                                            position: 'absolute', top: 0, bottom: 0,
+                                                            left: `${avgLinePos}%`,
+                                                            width: 2, background: '#DC2626',
+                                                            opacity: 0.6,
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </PremiumLock>
+                            )
                         )}
 
                         {/* ═══ STEP 2 — HOTEL SELECTION (All-Inclusive) ═══ */}
@@ -1715,6 +3493,31 @@ export default function DestinationPopup({
 
                         {/* ═══ STEP 3 — AI DEAL ANALYSIS ═══ */}
                         {isAllInclusive && packStep === 3 && selectedFlight && selectedHotel && (
+                            !tier.aiPackAnalysis ? (
+                            <PremiumLock label="Analyse IA des tout-inclus">
+                                <div style={{
+                                    padding: '20px 16px', borderRadius: 16,
+                                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                                    border: '1px solid rgba(14,165,233,0.15)',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                        <div style={{
+                                            width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            <img src="/logo_geai.png" alt="GeAI" width={26} height={26} style={{ borderRadius: '50%' }} />
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                            Analyse IA du pack
+                                        </div>
+                                    </div>
+                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>
+                                        L&apos;IA analyse ton pack vol + hôtel pour trouver le meilleur rapport qualité-prix...
+                                    </div>
+                                </div>
+                            </PremiumLock>
+                            ) : (
                             <div style={{ animation: 'destFadeIn 0.3s ease-out' }}>
 
                                 {/* Back to Step 2 */}
@@ -2129,10 +3932,12 @@ export default function DestinationPopup({
                                     </div>
                                 )}
                             </div>
+                            )
                         )}
 
                         {/* ═══ DATE FLEXIBILITY SCROLLER ═══ */}
                         {(!isAllInclusive || packStep === 1) && dateFlexibility && (
+                            tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 14, padding: '12px 14px', borderRadius: 14,
                                 background: '#F8FAFC', border: '1px solid #E2E8F0',
@@ -2203,6 +4008,58 @@ export default function DestinationPopup({
                                     })}
                                 </div>
                             </div>
+                            ) : (
+                            <PremiumLock label="Meilleure semaine pour partir">
+                                <div style={{
+                                    marginBottom: 14, padding: '12px 14px', borderRadius: 14,
+                                    background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                }}>
+                                    <div style={{
+                                        fontSize: 11, fontWeight: 700, color: '#0F172A',
+                                        fontFamily: "'Outfit', sans-serif", marginBottom: 8,
+                                        display: 'flex', alignItems: 'center', gap: 5,
+                                    }}>
+                                        <span style={{ fontSize: 14 }}>&#x1F4C5;</span>
+                                        Flexibilit&eacute; des dates
+                                        <span style={{
+                                            fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+                                            background: 'rgba(16,185,129,0.1)', color: '#059669',
+                                        }}>
+                                            sem. la - ch&egrave;re : {dateFlexibility.cheapestWeek.minPrice}$
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+                                        {dateFlexibility.weeks.map((w, i) => {
+                                            const isCheapest = w.weekStart === dateFlexibility.cheapestWeek.weekStart;
+                                            const d = new Date(w.weekStart + 'T00:00:00');
+                                            const months = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+                                            return (
+                                                <div key={i} style={{
+                                                    flexShrink: 0, padding: '6px 10px', borderRadius: 10,
+                                                    background: isCheapest
+                                                        ? 'linear-gradient(135deg, #10B981, #059669)'
+                                                        : 'rgba(14,165,233,0.06)',
+                                                    border: isCheapest ? 'none' : '1px solid #E2E8F0',
+                                                    textAlign: 'center', minWidth: 60,
+                                                }}>
+                                                    <div style={{ fontSize: 10, fontWeight: 600, fontFamily: "'Outfit', sans-serif", color: isCheapest ? '#fff' : '#64748B' }}>
+                                                        {d.getDate()} {months[d.getMonth()]}
+                                                    </div>
+                                                    <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", color: isCheapest ? '#fff' : '#0F172A', marginTop: 2 }}>
+                                                        {Math.round(w.minPrice)}$
+                                                    </div>
+                                                    {isCheapest && (
+                                                        <div style={{ fontSize: 7, fontWeight: 800, color: 'rgba(255,255,255,0.9)', fontFamily: "'Fredoka', sans-serif", marginTop: 1 }}>
+                                                            MEILLEUR
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </PremiumLock>
+                            )
                         )}
 
                         {/* ═══ STEP 1 TITLE (All-Inclusive) ═══ */}
@@ -2226,7 +4083,7 @@ export default function DestinationPopup({
                         {/* ═══ DEAL DATE CARDS ═══ */}
                         {(!isAllInclusive || packStep === 1) && sortedDeals.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {sortedDeals.map((deal, i) => {
+                                {sortedDeals.slice(0, tier.dealsPerDestination).map((deal, i) => {
                                     const isCheapest = deal.price === cheapestPrice;
                                     const nights = deal.tripNights || getTripNights(deal.departureDate, deal.returnDate);
                                     const dealDiscount = deal.discount || (avgPrice > deal.price
@@ -2437,6 +4294,26 @@ export default function DestinationPopup({
                                         </CardTag>
                                     );
                                 })}
+
+                                {/* Premium upsell for hidden deals */}
+                                {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (
+                                    <a href="/pricing" style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                        padding: '14px 16px', borderRadius: 14,
+                                        background: 'linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.03))',
+                                        border: '1px dashed rgba(14,165,233,0.25)',
+                                        textDecoration: 'none', cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                    }}>
+                                        <span style={{ fontSize: 16 }}>&#x1F512;</span>
+                                        <span style={{
+                                            fontSize: 13, fontWeight: 700, color: '#0284C7',
+                                            fontFamily: "'Outfit', sans-serif",
+                                        }}>
+                                            +{sortedDeals.length - tier.dealsPerDestination} deals disponibles en Premium
+                                        </span>
+                                    </a>
+                                )}
 
                                 {/* Live search in progress indicator */}
                                 {liveSearching && (

@@ -7,6 +7,7 @@ import PriceHistoryChart from '@/components/ui/PriceHistoryChart';
 import PriceCalendar from '@/components/destination/PriceCalendar';
 import BestMonths from '@/components/destination/BestMonths';
 import { CITY_IMAGES, DEFAULT_CITY_IMAGE } from '@/lib/constants/deals';
+import { usePremium } from '@/lib/hooks/usePremium';
 
 interface DestinationClientProps {
     code: string;
@@ -14,7 +15,90 @@ interface DestinationClientProps {
     country: string;
 }
 
+// ── Premium lock overlay component ──
+function PremiumLock({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden' }}>
+            {/* Blurred content preview */}
+            <div style={{
+                filter: 'blur(6px)',
+                opacity: 0.55,
+                pointerEvents: 'none',
+                userSelect: 'none',
+            }}>
+                {children}
+            </div>
+            {/* Premium upsell overlay */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255,255,255,0.3)',
+                backdropFilter: 'blur(2px)',
+                borderRadius: 16,
+                zIndex: 2,
+            }}>
+                <div style={{
+                    background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                    borderRadius: 16,
+                    padding: '20px 32px',
+                    textAlign: 'center',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+                    maxWidth: 340,
+                }}>
+                    <div style={{
+                        fontSize: 28,
+                        marginBottom: 8,
+                    }}>🔒</div>
+                    <div style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: '#FFD700',
+                        fontFamily: "'Fredoka', sans-serif",
+                        marginBottom: 6,
+                    }}>
+                        {label}
+                    </div>
+                    <p style={{
+                        fontSize: 12,
+                        color: 'rgba(255,255,255,0.6)',
+                        fontFamily: "'Outfit', sans-serif",
+                        margin: '0 0 14px',
+                        lineHeight: 1.5,
+                    }}>
+                        Passe Premium pour accéder à l&apos;analyse complète de cette destination.
+                    </p>
+                    <a
+                        href="/pricing"
+                        style={{
+                            display: 'inline-block',
+                            background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                            color: '#5C4A00',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            fontFamily: "'Fredoka', sans-serif",
+                            padding: '10px 28px',
+                            borderRadius: 100,
+                            textDecoration: 'none',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,184,0,0.4)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                        ⭐ Débloquer — 4,99$/mois
+                    </a>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function DestinationClient({ code, city, country }: DestinationClientProps) {
+    const { isPremium, loading: premiumLoading } = usePremium();
+
     // Deal data
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [dealLevel, setDealLevel] = useState('normal');
@@ -80,6 +164,42 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .finally(() => setCalendarLoading(false));
     }, [code]);
 
+    // Determine if we show premium content
+    const showPremiumContent = isPremium || premiumLoading;
+
+    // Chart content (shared between locked/unlocked)
+    const chartContent = (
+        <div style={{
+            background: '#fff',
+            borderRadius: 16,
+            border: '1px solid #E2E8F0',
+            padding: 20,
+            marginBottom: 24,
+        }}>
+            <PriceHistoryChart
+                points={historyPoints}
+                avg={historyAvg}
+                min={historyMin}
+                max={historyMax}
+                days={historyDays}
+                onDaysChange={setHistoryDays}
+                loading={historyLoading}
+            />
+        </div>
+    );
+
+    const calendarContent = (
+        <div style={{ marginBottom: 24 }}>
+            <PriceCalendar dates={calendarDates} destinationCode={code} />
+        </div>
+    );
+
+    const bestMonthsContent = (
+        <div style={{ marginBottom: 24 }}>
+            <BestMonths dates={calendarDates} />
+        </div>
+    );
+
     return (
         <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
             <Navbar dark />
@@ -107,7 +227,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     &larr; Retour au palmarès
                 </a>
 
-                {/* Hero */}
+                {/* Hero — always visible */}
                 <DestinationHero
                     destination={city}
                     destinationCode={code}
@@ -119,7 +239,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     cheapestAirline={cheapestAirline}
                 />
 
-                {/* Stats summary */}
+                {/* Stats summary — always visible (basic info) */}
                 {historyAvg > 0 && (
                     <div style={{
                         display: 'grid',
@@ -162,7 +282,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     </div>
                 )}
 
-                {/* Cheapest month callout */}
+                {/* Cheapest month callout — always visible */}
                 {cheapestMonth && (
                     <div style={{
                         background: 'linear-gradient(135deg, #ECFDF5, #F0FDFA)',
@@ -186,37 +306,31 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     </div>
                 )}
 
+                {/* ═══ PREMIUM SECTIONS ═══ */}
+
                 {/* Price History Chart */}
-                <div style={{
-                    background: '#fff',
-                    borderRadius: 16,
-                    border: '1px solid #E2E8F0',
-                    padding: 20,
-                    marginBottom: 24,
-                }}>
-                    <PriceHistoryChart
-                        points={historyPoints}
-                        avg={historyAvg}
-                        min={historyMin}
-                        max={historyMax}
-                        days={historyDays}
-                        onDaysChange={setHistoryDays}
-                        loading={historyLoading}
-                    />
-                </div>
+                {showPremiumContent ? chartContent : (
+                    <PremiumLock label="Historique des prix">
+                        {chartContent}
+                    </PremiumLock>
+                )}
 
                 {/* Price Calendar */}
                 {!calendarLoading && Object.keys(calendarDates).length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                        <PriceCalendar dates={calendarDates} destinationCode={code} />
-                    </div>
+                    showPremiumContent ? calendarContent : (
+                        <PremiumLock label="Calendrier des prix">
+                            {calendarContent}
+                        </PremiumLock>
+                    )
                 )}
 
                 {/* Best Months */}
                 {!calendarLoading && Object.keys(calendarDates).length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                        <BestMonths dates={calendarDates} />
-                    </div>
+                    showPremiumContent ? bestMonthsContent : (
+                        <PremiumLock label="Meilleurs mois pour partir">
+                            {bestMonthsContent}
+                        </PremiumLock>
+                    )
                 )}
 
                 {/* JSON-LD structured data */}
@@ -257,3 +371,4 @@ export default function DestinationClient({ code, city, country }: DestinationCl
         </div>
     );
 }
+

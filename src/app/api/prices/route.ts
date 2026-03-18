@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { calculateRealDiscount } from '@/lib/services/flights';
-import { COUNTRY_SUBDESTINATIONS, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
+import { COUNTRY_SUBDESTINATIONS, ALL_INCLUSIVE_CODES, MAX_PRICE } from '@/lib/constants/deals';
 
 // ── In-memory cache (persists across requests on the same Vercel instance) ──
 let dealsCache: { data: any; timestamp: number } | null = null;
@@ -31,6 +31,7 @@ export async function GET() {
             .select('destination, destination_code, price, currency, airline, stops, departure_date, return_date, source, scanned_at, raw_data')
             .gte('scanned_at', thirtyDaysAgo)
             .neq('source', 'historical_seed')
+            .lte('price', MAX_PRICE)
             .order('price', { ascending: true });
 
         if (latestResult.error || !latestResult.data) {
@@ -88,6 +89,7 @@ export async function GET() {
             .gte('scanned_at', ninetyDaysAgo)
             .neq('source', 'historical_seed')
             .not('source', 'like', 'google_flights%')
+            .lte('price', MAX_PRICE)
             .order('scanned_at', { ascending: false })
             .limit(5000);
 

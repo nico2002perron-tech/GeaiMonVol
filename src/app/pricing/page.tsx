@@ -88,14 +88,16 @@ function PricingContent() {
             <ul className="pr-plan-features">
               <li><span className="pr-ck">&#10003;</span>Palmarès des deals en temps réel</li>
               <li><span className="pr-ck">&#10003;</span>Packs tout-inclus (vol + hôtel)</li>
-              <li><span className="pr-ck">&#10003;</span>Pages destination avec historique &amp; calendrier</li>
               <li><span className="pr-ck">&#10003;</span>Carte interactive</li>
+              <li><span className="pr-ck">&#10003;</span>5 deals par destination</li>
               <li><span className="pr-ck">&#10003;</span>Alertes courriel basiques</li>
               <li><span className="pr-ck">&#10003;</span>3 destinations en watchlist</li>
               <li><span className="pr-ck">&#10003;</span>1 guide IA — Québec</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Historique des prix et tendances</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Analyse IA des tout-inclus</li>
               <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Packs Expédition nomade</li>
               <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Boîte de réception personnalisée</li>
-              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Alertes avancées par préférences</li>
+              <li className="pr-feat-locked"><span className="pr-x">&#10005;</span>Alertes prioritaires</li>
             </ul>
             <div className="pr-plan-bottom">
               {!user ? (
@@ -122,12 +124,14 @@ function PricingContent() {
             </div>
             <ul className="pr-plan-features">
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Tout le plan gratuit inclus</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Tous les deals visibles (pas de limite)</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Historique des prix et tendances</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Analyse IA des tout-inclus</li>
+              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Alertes prioritaires (avant les gratuits)</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Packs Expédition nomade multi-étapes</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Boîte de réception personnalisée</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Alertes avancées (destination, budget, mois)</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Watchlist illimitée</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides IA illimités — monde entier</li>
-              <li><span className="pr-ck pr-ck-pro">&#9733;</span>Guides jusqu&apos;à 21 jours</li>
               <li><span className="pr-ck pr-ck-pro">&#9733;</span>Accès prioritaire aux nouveautés</li>
             </ul>
             <div className="pr-plan-bottom">

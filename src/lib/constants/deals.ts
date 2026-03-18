@@ -1,3 +1,6 @@
+/** Prix maximum affiché sur le site — tout au-dessus est exclu des résultats et calculs */
+export const MAX_PRICE = 2000;
+
 export const DEAL_LEVELS: Record<string, { label: string; bg: string; icon: string; textColor?: string }> = {
     lowest_ever: { label: 'PRIX RECORD', bg: '#7C3AED', icon: '⚡' },        // violet vif — rare, exceptionnel
     incredible:  { label: 'INCROYABLE',  bg: '#DC2626', icon: '🔥' },        // rouge — 40%+ rabais

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { searchRoundTrip, resolveEntityId, buildBookingLink } from '@/lib/providers/flights/skyscanner';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { MAX_PRICE } from '@/lib/constants/deals';
 
 export const maxDuration = 30;
 
@@ -77,8 +78,9 @@ export async function GET(request: Request) {
 
                 if (flights.length === 0) continue;
 
-                // Take the cheapest flight for each month
+                // Take the cheapest flight for each month (skip if above MAX_PRICE)
                 const cheapest = flights[0];
+                if (cheapest.price > MAX_PRICE) continue;
                 const link = buildBookingLink(origin, code, dp.outbound, dp.returnDate);
 
                 // Estimate seats remaining based on days until departure + price level

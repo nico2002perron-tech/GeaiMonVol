@@ -33,7 +33,7 @@ export const FLIGHT_DEALS: Deal[] = [
         country: "Japon",
         price: 950,
         originalPrice: 1400,
-        discount: 35,
+        discount: 32,
         route: "YUL - HND",
         dates: "1-15 Nov",
         coords: [139.6917, 35.6895],

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { calculateRealDiscount } from '@/lib/services/flights';
+import { MAX_PRICE } from '@/lib/constants/deals';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -28,12 +29,14 @@ export async function GET(request: Request) {
                 .select('*')
                 .eq(filterCol, filterVal)
                 .gte('scanned_at', thirtyDaysAgo)
+                .lte('price', MAX_PRICE)
                 .order('price', { ascending: true }),
             supabase
                 .from('price_history')
                 .select('price')
                 .eq(filterCol, filterVal)
                 .gte('scanned_at', ninetyDaysAgo)
+                .lte('price', MAX_PRICE)
                 .neq('source', 'historical_seed')
                 .not('source', 'like', 'google_flights%'),
         ]);
@@ -47,8 +50,19 @@ export async function GET(request: Request) {
             (row: any) => !row.source?.startsWith('google_flights') && row.source !== 'historical_seed'
         );
 
-        // Calculate average + median price from 90-day history
-        const histPrices = (historyResult.data || []).map((r: any) => r.price).filter(Boolean);
+        // IQR outlier filter
+        function filterOutliers(arr: number[]): number[] {
+            if (arr.length < 4) return arr;
+            const s = [...arr].sort((a, b) => a - b);
+            const q1 = s[Math.floor(s.length * 0.25)];
+            const q3 = s[Math.floor(s.length * 0.75)];
+            const iqr = q3 - q1;
+            return arr.filter(v => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr);
+        }
+
+        // Calculate average + median price from 90-day history (outliers removed)
+        const histPricesRaw = (historyResult.data || []).map((r: any) => r.price).filter(Boolean);
+        const histPrices = filterOutliers(histPricesRaw);
         const avgPrice = histPrices.length > 0
             ? Math.round(histPrices.reduce((a: number, b: number) => a + b, 0) / histPrices.length)
             : 0;

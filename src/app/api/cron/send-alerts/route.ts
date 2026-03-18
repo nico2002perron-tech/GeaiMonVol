@@ -52,7 +52,8 @@ export async function GET(request: Request) {
         }
 
         let totalSent = 0;
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        // Use 90-day window to match /api/prices and calculateRealDiscount
+        const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
 
         // 3. Pour chaque utilisateur, filtrer les deals pertinents
         for (const user of users) {
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
                     .from('price_history')
                     .select('price, scanned_at')
                     .eq('destination', dest)
-                    .gte('scanned_at', thirtyDaysAgo);
+                    .gte('scanned_at', ninetyDaysAgo);
 
                 const discountInfo = calculateRealDiscount((p as any).price, history || []);
 
@@ -90,8 +91,14 @@ export async function GET(request: Request) {
             }
 
             if (userDeals.length > 0) {
-                // Envoyer l'email
-                await sendDealAlert(user.email, user.full_name || user.email, userDeals, isPremium);
+                // Envoyer l'email — Premium reçoit en premier (tri par plan desc)
+                // + marqueur isPriority pour renforcer la valeur perçue
+                await sendDealAlert(
+                    user.email,
+                    user.full_name || user.email,
+                    userDeals,
+                    isPremium,
+                );
                 totalSent++;
             }
         }
@@ -116,7 +123,7 @@ export async function GET(request: Request) {
                     .from('price_history')
                     .select('price, scanned_at')
                     .eq('destination', deal.destination)
-                    .gte('scanned_at', thirtyDaysAgo)
+                    .gte('scanned_at', ninetyDaysAgo)
                     .limit(200);
 
                 const discountInfo = calculateRealDiscount(deal.price, history || []);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { MAX_PRICE } from '@/lib/constants/deals';
 
 export async function GET(req: NextRequest) {
     const code = req.nextUrl.searchParams.get('code');
@@ -26,6 +27,7 @@ export async function GET(req: NextRequest) {
             .lte('departure_date', end)
             .neq('source', 'historical_seed')
             .not('source', 'like', 'google_flights%')
+            .lte('price', MAX_PRICE)
             .order('departure_date', { ascending: true })
             .limit(2000);
 
@@ -45,6 +47,19 @@ export async function GET(req: NextRequest) {
                     stops: row.stops ?? -1,
                     returnDate: row.return_date || null,
                 };
+            }
+        }
+
+        // IQR outlier filter — remove aberrant prices from calendar
+        const allPrices = Object.values(byDate).map(d => d.price);
+        if (allPrices.length >= 4) {
+            const sorted = [...allPrices].sort((a, b) => a - b);
+            const q1 = sorted[Math.floor(sorted.length * 0.25)];
+            const q3 = sorted[Math.floor(sorted.length * 0.75)];
+            const iqr = q3 - q1;
+            const upper = q3 + 1.5 * iqr;
+            for (const [dateKey, info] of Object.entries(byDate)) {
+                if (info.price > upper) delete byDate[dateKey];
             }
         }
 
