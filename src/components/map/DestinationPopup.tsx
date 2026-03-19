@@ -6,7 +6,6 @@ import type { SubDestination } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { TIERS } from '@/lib/constants/premium';
-import PriceHistoryChart from '@/components/ui/PriceHistoryChart';
 
 interface DestinationDeal {
     price: number;
@@ -272,6 +271,11 @@ export default function DestinationPopup({
     const [monthlyYears, setMonthlyYears] = useState<1 | 2 | 3>(1);
     const [monthlyLoading, setMonthlyLoading] = useState(false);
 
+    // Calendar: extra dates for premium users (fetched from /api/prices/calendar)
+    const [calendarDates, setCalendarDates] = useState<Record<string, { price: number; airline: string; stops: number; returnDate: string | null }>>({});
+    // Calendar navigation: current month key "YYYY-MM"
+    const [calMonth, setCalMonth] = useState('');
+
     // Premium: predictive forecast
     interface ForecastData {
         verdict: 'BUY_NOW' | 'BUY_SOON' | 'WAIT' | 'NEUTRAL';
@@ -362,6 +366,8 @@ export default function DestinationPopup({
         setMonthlyData(null);
         setMonthlyYears(1);
         setForecast(null);
+        setCalendarDates({});
+        setCalMonth('');
     }, [isOpen]);
 
     // Fetch hotels for all-inclusive destinations
@@ -386,6 +392,17 @@ export default function DestinationPopup({
             .catch(() => setHotels([]))
             .finally(() => setHotelsLoading(false));
     }, [isOpen, activeCode, isAllInclusive]);
+
+    // Premium: fetch extended calendar dates (6 months of best-price-per-day)
+    useEffect(() => {
+        if (!isOpen || !activeCode || activeCode.length < 3 || !isPremium) return;
+        fetch(`/api/prices/calendar?code=${encodeURIComponent(activeCode)}&months=6`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.dates) setCalendarDates(data.dates);
+            })
+            .catch(() => setCalendarDates({}));
+    }, [isOpen, activeCode, isPremium]);
 
     // Premium: fetch price history (90-day time-series)
     useEffect(() => {
@@ -1970,19 +1987,6 @@ export default function DestinationPopup({
                                     </div>
                                 )}
 
-                                {/* ── 2. PRICE HISTORY CHART (real data from API) ── */}
-                                <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                    <PriceHistoryChart
-                                        points={historyPoints}
-                                        avg={historyStats.avg}
-                                        min={historyStats.min}
-                                        max={historyStats.max}
-                                        days={historyDays}
-                                        onDaysChange={(d) => setHistoryDays(d as 30 | 60 | 90)}
-                                        loading={historyLoading}
-                                    />
-                                </div>
-
                                 {/* ── 2b. GOOGLE FLIGHTS PRICE INSIGHTS (6-12 month historical) ── */}
                                 {(priceInsights || insightsLoading) && (
                                     <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
@@ -2041,105 +2045,8 @@ export default function DestinationPopup({
                                                     </div>
                                                 </div>
 
-                                                {/* Long-term Price History Graph (SVG) */}
-                                                {priceInsights.price_history.length > 2 && (() => {
-                                                    const pts = priceInsights.price_history
-                                                        .filter(([ts, p]) => ts > 0 && p > 0)
-                                                        .sort((a, b) => a[0] - b[0]);
-                                                    if (pts.length < 3) return null;
 
-                                                    const prices = pts.map(([, p]) => p);
-                                                    const minP = Math.min(...prices);
-                                                    const maxP = Math.max(...prices);
-                                                    const rangeP = maxP - minP || 1;
 
-                                                    const W = 300;
-                                                    const H = 100;
-                                                    const padX = 0;
-                                                    const padY = 8;
-
-                                                    const pathPoints = pts.map(([ts, p], i) => {
-                                                        const x = padX + (i / (pts.length - 1)) * (W - padX * 2);
-                                                        const y = padY + (1 - (p - minP) / rangeP) * (H - padY * 2);
-                                                        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-                                                    }).join(' ');
-
-                                                    // Area fill
-                                                    const areaPath = pathPoints
-                                                        + ` L${(padX + (W - padX * 2)).toFixed(1)},${H} L${padX},${H} Z`;
-
-                                                    // Typical range band
-                                                    const typLow = priceInsights.typical_price_range[0];
-                                                    const typHigh = priceInsights.typical_price_range[1];
-                                                    const bandTop = padY + (1 - (typHigh - minP) / rangeP) * (H - padY * 2);
-                                                    const bandBot = padY + (1 - (typLow - minP) / rangeP) * (H - padY * 2);
-
-                                                    // Date labels (GF timestamps are in seconds, not ms)
-                                                    const toMs = (t: number) => t < 10000000000 ? t * 1000 : t;
-                                                    const firstDate = new Date(toMs(pts[0][0]));
-                                                    const lastDate = new Date(toMs(pts[pts.length - 1][0]));
-                                                    const monthsFr = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-                                                    const startLabel = `${monthsFr[firstDate.getMonth()]} ${firstDate.getFullYear()}`;
-                                                    const endLabel = `${monthsFr[lastDate.getMonth()]} ${lastDate.getFullYear()}`;
-
-                                                    return (
-                                                        <div>
-                                                            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginBottom: 6 }}>
-                                                                Évolution des prix ({startLabel} → {endLabel})
-                                                            </div>
-                                                            <svg viewBox={`0 0 ${W} ${H + 20}`} width="100%" height="auto" style={{ display: 'block' }}>
-                                                                {/* Typical range band */}
-                                                                <rect x={padX} y={Math.max(0, bandTop)} width={W - padX * 2}
-                                                                    height={Math.max(0, bandBot - bandTop)}
-                                                                    fill="rgba(14,165,233,0.08)" rx="2" />
-                                                                <line x1={padX} y1={bandTop} x2={W - padX} y2={bandTop}
-                                                                    stroke="rgba(14,165,233,0.2)" strokeWidth="0.5" strokeDasharray="3,3" />
-                                                                <line x1={padX} y1={bandBot} x2={W - padX} y2={bandBot}
-                                                                    stroke="rgba(14,165,233,0.2)" strokeWidth="0.5" strokeDasharray="3,3" />
-
-                                                                {/* Area under curve */}
-                                                                <path d={areaPath} fill="url(#insights-grad)" opacity="0.3" />
-
-                                                                {/* Price line */}
-                                                                <path d={pathPoints} fill="none" stroke="#0EA5E9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-
-                                                                {/* Gradient def */}
-                                                                <defs>
-                                                                    <linearGradient id="insights-grad" x1="0" y1="0" x2="0" y2="1">
-                                                                        <stop offset="0%" stopColor="#0EA5E9" stopOpacity="0.4" />
-                                                                        <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0" />
-                                                                    </linearGradient>
-                                                                </defs>
-
-                                                                {/* Min/Max labels */}
-                                                                <text x={padX + 2} y={padY + (1 - (maxP - minP) / rangeP) * (H - padY * 2) - 3}
-                                                                    fill="#10B981" fontSize="8" fontFamily="Fredoka" fontWeight="700">{Math.round(maxP)}$</text>
-                                                                <text x={padX + 2} y={padY + (H - padY * 2) + 10}
-                                                                    fill="#10B981" fontSize="8" fontFamily="Fredoka" fontWeight="700">{Math.round(minP)}$</text>
-
-                                                                {/* Typical range labels */}
-                                                                <text x={W - padX - 2} y={bandTop - 2}
-                                                                    fill="rgba(14,165,233,0.5)" fontSize="7" fontFamily="Outfit" textAnchor="end">{Math.round(typHigh)}$</text>
-                                                                <text x={W - padX - 2} y={bandBot + 9}
-                                                                    fill="rgba(14,165,233,0.5)" fontSize="7" fontFamily="Outfit" textAnchor="end">{Math.round(typLow)}$</text>
-
-                                                                {/* Date axis */}
-                                                                <text x={padX} y={H + 14} fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Outfit">{startLabel}</text>
-                                                                <text x={W - padX} y={H + 14} fill="rgba(255,255,255,0.3)" fontSize="7" fontFamily="Outfit" textAnchor="end">{endLabel}</text>
-                                                            </svg>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                                    <div style={{ width: 12, height: 2, borderRadius: 1, background: '#0EA5E9' }} />
-                                                                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>Prix observé</span>
-                                                                </div>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                                    <div style={{ width: 12, height: 6, borderRadius: 1, background: 'rgba(14,165,233,0.15)' }} />
-                                                                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>Fourchette typique</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()}
                                             </>
                                         )}
                                     </div>
@@ -2184,26 +2091,21 @@ export default function DestinationPopup({
                                                     </div>
                                                 );
                                             }
-                                            const medians = withData.map(m => m.median);
                                             const cheapest = withData.reduce((a, b) => a.median < b.median ? a : b);
                                             const expensive = withData.reduce((a, b) => a.median > b.median ? a : b);
                                             const saving = expensive.median - cheapest.median;
                                             const savingPct = expensive.median > 0 ? Math.round((saving / expensive.median) * 100) : 0;
+                                            const medians = withData.map(m => m.median);
                                             const globalMin = Math.min(...medians);
                                             const globalMax = Math.max(...medians);
                                             const globalRange = globalMax - globalMin || 1;
-
-                                            // Color function: green (cheap) → yellow → red (expensive)
                                             const getColor = (median: number) => {
                                                 const ratio = (median - globalMin) / globalRange;
                                                 if (ratio < 0.33) return { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', text: '#10B981', ring: '#10B981' };
                                                 if (ratio < 0.66) return { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', text: '#F59E0B', ring: '#F59E0B' };
                                                 return { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', text: '#EF4444', ring: '#EF4444' };
                                             };
-
-                                            // SVG Compass dimensions
                                             const CX = 140, CY = 140, R = 105, nodeR = 24;
-
                                             return (
                                                 <>
                                                     {/* ── Hero insight card ── */}
@@ -2270,7 +2172,6 @@ export default function DestinationPopup({
                                                         {(() => {
                                                             const areaPoints = monthlyData.months.map((m, i) => {
                                                                 const angle = (i * 30 - 90) * Math.PI / 180;
-                                                                // Invert: cheaper = further from center (more desirable = bigger area)
                                                                 const scale = m.count > 0 ? 0.35 + 0.55 * (1 - (m.median - globalMin) / globalRange) : 0.35;
                                                                 const r = R * scale;
                                                                 return `${(CX + r * Math.cos(angle)).toFixed(1)},${(CY + r * Math.sin(angle)).toFixed(1)}`;
@@ -2342,136 +2243,6 @@ export default function DestinationPopup({
                                                         </text>
                                                     </svg>
 
-                                                    {/* ── Year-by-Month Heatmap Grid ── */}
-                                                    {Object.keys(monthlyData.grid).length > 0 && (
-                                                        <div style={{ marginTop: 14 }}>
-                                                            <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginBottom: 6, letterSpacing: 0.5 }}>
-                                                                GRILLE ANNÉE × MOIS (MÉDIANE)
-                                                            </div>
-                                                            {/* Column headers */}
-                                                            <div style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
-                                                                <div style={{ width: 32, flexShrink: 0 }} />
-                                                                {monthsFr.map(m => (
-                                                                    <div key={m} style={{
-                                                                        flex: 1, textAlign: 'center', fontSize: 7, fontWeight: 700,
-                                                                        color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif",
-                                                                    }}>{m}</div>
-                                                                ))}
-                                                            </div>
-                                                            {/* Year rows */}
-                                                            {Object.entries(monthlyData.grid).sort(([a], [b]) => a.localeCompare(b)).map(([year, months]) => (
-                                                                <div key={year} style={{ display: 'flex', gap: 2, marginBottom: 2 }}>
-                                                                    <div style={{
-                                                                        width: 32, flexShrink: 0, fontSize: 9, fontWeight: 700,
-                                                                        color: 'rgba(255,255,255,0.4)', fontFamily: "'Fredoka', sans-serif",
-                                                                        display: 'flex', alignItems: 'center',
-                                                                    }}>{year}</div>
-                                                                    {Array.from({ length: 12 }, (_, i) => {
-                                                                        const cell = months[i];
-                                                                        if (!cell) return (
-                                                                            <div key={i} style={{
-                                                                                flex: 1, height: 26, borderRadius: 4,
-                                                                                background: 'rgba(255,255,255,0.02)',
-                                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                            }}>
-                                                                                <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.1)' }}>—</span>
-                                                                            </div>
-                                                                        );
-                                                                        const col = getColor(cell.median);
-                                                                        const isBestCell = cell.median === cheapest.median;
-                                                                        return (
-                                                                            <div key={i} title={`${monthsFullFr[i]} ${year}: médiane ${cell.median}$, min ${cell.min}$, max ${cell.max}$ (${cell.count} prix)`}
-                                                                                style={{
-                                                                                    flex: 1, height: 26, borderRadius: 4,
-                                                                                    background: col.bg, border: `1px solid ${isBestCell ? '#10B981' : col.border}`,
-                                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                                                    cursor: 'default', transition: 'transform 0.15s',
-                                                                                }}
-                                                                                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
-                                                                                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}>
-                                                                                <span style={{
-                                                                                    fontSize: 8, fontWeight: 800, color: col.text,
-                                                                                    fontFamily: "'Fredoka', sans-serif",
-                                                                                }}>{cell.median}$</span>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            ))}
-                                                            {/* Legend */}
-                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 6 }}>
-                                                                {[
-                                                                    { color: '#10B981', label: 'Pas cher' },
-                                                                    { color: '#F59E0B', label: 'Moyen' },
-                                                                    { color: '#EF4444', label: 'Cher' },
-                                                                ].map(l => (
-                                                                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                                                        <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color, opacity: 0.3 }} />
-                                                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>{l.label}</span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* ── Detailed Month Bars with IQR ── */}
-                                                    <div style={{ marginTop: 14 }}>
-                                                        <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginBottom: 8, letterSpacing: 0.5 }}>
-                                                            DÉTAIL PAR MOIS · MÉDIANE + ÉTENDUE
-                                                        </div>
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                                                            {withData.sort((a, b) => a.median - b.median).map((m, i) => {
-                                                                const barW = globalMax > 0 ? Math.max(10, (m.median / globalMax) * 100) : 50;
-                                                                const isBest = m.month === cheapest.month;
-                                                                const col = getColor(m.median);
-                                                                // IQR range as percentage of the bar width
-                                                                const rangeStart = globalMax > 0 ? (m.min / globalMax) * 100 : 0;
-                                                                const rangeEnd = globalMax > 0 ? (m.max / globalMax) * 100 : 100;
-                                                                return (
-                                                                    <div key={m.month} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                        <span style={{
-                                                                            fontSize: 9, fontWeight: 700, width: 30, textAlign: 'right', flexShrink: 0,
-                                                                            color: isBest ? '#10B981' : 'rgba(255,255,255,0.4)',
-                                                                            fontFamily: "'Outfit', sans-serif",
-                                                                        }}>{monthsFr[m.month]}</span>
-                                                                        <div style={{ flex: 1, height: 20, borderRadius: 5, background: 'rgba(255,255,255,0.03)', position: 'relative', overflow: 'hidden' }}>
-                                                                            {/* Min-Max range band */}
-                                                                            <div style={{
-                                                                                position: 'absolute', top: 6, height: 8, borderRadius: 4,
-                                                                                left: `${rangeStart}%`, width: `${rangeEnd - rangeStart}%`,
-                                                                                background: 'rgba(255,255,255,0.04)',
-                                                                            }} />
-                                                                            {/* Median bar */}
-                                                                            <div style={{
-                                                                                height: '100%', borderRadius: 5, width: `${barW}%`,
-                                                                                background: isBest
-                                                                                    ? 'linear-gradient(90deg, #10B981, #34D399)'
-                                                                                    : `linear-gradient(90deg, ${col.ring}66, ${col.ring}33)`,
-                                                                                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6,
-                                                                                transition: 'width 0.4s ease-out',
-                                                                            }}>
-                                                                                <span style={{
-                                                                                    fontSize: 9, fontWeight: 800, color: '#fff',
-                                                                                    fontFamily: "'Fredoka', sans-serif", textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                                                                                }}>{m.median}$</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div style={{ flexShrink: 0, textAlign: 'right', width: 55 }}>
-                                                                            <span style={{
-                                                                                fontSize: 8, color: 'rgba(255,255,255,0.25)',
-                                                                                fontFamily: "'Outfit', sans-serif",
-                                                                            }}>{m.min}–{m.max}$</span>
-                                                                        </div>
-                                                                        <span style={{
-                                                                            fontSize: 8, color: 'rgba(255,255,255,0.2)', width: 16, textAlign: 'right', flexShrink: 0,
-                                                                            fontFamily: "'Outfit', sans-serif",
-                                                                        }}>{m.count}</span>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-
                                                     {/* ── Pro tips ── */}
                                                     {saving > 30 && (
                                                         <div style={{
@@ -2491,133 +2262,244 @@ export default function DestinationPopup({
                                 )}
 
 
-                                {/* ── 3. AIRLINE RANKING — improved ── */}
-                                {premiumAnalytics.airlines.length > 1 && (() => {
-                                    const topAirlines = premiumAnalytics.airlines.slice(0, 5);
-                                    const cheapestAirline = topAirlines[0];
-                                    const mostExpensive = topAirlines[topAirlines.length - 1];
-                                    const savingVsWorst = mostExpensive && cheapestAirline ? mostExpensive.avg - cheapestAirline.avg : 0;
+                                {/* ── 3. PRICE CALENDAR — compact single-month with navigation ── */}
+                                {deals.length >= 3 && (() => {
+                                    // Build merged price-per-date map
+                                    const dateMap: Record<string, { price: number; airline: string; stops: number; bookingLink: string; returnDate: string }> = {};
+                                    for (const d of deals) {
+                                        const dk = d.departureDate.slice(0, 10);
+                                        if (!dateMap[dk] || d.price < dateMap[dk].price) {
+                                            dateMap[dk] = { price: Math.round(d.price), airline: d.airline, stops: d.stops, bookingLink: d.bookingLink, returnDate: d.returnDate };
+                                        }
+                                    }
+                                    if (isPremium && calendarDates) {
+                                        for (const [dk, cd] of Object.entries(calendarDates)) {
+                                            if (!dateMap[dk] || cd.price < dateMap[dk].price) {
+                                                const link = `https://www.skyscanner.ca/transport/flights/yul/${activeCode.toLowerCase()}/${dk.replace(/-/g, '')}/${cd.returnDate?.replace(/-/g, '') || ''}/?adultsv2=1&cabinclass=economy`;
+                                                dateMap[dk] = { price: Math.round(cd.price), airline: cd.airline, stops: cd.stops, bookingLink: link, returnDate: cd.returnDate || '' };
+                                            }
+                                        }
+                                    }
+                                    const allCalPrices = Object.values(dateMap).map(d => d.price);
+                                    if (allCalPrices.length < 2) return null;
+                                    const calMin = Math.min(...allCalPrices);
+                                    const calMax = Math.max(...allCalPrices);
+                                    const calRange = calMax - calMin || 1;
+                                    const totalDates = allCalPrices.length;
+
+                                    const todayStr = new Date().toISOString().slice(0, 10);
+                                    const futureKeys = Object.keys(dateMap).filter(dk => dk >= todayStr).sort();
+                                    if (futureKeys.length === 0) return null;
+
+                                    // Available months
+                                    const firstMk = futureKeys[0].slice(0, 7);
+                                    const lastMk = futureKeys[futureKeys.length - 1].slice(0, 7);
+                                    const monthKeys: string[] = [];
+                                    let cursor = firstMk;
+                                    while (cursor <= lastMk) {
+                                        monthKeys.push(cursor);
+                                        const [cy, cm] = cursor.split('-').map(Number);
+                                        cursor = cm === 12 ? `${cy + 1}-01` : `${cy}-${String(cm + 1).padStart(2, '0')}`;
+                                    }
+                                    // Free users: limit to first 2 months
+                                    const availableMonths = isPremium ? monthKeys : monthKeys.slice(0, 2);
+                                    if (availableMonths.length === 0) return null;
+
+                                    // Current displayed month (default to first available)
+                                    const activeMk = calMonth && availableMonths.includes(calMonth) ? calMonth : availableMonths[0];
+                                    const activeIdx = availableMonths.indexOf(activeMk);
+                                    const canPrev = activeIdx > 0;
+                                    const canNext = activeIdx < availableMonths.length - 1;
+
+                                    const [yr, mo] = activeMk.split('-');
+                                    const monthIdx = parseInt(mo, 10) - 1;
+                                    const daysInMonth = new Date(parseInt(yr), monthIdx + 1, 0).getDate();
+                                    const startDow = (new Date(parseInt(yr), monthIdx, 1).getDay() + 6) % 7;
+                                    const MOIS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                                    const JOURS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+                                    // Count deals this month & find cheapest this month
+                                    let dealsThisMonth = 0;
+                                    let cheapestThisMonth = Infinity;
+                                    for (let d = 1; d <= daysInMonth; d++) {
+                                        const ds = `${yr}-${mo}-${String(d).padStart(2, '0')}`;
+                                        if (dateMap[ds] && ds >= todayStr) {
+                                            dealsThisMonth++;
+                                            if (dateMap[ds].price < cheapestThisMonth) cheapestThisMonth = dateMap[ds].price;
+                                        }
+                                    }
+
                                     return (
                                     <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginBottom: 10, letterSpacing: 0.5 }}>
-                                            QUELLE COMPAGNIE CHOISIR?
+                                        {/* Header row */}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>
+                                                CALENDRIER DES PRIX
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                {[
+                                                    { color: '#10B981', label: 'Bon' },
+                                                    { color: '#F59E0B', label: 'Moy.' },
+                                                    { color: '#EF4444', label: 'Cher' },
+                                                ].map(l => (
+                                                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <div style={{ width: 5, height: 5, borderRadius: 1, background: l.color, opacity: 0.7 }} />
+                                                        <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>{l.label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        {/* Hero: best airline highlight */}
-                                        {cheapestAirline && (
-                                            <div style={{
-                                                padding: '12px 14px', borderRadius: 12, marginBottom: 10,
-                                                background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(14,165,233,0.08))',
-                                                border: '1px solid rgba(16,185,129,0.2)',
-                                                display: 'flex', alignItems: 'center', gap: 12,
-                                            }}>
-                                                <div style={{
-                                                    width: 44, height: 44, borderRadius: 12,
-                                                    background: 'rgba(16,185,129,0.15)',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 20,
-                                                }}>✈️</div>
-                                                <div style={{ flex: 1 }}>
-                                                    <div style={{ fontSize: 13, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
-                                                        {cheapestAirline.name}
-                                                    </div>
-                                                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", marginTop: 1 }}>
-                                                        La moins chère en moyenne sur cette destination
-                                                    </div>
+                                        {/* Month navigation */}
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            marginBottom: 10, padding: '6px 4px',
+                                            background: 'rgba(255,255,255,0.03)', borderRadius: 10,
+                                        }}>
+                                            <button onClick={() => canPrev && setCalMonth(availableMonths[activeIdx - 1])}
+                                                style={{
+                                                    width: 28, height: 28, borderRadius: 8, border: 'none', cursor: canPrev ? 'pointer' : 'default',
+                                                    background: canPrev ? 'rgba(14,165,233,0.1)' : 'transparent',
+                                                    color: canPrev ? '#0EA5E9' : 'rgba(255,255,255,0.1)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                                                    transition: 'all 0.15s',
+                                                }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                            </button>
+                                            <div style={{ textAlign: 'center' }}>
+                                                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    {MOIS_FR[monthIdx]} {yr}
                                                 </div>
-                                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
-                                                        {cheapestAirline.min}$
-                                                    </div>
-                                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif" }}>
-                                                        à partir de
-                                                    </div>
+                                                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Outfit', sans-serif", marginTop: 1 }}>
+                                                    {dealsThisMonth > 0 ? `${dealsThisMonth} vol${dealsThisMonth > 1 ? 's' : ''} · dès ${cheapestThisMonth}$` : 'Aucun vol ce mois'}
                                                 </div>
                                             </div>
-                                        )}
+                                            <button onClick={() => canNext && setCalMonth(availableMonths[activeIdx + 1])}
+                                                style={{
+                                                    width: 28, height: 28, borderRadius: 8, border: 'none', cursor: canNext ? 'pointer' : 'default',
+                                                    background: canNext ? 'rgba(14,165,233,0.1)' : 'transparent',
+                                                    color: canNext ? '#0EA5E9' : 'rgba(255,255,255,0.1)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                                                    transition: 'all 0.15s',
+                                                }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                                            </button>
+                                        </div>
 
-                                        {/* Saving tip */}
-                                        {savingVsWorst > 20 && (
-                                            <div style={{
-                                                padding: '6px 10px', borderRadius: 8, marginBottom: 10,
-                                                background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.1)',
-                                                fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif",
-                                                display: 'flex', alignItems: 'center', gap: 6,
-                                            }}>
-                                                <span>💡</span>
-                                                <span>En choisissant <strong style={{ color: '#10B981' }}>{cheapestAirline.name}</strong> plutôt que {mostExpensive.name}, tu économises en moyenne <strong style={{ color: '#10B981' }}>{savingVsWorst}$</strong></span>
-                                            </div>
-                                        )}
+                                        {/* Day-of-week headers */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 3 }}>
+                                            {JOURS.map((j, ji) => (
+                                                <div key={ji} style={{
+                                                    textAlign: 'center', fontSize: 8, fontWeight: 700,
+                                                    color: ji >= 5 ? 'rgba(14,165,233,0.4)' : 'rgba(255,255,255,0.25)',
+                                                    fontFamily: "'Outfit', sans-serif", padding: '2px 0',
+                                                }}>
+                                                    {j}
+                                                </div>
+                                            ))}
+                                        </div>
 
-                                        {/* Airline list with visual price bar */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                            {topAirlines.map((a, i) => {
-                                                const airlineDeals = deals.filter(d => d.airline === a.name);
-                                                const hasDirect = airlineDeals.some(d => d.stops === 0);
-                                                const hasStopsOnly = !hasDirect && airlineDeals.some(d => d.stops > 0);
-                                                const avgDur = airlineDeals.filter(d => d.durationMinutes > 0);
-                                                const avgDuration = avgDur.length > 0 ? Math.round(avgDur.reduce((s, d) => s + d.durationMinutes, 0) / avgDur.length) : 0;
-                                                const bag = AIRLINE_BAGGAGE[a.name];
-                                                // Price bar relative to cheapest
-                                                const barMax = topAirlines[topAirlines.length - 1].avg;
-                                                const barMin = topAirlines[0].avg;
-                                                const barRange = barMax - barMin || 1;
-                                                const barPct = Math.max(20, Math.round(((a.avg - barMin) / barRange) * 80 + 20));
-                                                const barColor = i === 0 ? '#10B981' : i === 1 ? '#34D399' : a.avg > barMin + barRange * 0.7 ? '#F59E0B' : '#0EA5E9';
+                                        {/* Day grid — single month */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+                                            {Array.from({ length: startDow }, (_, i) => (
+                                                <div key={`e-${i}`} style={{ height: 38 }} />
+                                            ))}
+                                            {Array.from({ length: daysInMonth }, (_, i) => {
+                                                const day = i + 1;
+                                                const dateStr = `${yr}-${mo}-${String(day).padStart(2, '0')}`;
+                                                const info = dateMap[dateStr];
+                                                const isPast = dateStr < todayStr;
+                                                const isToday = dateStr === todayStr;
+
+                                                if (!info || isPast) {
+                                                    return (
+                                                        <div key={day} style={{
+                                                            height: 38, borderRadius: 8, display: 'flex', flexDirection: 'column',
+                                                            alignItems: 'center', justifyContent: 'center',
+                                                            background: isPast ? 'transparent' : 'rgba(255,255,255,0.02)',
+                                                            opacity: isPast ? 0.3 : 1,
+                                                            border: isToday ? '1px solid rgba(14,165,233,0.3)' : '1px solid transparent',
+                                                        }}>
+                                                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.15)', fontFamily: "'Outfit', sans-serif" }}>{day}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const ratio = (info.price - calMin) / calRange;
+                                                const cellColor = ratio < 0.33 ? '#10B981' : ratio < 0.66 ? '#F59E0B' : '#EF4444';
+                                                const cellBg = ratio < 0.33 ? 'rgba(16,185,129,0.15)' : ratio < 0.66 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+                                                const isCheapest = info.price === calMin;
 
                                                 return (
-                                                    <div key={a.name} style={{
-                                                        padding: '8px 10px', borderRadius: 10,
-                                                        background: i === 0 ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.02)',
-                                                        border: `1px solid ${i === 0 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)'}`,
-                                                    }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                                            <span style={{ fontSize: 11, fontWeight: 800, color: barColor, fontFamily: "'Fredoka', sans-serif", width: 14 }}>
-                                                                {i + 1}
-                                                            </span>
-                                                            <span style={{ fontSize: 12, fontWeight: 700, color: i === 0 ? '#10B981' : 'rgba(255,255,255,0.8)', fontFamily: "'Outfit', sans-serif", flex: 1 }}>
-                                                                {a.name}
-                                                            </span>
-                                                            <span style={{ fontSize: 15, fontWeight: 800, color: barColor, fontFamily: "'Fredoka', sans-serif" }}>
-                                                                {a.min}$
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Price bar */}
-                                                        <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', marginBottom: 4, overflow: 'hidden' }}>
-                                                            <div style={{ height: '100%', width: `${barPct}%`, borderRadius: 2, background: barColor, opacity: 0.6 }} />
-                                                        </div>
-
-                                                        {/* Tags row */}
-                                                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                                            {hasDirect && (
-                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(52,211,153,0.1)', color: '#34D399', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                                                                    Vol direct
-                                                                </span>
-                                                            )}
-                                                            {hasStopsOnly && (
-                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: '#F59E0B', fontWeight: 700, fontFamily: "'Outfit', sans-serif" }}>
-                                                                    Avec escale
-                                                                </span>
-                                                            )}
-                                                            {avgDuration > 0 && (
-                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
-                                                                    ~{formatDuration(avgDuration)}
-                                                                </span>
-                                                            )}
-                                                            {bag && (
-                                                                <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.45)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
-                                                                    {bag.checked ? '🧳 Bagage inclus' : bag.cabin ? '🎒 Cabine seulement' : '⚠️ Pas de bagage'}
-                                                                </span>
-                                                            )}
-                                                            <span style={{ fontSize: 8, padding: '2px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
-                                                                {a.count} vol{a.count > 1 ? 's' : ''} · moy. {a.avg}$
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                                    <a key={day} href={info.bookingLink} target="_blank" rel="noopener noreferrer"
+                                                        title={`${info.airline} · ${info.stops === 0 ? 'Direct' : info.stops + ' escale(s)'}${info.returnDate ? ` · Retour: ${info.returnDate}` : ''}`}
+                                                        style={{
+                                                            height: 38, borderRadius: 8, display: 'flex', flexDirection: 'column',
+                                                            alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+                                                            background: cellBg,
+                                                            border: isCheapest ? `1.5px solid ${cellColor}` : isToday ? '1px solid rgba(14,165,233,0.3)' : '1px solid transparent',
+                                                            cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
+                                                            position: 'relative',
+                                                        }}
+                                                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = `0 4px 14px ${cellColor}50`; e.currentTarget.style.zIndex = '2'; }}
+                                                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.zIndex = '0'; }}
+                                                    >
+                                                        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", lineHeight: 1 }}>{day}</span>
+                                                        <span style={{ fontSize: 10, fontWeight: 800, color: cellColor, fontFamily: "'Fredoka', sans-serif", lineHeight: 1.2 }}>{info.price}$</span>
+                                                    </a>
                                                 );
                                             })}
                                         </div>
+
+                                        {/* Month quick-jump pills (premium gets all, free gets 2) */}
+                                        {availableMonths.length > 1 && (
+                                            <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                                {availableMonths.map(mk => {
+                                                    const mIdx = parseInt(mk.split('-')[1], 10) - 1;
+                                                    const isActive = mk === activeMk;
+                                                    // Count deals for this month
+                                                    const [my, mm] = mk.split('-');
+                                                    const dim = new Date(parseInt(my), parseInt(mm, 10), 0).getDate();
+                                                    let ct = 0;
+                                                    for (let dd = 1; dd <= dim; dd++) {
+                                                        const ds = `${my}-${mm}-${String(dd).padStart(2, '0')}`;
+                                                        if (dateMap[ds] && ds >= todayStr) ct++;
+                                                    }
+                                                    return (
+                                                        <button key={mk} onClick={() => setCalMonth(mk)}
+                                                            style={{
+                                                                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                                                                fontSize: 10, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                                background: isActive ? 'linear-gradient(135deg, #0EA5E9, #06B6D4)' : 'rgba(255,255,255,0.04)',
+                                                                color: isActive ? '#fff' : ct > 0 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+                                                                transition: 'all 0.15s',
+                                                            }}>
+                                                            {MOIS_FR[mIdx].slice(0, 3)}{ct > 0 && <span style={{ fontSize: 8, marginLeft: 3, opacity: 0.6 }}>{ct}</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Free user upsell */}
+                                        {!isPremium && monthKeys.length > 2 && (
+                                            <a href="/pricing" style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                                marginTop: 10, padding: '10px 14px', borderRadius: 12, textDecoration: 'none',
+                                                background: 'linear-gradient(135deg, rgba(255,215,0,0.06), rgba(245,158,11,0.03))',
+                                                border: '1px dashed rgba(255,215,0,0.2)',
+                                            }}>
+                                                <span style={{ fontSize: 14 }}>&#128274;</span>
+                                                <div>
+                                                    <div style={{ fontSize: 11, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        +{monthKeys.length - 2} mois disponibles en Premium
+                                                    </div>
+                                                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
+                                                        {totalDates} dates · Navigue librement dans le calendrier
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        )}
                                     </div>
                                     );
                                 })()}
@@ -2825,56 +2707,160 @@ export default function DestinationPopup({
                                 </div>
                             </div>
                             ) : (
-                            /* ── Premium Intelligence Teaser for free users ── */
-                            <PremiumLock label="Intelligence GeAI — Tu passes à côté de ça">
-                                <div style={{
-                                    marginBottom: 16, padding: '16px', borderRadius: 18,
-                                    background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-                                    border: '1px solid rgba(14,165,233,0.2)',
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                                        <div style={{
-                                            width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                                            background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <img src="/logo_geai.png" alt="GeAI" width={22} height={22} style={{ borderRadius: '50%' }} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: 13, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>Intelligence GeAI</div>
-                                            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>12 analyses Premium · 5$/mois</div>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        {[
-                                            { icon: '💸', label: 'Combien tu économises vs la moyenne (ça rentabilise l\'abo)' },
-                                            { icon: '🎯', label: 'Score du deal sur 100 + recommandation achat/attendre' },
-                                            { icon: '🔥', label: 'Indice de rareté — ce prix apparaît combien de fois?' },
-                                            { icon: '⏪', label: '"Et si?" — aurais-tu mieux fait d\'acheter avant?' },
-                                            { icon: '🔮', label: 'Pronostic concret: attends X jours, économise ~Y$' },
-                                            { icon: '📈', label: 'Historique des prix 90 jours + prévisions 30 jours' },
-                                            { icon: '🧭', label: 'Boussole: le meilleur mois pour partir (1-3 ans de data)' },
-                                            { icon: '✈️', label: 'Notre recommandation vol (prix + confort + durée)' },
-                                            { icon: '🏆', label: 'Classement des compagnies + infos bagages' },
-                                            { icon: '🔔', label: 'Alerte prix automatique à ton prix cible' },
-                                        ].map((item, i) => (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
-                                                <span style={{ fontSize: 14 }}>{item.icon}</span>
-                                                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: "'Outfit', sans-serif" }}>{item.label}</span>
-                                            </div>
-                                        ))}
-                                    </div>
+                            /* ── Premium Intelligence Teaser for free users (dynamic FOMO) ── */
+                            <div style={{
+                                marginBottom: 16, padding: '18px', borderRadius: 18,
+                                background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                                border: '1px solid rgba(255,215,0,0.15)',
+                            }}>
+                                {/* Header */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                                     <div style={{
-                                        marginTop: 12, padding: '10px', borderRadius: 10, textAlign: 'center',
-                                        background: 'linear-gradient(135deg, rgba(255,184,0,0.08), rgba(255,215,0,0.04))',
-                                        border: '1px solid rgba(255,215,0,0.15)',
+                                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                        background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
                                     }}>
-                                        <div style={{ fontSize: 11, fontWeight: 700, color: '#FFD700', fontFamily: "'Outfit', sans-serif" }}>
-                                            Tout ça pour le prix d&apos;un café par mois. Sérieusement. ☕
+                                        <img src="/logo_geai.png" alt="GeAI" width={24} height={24} style={{ borderRadius: '50%' }} />
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>
+                                            Tu passes à côté de ça...
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
+                                            Intelligence GeAI · Analyse en temps réel
                                         </div>
                                     </div>
                                 </div>
-                            </PremiumLock>
+
+                                {/* Blurred deal score ring */}
+                                {premiumAnalytics && (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14,
+                                        padding: '12px 14px', borderRadius: 14,
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <div style={{
+                                            width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
+                                            background: 'conic-gradient(rgba(255,215,0,0.5) 200deg, rgba(255,255,255,0.06) 0deg)',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            filter: 'blur(6px)',
+                                        }}>
+                                            <div style={{
+                                                width: 44, height: 44, borderRadius: '50%',
+                                                background: '#0F172A',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}>
+                                                <span style={{ fontSize: 16, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>??</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>
+                                                Ce deal est-il bon?
+                                            </div>
+                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                Score sur 100 + recommandation achat/attendre
+                                            </div>
+                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#FFD700', fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
+                                                La réponse est là...
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Dynamic savings */}
+                                {premiumAnalytics && premiumAnalytics.savingsVsAvg > 0 && (
+                                    <div style={{
+                                        padding: '12px 14px', borderRadius: 12, marginBottom: 10,
+                                        background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05))',
+                                        border: '1px solid rgba(16,185,129,0.15)',
+                                    }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981', fontFamily: "'Outfit', sans-serif" }}>
+                                            Les Premium économisent <strong>{premiumAnalytics.savingsVsAvg}$</strong> sur cette destination
+                                        </div>
+                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: "'Outfit', sans-serif", marginTop: 3 }}>
+                                            Pour un couple : <strong style={{ color: '#10B981' }}>{premiumAnalytics.savingsVsAvg * 2}$ d&apos;économie</strong>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Cheapest vs expensive month */}
+                                {premiumAnalytics && premiumAnalytics.cheapestMonth && premiumAnalytics.expensiveMonth && premiumAnalytics.monthSaving > 30 && (
+                                    <div style={{
+                                        padding: '12px 14px', borderRadius: 12, marginBottom: 10,
+                                        background: 'rgba(255,255,255,0.03)',
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif" }}>
+                                            Pars en <strong style={{ color: '#10B981' }}>{premiumAnalytics.cheapestMonth.name}</strong> plutôt que {premiumAnalytics.expensiveMonth.name},
+                                            économise <strong style={{ color: '#10B981' }}>{premiumAnalytics.monthSaving}$</strong>
+                                        </div>
+                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif", marginTop: 3 }}>
+                                            Les Premium savent quand partir. Pas toi... pour l&apos;instant.
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Hidden deals counter */}
+                                {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (
+                                    <div style={{
+                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
+                                        background: 'rgba(14,165,233,0.06)',
+                                        border: '1px solid rgba(14,165,233,0.12)',
+                                        display: 'flex', alignItems: 'center', gap: 8,
+                                    }}>
+                                        <span style={{ fontSize: 16 }}>&#9992;&#65039;</span>
+                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontFamily: "'Outfit', sans-serif" }}>
+                                            <strong style={{ color: '#0EA5E9' }}>{sortedDeals.length - tier.dealsPerDestination} vols cachés</strong> sur {sortedDeals.length} trouvés
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Urgency messages */}
+                                {premiumAnalytics && premiumAnalytics.priceRarity.pct <= 30 && (
+                                    <div style={{
+                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
+                                        background: premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.06)',
+                                        border: `1px solid ${premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.12)'}`,
+                                    }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                            color: premiumAnalytics.priceRarity.pct <= 10 ? '#EF4444' : '#F59E0B',
+                                        }}>
+                                            Ce prix est {premiumAnalytics.priceRarity.label.toLowerCase()}. Les Premium le savent déjà.
+                                        </div>
+                                    </div>
+                                )}
+                                {premiumAnalytics && premiumAnalytics.recommendation.urgency === 'buy' && (
+                                    <div style={{
+                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
+                                        background: 'rgba(16,185,129,0.06)',
+                                        border: '1px solid rgba(16,185,129,0.12)',
+                                    }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981', fontFamily: "'Outfit', sans-serif" }}>
+                                            Notre IA dit d&apos;acheter. T&apos;attends quoi?
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CTA */}
+                                <a href="/pricing" style={{ textDecoration: 'none', display: 'block', marginTop: 14 }}>
+                                    <div style={{
+                                        padding: '14px 20px', borderRadius: 14, textAlign: 'center',
+                                        background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                                        boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
+                                        cursor: 'pointer', transition: 'all 0.2s',
+                                    }}>
+                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                            Débloquer pour 5$/mois
+                                        </div>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(15,23,42,0.6)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                            Ça se rentabilise en 1 voyage.
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
                             )
                         )}
 
@@ -2903,190 +2889,8 @@ export default function DestinationPopup({
                             </div>
                         )}
 
-                        {/* ═══ PRICE VS AVERAGE CHART ═══ */}
-                        {(!isAllInclusive || packStep === 1) && avgPrice > 0 && sortedDeals.length > 1 && (
-                            tier.priceInsights ? (
-                            <div style={{
-                                marginBottom: 16, padding: '14px 16px', borderRadius: 16,
-                                background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
-                                border: '1px solid #E0F2FE',
-                            }}>
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    marginBottom: 10,
-                                }}>
-                                    <span style={{
-                                        fontSize: 12, fontWeight: 700, color: '#0F172A',
-                                        fontFamily: "'Outfit', sans-serif",
-                                        display: 'flex', alignItems: 'center', gap: 5,
-                                    }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
-                                        Prix vs moyenne 90 jours
-                                    </span>
-                                    <span style={{
-                                        fontSize: 11, fontWeight: 600, color: '#94A3B8',
-                                        fontFamily: "'Fredoka', sans-serif",
-                                    }}>
-                                        Moy. {avgPrice} $
-                                    </span>
-                                </div>
-                                {/* Mini bar chart */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                    {sortedDeals.slice(0, 8).map((deal, i) => {
-                                        const maxPrice = Math.max(avgPrice, ...sortedDeals.map(d => d.price));
-                                        const barWidth = Math.max(15, (deal.price / maxPrice) * 100);
-                                        const avgLinePos = (avgPrice / maxPrice) * 100;
-                                        const isBelow = deal.price < avgPrice;
-                                        const isCheap = deal.price === cheapestPrice;
 
-                                        return (
-                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <span style={{
-                                                    fontSize: 9, fontWeight: 600, color: '#94A3B8',
-                                                    fontFamily: "'Outfit', sans-serif",
-                                                    width: 36, textAlign: 'right', flexShrink: 0,
-                                                }}>
-                                                    {formatDateFr(deal.departureDate).split(' ')[0]}{' '}
-                                                    {['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
-                                                </span>
-                                                <div style={{
-                                                    flex: 1, height: 18, position: 'relative',
-                                                    background: '#E2E8F0', borderRadius: 4, overflow: 'hidden',
-                                                }}>
-                                                    {/* Price bar */}
-                                                    <div style={{
-                                                        height: '100%', borderRadius: 4,
-                                                        width: `${barWidth}%`,
-                                                        background: isCheap
-                                                            ? 'linear-gradient(90deg, #10B981, #34D399)'
-                                                            : isBelow
-                                                                ? 'linear-gradient(90deg, #0EA5E9, #38BDF8)'
-                                                                : 'linear-gradient(90deg, #F59E0B, #FBBF24)',
-                                                        transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                                                        paddingRight: 6,
-                                                    }}>
-                                                        <span style={{
-                                                            fontSize: 9, fontWeight: 700, color: '#fff',
-                                                            fontFamily: "'Fredoka', sans-serif",
-                                                            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                                                        }}>
-                                                            {Math.round(deal.price)}$
-                                                        </span>
-                                                    </div>
-                                                    {/* Average price line */}
-                                                    <div style={{
-                                                        position: 'absolute', top: 0, bottom: 0,
-                                                        left: `${avgLinePos}%`,
-                                                        width: 2, background: '#DC2626',
-                                                        opacity: 0.6,
-                                                    }} />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {/* Legend */}
-                                <div style={{
-                                    display: 'flex', alignItems: 'center', gap: 12, marginTop: 8,
-                                    justifyContent: 'center',
-                                }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#10B981' }} />
-                                        Meilleur prix
-                                    </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
-                                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#0EA5E9' }} />
-                                        Sous la moyenne
-                                    </span>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
-                                        <span style={{ width: 2, height: 10, background: '#DC2626', opacity: 0.6 }} />
-                                        Moyenne
-                                    </span>
-                                </div>
-                            </div>
-                            ) : (
-                            <PremiumLock label="Historique des prix">
-                                <div style={{
-                                    marginBottom: 16, padding: '14px 16px', borderRadius: 16,
-                                    background: 'linear-gradient(135deg, #F0F9FF, #F8FAFC)',
-                                    border: '1px solid #E0F2FE',
-                                }}>
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        marginBottom: 10,
-                                    }}>
-                                        <span style={{
-                                            fontSize: 12, fontWeight: 700, color: '#0F172A',
-                                            fontFamily: "'Outfit', sans-serif",
-                                            display: 'flex', alignItems: 'center', gap: 5,
-                                        }}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
-                                            Prix vs moyenne 90 jours
-                                        </span>
-                                        <span style={{
-                                            fontSize: 11, fontWeight: 600, color: '#94A3B8',
-                                            fontFamily: "'Fredoka', sans-serif",
-                                        }}>
-                                            Moy. {avgPrice} $
-                                        </span>
-                                    </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                        {sortedDeals.slice(0, 8).map((deal, i) => {
-                                            const maxPrice = Math.max(avgPrice, ...sortedDeals.map(d => d.price));
-                                            const barWidth = Math.max(15, (deal.price / maxPrice) * 100);
-                                            const avgLinePos = (avgPrice / maxPrice) * 100;
-                                            const isBelow = deal.price < avgPrice;
-                                            const isCheap = deal.price === cheapestPrice;
-                                            return (
-                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <span style={{
-                                                        fontSize: 9, fontWeight: 600, color: '#94A3B8',
-                                                        fontFamily: "'Outfit', sans-serif",
-                                                        width: 36, textAlign: 'right', flexShrink: 0,
-                                                    }}>
-                                                        {formatDateFr(deal.departureDate).split(' ')[0]}{' '}
-                                                        {['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
-                                                    </span>
-                                                    <div style={{
-                                                        flex: 1, height: 18, position: 'relative',
-                                                        background: '#E2E8F0', borderRadius: 4, overflow: 'hidden',
-                                                    }}>
-                                                        <div style={{
-                                                            height: '100%', borderRadius: 4,
-                                                            width: `${barWidth}%`,
-                                                            background: isCheap
-                                                                ? 'linear-gradient(90deg, #10B981, #34D399)'
-                                                                : isBelow
-                                                                    ? 'linear-gradient(90deg, #0EA5E9, #38BDF8)'
-                                                                    : 'linear-gradient(90deg, #F59E0B, #FBBF24)',
-                                                            transition: 'width 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                                                            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                                                            paddingRight: 6,
-                                                        }}>
-                                                            <span style={{
-                                                                fontSize: 9, fontWeight: 700, color: '#fff',
-                                                                fontFamily: "'Fredoka', sans-serif",
-                                                                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                                                            }}>
-                                                                {Math.round(deal.price)}$
-                                                            </span>
-                                                        </div>
-                                                        <div style={{
-                                                            position: 'absolute', top: 0, bottom: 0,
-                                                            left: `${avgLinePos}%`,
-                                                            width: 2, background: '#DC2626',
-                                                            opacity: 0.6,
-                                                        }} />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            </PremiumLock>
-                            )
-                        )}
+
 
                         {/* ═══ STEP 2 — HOTEL SELECTION (All-Inclusive) ═══ */}
                         {isAllInclusive && packStep === 2 && selectedFlight && (
@@ -3638,56 +3442,6 @@ export default function DestinationPopup({
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-
-                                        {/* ── PRICE COMPARISON CARD ── */}
-                                        <div style={{
-                                            padding: '14px 16px', borderRadius: 14,
-                                            background: '#F8FAFC', border: '1px solid #E2E8F0',
-                                        }}>
-                                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', fontFamily: "'Outfit', sans-serif", marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
-                                                Comparaison 90 jours
-                                            </div>
-
-                                            {/* Current vs Median bar */}
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                                {[
-                                                    { label: 'Ton pack', value: packAnalysis.history.currentPackPrice, color: '#0EA5E9', isCurrent: true },
-                                                    { label: 'Prix median vol', value: packAnalysis.history.medianFlightPrice90d, color: '#94A3B8', isCurrent: false },
-                                                    { label: 'Prix moyen vol', value: packAnalysis.history.avgFlightPrice90d, color: '#CBD5E1', isCurrent: false },
-                                                    { label: 'Meilleur prix vol', value: packAnalysis.history.minFlightPrice90d, color: '#10B981', isCurrent: false },
-                                                ].map((item, i) => {
-                                                    const maxVal = Math.max(packAnalysis.history.currentPackPrice, packAnalysis.history.avgFlightPrice90d * 1.5);
-                                                    const barW = Math.max(15, (item.value / maxVal) * 100);
-                                                    return (
-                                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                            <span style={{ fontSize: 10, fontWeight: 600, color: '#64748B', fontFamily: "'Outfit', sans-serif", width: 80, textAlign: 'right', flexShrink: 0 }}>
-                                                                {item.label}
-                                                            </span>
-                                                            <div style={{ flex: 1, height: 16, background: '#E2E8F0', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-                                                                <div style={{
-                                                                    height: '100%', borderRadius: 4,
-                                                                    width: `${barW}%`,
-                                                                    background: item.isCurrent ? 'linear-gradient(90deg, #0EA5E9, #06B6D4)' : item.color,
-                                                                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6,
-                                                                    transition: 'width 0.5s',
-                                                                }}>
-                                                                    <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: "'Fredoka', sans-serif" }}>
-                                                                        {item.value}$
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {packAnalysis.history.dataPoints > 0 && (
-                                                <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginTop: 8, textAlign: 'center' }}>
-                                                    Base sur {packAnalysis.history.dataPoints} prix scannes en 90 jours
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* ── SAVINGS CARD ── */}
@@ -4296,24 +4050,49 @@ export default function DestinationPopup({
                                 })}
 
                                 {/* Premium upsell for hidden deals */}
-                                {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (
-                                    <a href="/pricing" style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                        padding: '14px 16px', borderRadius: 14,
-                                        background: 'linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.03))',
-                                        border: '1px dashed rgba(14,165,233,0.25)',
-                                        textDecoration: 'none', cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                    }}>
-                                        <span style={{ fontSize: 16 }}>&#x1F512;</span>
-                                        <span style={{
-                                            fontSize: 13, fontWeight: 700, color: '#0284C7',
-                                            fontFamily: "'Outfit', sans-serif",
+                                {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (() => {
+                                    const hidden = sortedDeals.length - tier.dealsPerDestination;
+                                    const nextCheapest = sortedDeals[tier.dealsPerDestination];
+                                    return (
+                                        <a href="/pricing" style={{
+                                            display: 'block', padding: '16px', borderRadius: 16,
+                                            background: 'linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.03))',
+                                            border: '1px solid rgba(14,165,233,0.2)',
+                                            textDecoration: 'none', cursor: 'pointer',
+                                            transition: 'all 0.2s',
                                         }}>
-                                            +{sortedDeals.length - tier.dealsPerDestination} deals disponibles en Premium
-                                        </span>
-                                    </a>
-                                )}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                                                <div style={{
+                                                    width: 36, height: 36, borderRadius: 10,
+                                                    background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(6,182,212,0.1))',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: 18,
+                                                }}>&#x1F512;</div>
+                                                <div>
+                                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                                        {hidden} autre{hidden > 1 ? 's' : ''} option{hidden > 1 ? 's' : ''} de vol
+                                                    </div>
+                                                    {nextCheapest && (
+                                                        <div style={{ fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                            Dont des vols à partir de <strong style={{ color: '#0EA5E9' }}>{Math.round(nextCheapest.price)}$</strong>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>
+                                                Plus d&apos;options = meilleurs prix trouvés
+                                            </div>
+                                            <div style={{
+                                                padding: '10px 16px', borderRadius: 10, textAlign: 'center',
+                                                background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                                color: '#fff', fontSize: 13, fontWeight: 700,
+                                                fontFamily: "'Outfit', sans-serif",
+                                            }}>
+                                                Voir tous les vols — Premium
+                                            </div>
+                                        </a>
+                                    );
+                                })()}
 
                                 {/* Live search in progress indicator */}
                                 {liveSearching && (

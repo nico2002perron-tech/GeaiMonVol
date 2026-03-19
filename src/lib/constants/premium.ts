@@ -35,7 +35,7 @@ export const TIERS = {
         guideMax: 1,
         maxTripDays: 7,
         maxTokens: 16384,
-        dealsPerDestination: 5,
+        dealsPerDestination: 3,
     },
     premium: {
         deals: true,

@@ -84,23 +84,49 @@ function sleep(ms: number) {
 const TRIP_DURATIONS = [7, 14]; // 7 nuits et 14 nuits
 
 // Helper : générer les dates pour les 12 prochains mois × toutes les durées
+// Mois 1-3 : chaque samedi (7n) + le 15 (7n+14n) → remplit le calendrier premium
+// Mois 4-12 : le 15 (7n+14n) → couverture standard
 function getMonthlyDates(): Array<{ outbound: string; return: string; month: string; tripDuration: number }> {
     const dates: Array<{ outbound: string; return: string; month: string; tripDuration: number }> = [];
     const now = new Date();
     const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const seen = new Set<string>();
+
+    const addDate = (outbound: Date, nights: number) => {
+        const returnDate = new Date(outbound);
+        returnDate.setDate(outbound.getDate() + nights);
+        const key = `${outbound.toISOString().split('T')[0]}-${nights}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        dates.push({
+            outbound: outbound.toISOString().split('T')[0],
+            return: returnDate.toISOString().split('T')[0],
+            month: monthNames[outbound.getMonth()],
+            tripDuration: nights,
+        });
+    };
 
     for (let i = 1; i <= 12; i++) {
+        // 15th of each month with both durations (existing coverage)
         for (const nights of TRIP_DURATIONS) {
-            const outbound = new Date(now.getFullYear(), now.getMonth() + i, 15);
-            const returnDate = new Date(outbound);
-            returnDate.setDate(outbound.getDate() + nights);
+            addDate(new Date(now.getFullYear(), now.getMonth() + i, 15), nights);
+        }
 
-            dates.push({
-                outbound: outbound.toISOString().split('T')[0],
-                return: returnDate.toISOString().split('T')[0],
-                month: monthNames[outbound.getMonth()],
-                tripDuration: nights,
-            });
+        // Months 1-3: add every Saturday with 7-night trips (fills the calendar)
+        if (i <= 3) {
+            const monthStart = new Date(now.getFullYear(), now.getMonth() + i, 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + i + 1, 0);
+            const cursor = new Date(monthStart);
+            // Advance to first Saturday
+            while (cursor.getDay() !== 6) cursor.setDate(cursor.getDate() + 1);
+            // Add each Saturday
+            while (cursor <= monthEnd) {
+                // Skip if too close to today (at least 7 days out)
+                if (cursor.getTime() - now.getTime() >= 7 * 24 * 60 * 60 * 1000) {
+                    addDate(new Date(cursor), 7);
+                }
+                cursor.setDate(cursor.getDate() + 7);
+            }
         }
     }
 
@@ -338,11 +364,11 @@ export async function fullDailyScan(): Promise<FlightDeal[]> {
         }
     }
 
-    // Dédupliquer : garder le meilleur prix par destination + mois
+    // Dédupliquer : garder le meilleur prix par destination + date exacte + durée
     const bestByKey: Record<string, FlightDeal> = {};
     for (const deal of allDeals) {
-        const month = deal.departureDate ? deal.departureDate.substring(0, 7) : 'unknown';
-        const key = `${deal.city}-${month}-${deal.tripDuration}`;
+        const dateKey = deal.departureDate || 'unknown';
+        const key = `${deal.city}-${dateKey}-${deal.tripDuration}`;
         if (!bestByKey[key] || deal.price < bestByKey[key].price) {
             bestByKey[key] = deal;
         }
@@ -527,11 +553,11 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
         }
     }
 
-    // Dédupliquer : garder le meilleur prix par destination + mois
+    // Dédupliquer : garder le meilleur prix par destination + date exacte + durée
     const bestByKey: Record<string, FlightDeal> = {};
     for (const deal of allDeals) {
-        const month = deal.departureDate ? deal.departureDate.substring(0, 7) : 'unknown';
-        const key = `${deal.city}-${month}-${deal.tripDuration}`;
+        const dateKey = deal.departureDate || 'unknown';
+        const key = `${deal.city}-${dateKey}-${deal.tripDuration}`;
         if (!bestByKey[key] || deal.price < bestByKey[key].price) {
             bestByKey[key] = deal;
         }
