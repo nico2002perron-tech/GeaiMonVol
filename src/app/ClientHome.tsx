@@ -1941,6 +1941,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       <span style={{ fontSize: 11, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
                         {deal.country}{deal.airline ? ` · ${deal.airline}` : ''}
                         {deal.category === 'tout-inclus' && deal.hotelName ? ` · 🏨 ${deal.hotelName}` : ''}
+                        {deal.scannedAt ? ` · ${formatScannedAgo(deal.scannedAt)}` : ''}
                       </span>
                     </div>
 

@@ -51,48 +51,76 @@ export async function GET(request: Request) {
             return NextResponse.json({ message: 'No users to notify' });
         }
 
+        // 2b. Fetch all watchlists to match target_price per user
+        const { data: allWatchlists } = await supabase
+            .from('watchlist')
+            .select('user_id, destination_code, target_price')
+            .in('user_id', users.map(u => u.id));
+
+        // Index watchlists: user_id → { destination_code → target_price }
+        const watchlistByUser: Record<string, Record<string, number>> = {};
+        for (const w of allWatchlists || []) {
+            if (!watchlistByUser[w.user_id]) watchlistByUser[w.user_id] = {};
+            if (w.target_price) {
+                watchlistByUser[w.user_id][w.destination_code] = w.target_price;
+            }
+        }
+
         let totalSent = 0;
         // Use 90-day window to match /api/prices and calculateRealDiscount
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+        // Pre-compute discount info per destination (avoid repeated DB queries)
+        const discountCache: Record<string, any> = {};
+        for (const [dest, p] of Object.entries(uniqueDeals)) {
+            const { data: history } = await supabase
+                .from('price_history')
+                .select('price, scanned_at')
+                .eq('destination', dest)
+                .gte('scanned_at', ninetyDaysAgo);
+
+            discountCache[dest] = calculateRealDiscount((p as any).price, history || []);
+        }
 
         // 3. Pour chaque utilisateur, filtrer les deals pertinents
         for (const user of users) {
             const userDeals = [];
             const isPremium = user.plan === 'premium';
+            const userWatchlist = watchlistByUser[user.id] || {};
 
             for (const [dest, p] of Object.entries(uniqueDeals)) {
-                // Pour chaque destination, calculer le vrai rabais
-                const { data: history } = await supabase
-                    .from('price_history')
-                    .select('price, scanned_at')
-                    .eq('destination', dest)
-                    .gte('scanned_at', ninetyDaysAgo);
+                const discountInfo = discountCache[dest];
+                const destCode = (p as any).destination_code || '';
+                const targetPrice = userWatchlist[destCode];
 
-                const discountInfo = calculateRealDiscount((p as any).price, history || []);
+                // Check if this deal hits the user's watchlist target_price
+                const hitsTarget = targetPrice && (p as any).price <= targetPrice;
 
-                // Premium: seuil plus bas (alerte sur deals plus petits)
-                // Free: isGoodDeal standard
-                if (!isPremium && !discountInfo.isGoodDeal) continue;
-                if (isPremium && discountInfo.discount < 5) continue;
+                // If user has a target price for this destination and it's met → always alert
+                if (hitsTarget) {
+                    // Target price alert — always send
+                } else {
+                    // Standard threshold: Premium 5%+, Free 15%+ (isGoodDeal)
+                    if (!isPremium && !discountInfo.isGoodDeal) continue;
+                    if (isPremium && discountInfo.discount < 5) continue;
+                }
 
-                // Ajouter le deal
                 userDeals.push({
                     destination: dest,
                     price: (p as any).price,
                     oldPrice: discountInfo.avgPrice,
                     discount: discountInfo.discount,
-                    dealLevel: discountInfo.dealLevel,
+                    dealLevel: hitsTarget ? 'target_hit' : discountInfo.dealLevel,
                     airline: (p as any).airline || 'Multiple',
-                    route: `YUL – ${(p as any).destination_code || ''}`,
+                    route: `YUL – ${destCode}`,
                     departureDate: (p as any).departure_date,
                     returnDate: (p as any).return_date,
-                    bookingLink: (p as any).raw_data?.booking_link || (p as any).raw_data?.google_flights_link
+                    bookingLink: (p as any).raw_data?.booking_link || (p as any).raw_data?.google_flights_link,
+                    targetPrice: hitsTarget ? targetPrice : undefined,
                 });
             }
 
             if (userDeals.length > 0) {
-                // Envoyer l'email — Premium reçoit en premier (tri par plan desc)
-                // + marqueur isPriority pour renforcer la valeur perçue
                 await sendDealAlert(
                     user.email,
                     user.full_name || user.email,

@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       phases:
-        description: 'Number of phases to run (default 5)'
+        description: 'Number of phases to run (default 8)'
         required: false
-        default: '5'
+        default: '8'
 
 env:
   TOTAL_PHASES: 51  # 1 explore + 47 deep (1 dest each) + 3 hotel
@@ -18,17 +18,17 @@ env:
 jobs:
   scan-prices:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Run multiple scan phases
         run: |
-          PHASES="${{ github.event.inputs.phases || '5' }}"
+          PHASES="${{ github.event.inputs.phases || '8' }}"
           DAY=$(date +%j)
-          # Offset by 5 for the 16h run to avoid scanning same phases twice
+          # Offset by 8 for the 16h run to avoid scanning same phases twice
           HOUR=$(date +%H)
           OFFSET=0
           if [ "$HOUR" -ge 12 ]; then
-            OFFSET=5
+            OFFSET=8
           fi
 
           echo "Running $PHASES phases (day=$DAY, offset=$OFFSET)..."

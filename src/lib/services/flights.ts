@@ -189,6 +189,7 @@ export async function scanExplore(): Promise<FlightDeal[]> {
 
         // Auto-resolve country codes (2-letter) to airport codes via COUNTRY_SUBDESTINATIONS.
         // e.g. KR at 182$ → Seoul (ICN) at 182$
+        // Resolved deals get source='skyscanner_explore_resolved' so API routes show them.
         const resolved: FlightDeal[] = [];
         for (const deal of results) {
             const code = deal.airportCode;
@@ -202,6 +203,7 @@ export async function scanExplore(): Promise<FlightDeal[]> {
                         airportCode: sub.code,
                         route: `YUL – ${sub.code}`,
                         bookingLink: buildBookingLink(ORIGIN, sub.code, '', ''),
+                        source: 'skyscanner_explore_resolved',
                     });
                 }
                 console.log(`[Explore] Expanded ${deal.city} (${code}) → ${COUNTRY_SUBDESTINATIONS[code].map(s => s.code).join(', ')}`);
@@ -235,11 +237,11 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // In chunked mode (cron), only scan 7-night trips for next 6 months
-    // to fit within Vercel's 60s timeout. Full scan uses all durations.
-    const datesToScan = dates
-        .filter(d => d.tripDuration <= 7)
-        .slice(0, 6);
+    // In chunked mode (cron): 4× 7-night + 2× 14-night = 6 dates, fits in 60s
+    const datesToScan = [
+        ...dates.filter(d => d.tripDuration === 7).slice(0, 4),
+        ...dates.filter(d => d.tripDuration === 14).slice(0, 2),
+    ];
 
     for (const date of datesToScan) {
         try {

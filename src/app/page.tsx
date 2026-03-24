@@ -37,10 +37,11 @@ async function getDeals() {
         if (latestResult.error || !latestResult.data) return [];
 
         // Filter out non-bookable data + past departure dates
+        // Note: 'skyscanner_explore_resolved' = explore deals resolved to airport codes — keep those
         const rows = latestResult.data.filter(
             (r: any) => {
                 if (r.source?.startsWith('google_flights')) return false;
-                if (r.source === 'skyscanner_explore') return false;
+                if (r.source === 'skyscanner_explore') return false; // Country-level only
                 if (r.departure_date && r.departure_date < today) return false;
                 return true;
             }

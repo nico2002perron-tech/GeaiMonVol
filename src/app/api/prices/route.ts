@@ -38,11 +38,12 @@ export async function GET() {
             return NextResponse.json({ error: latestResult.error?.message || 'Failed to fetch prices' }, { status: 500 });
         }
 
-        // Filter out non-bookable data: explore (indicative prices), Google Flights, past dates
+        // Filter out non-bookable data: raw explore (country-level), Google Flights, past dates
+        // Note: 'skyscanner_explore_resolved' = explore deals resolved to airport codes — keep those
         const skyscannerRows = (latestResult.data || []).filter(
             (row: any) => {
                 if (row.source?.startsWith('google_flights')) return false;
-                if (row.source === 'skyscanner_explore') return false; // Indicative prices, not real deals
+                if (row.source === 'skyscanner_explore') return false; // Country-level indicative prices
                 if (row.departure_date && row.departure_date < today) return false;
                 return true;
             }
