@@ -73,31 +73,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   'Porto Rico': '🇵🇷',
 };
 
-// ── Static fallback deals (shown when DB has no data) ──
-const STATIC_DEALS = [
-  { city: 'Paris', code: 'CDG', price: 549, oldPrice: 820, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&h=500&fit=crop' },
-  { city: 'Lisbonne', code: 'LIS', price: 489, oldPrice: 780, airline: 'TAP Portugal', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=800&h=500&fit=crop' },
-  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, airline: 'Air Canada', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&h=500&fit=crop' },
-  { city: 'Rome', code: 'FCO', price: 559, oldPrice: 820, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&h=500&fit=crop' },
-  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, airline: 'ANA', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&h=500&fit=crop' },
-  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, airline: 'Icelandair', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=800&h=500&fit=crop' },
-  { city: 'Londres', code: 'LHR', price: 479, oldPrice: 710, airline: 'Air Canada', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=800&h=500&fit=crop' },
-  { city: 'Athènes', code: 'ATH', price: 599, oldPrice: 880, airline: 'Air Transat', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&h=500&fit=crop' },
-  { city: 'Dublin', code: 'DUB', price: 429, oldPrice: 640, airline: 'Aer Lingus', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1549918864-48ac978761a4?w=800&h=500&fit=crop' },
-  { city: 'Marrakech', code: 'RAK', price: 649, oldPrice: 950, airline: 'Royal Air Maroc', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=800&h=500&fit=crop' },
-  { city: 'Fort Lauderdale', code: 'FLL', price: 199, oldPrice: 340, airline: 'Spirit', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=500&fit=crop' },
-  { city: 'New York', code: 'JFK', price: 179, oldPrice: 310, airline: 'JetBlue', stops: 0, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=800&h=500&fit=crop' },
-  { city: 'Bogota', code: 'BOG', price: 449, oldPrice: 680, airline: 'Avianca', stops: 1, category: 'monde' as const, image: 'https://images.unsplash.com/photo-1568385247005-0d371d214a94?w=800&h=500&fit=crop' },
-  { city: 'Vancouver', code: 'YVR', price: 289, oldPrice: 410, airline: 'WestJet', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1609825488888-3a766db05542?w=800&h=500&fit=crop' },
-  { city: 'Calgary', code: 'YYC', price: 249, oldPrice: 380, airline: 'WestJet', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1561489413-985b06da5bee?w=800&h=500&fit=crop' },
-  { city: 'Halifax', code: 'YHZ', price: 199, oldPrice: 310, airline: 'Air Canada', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1517935706615-2717063c2225?w=800&h=500&fit=crop' },
-  { city: 'Toronto', code: 'YYZ', price: 129, oldPrice: 220, airline: 'Porter', stops: 0, category: 'canada' as const, image: 'https://images.unsplash.com/photo-1517090504332-af2bd570e1cb?w=800&h=500&fit=crop' },
-  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, airline: 'Air Transat', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?w=800&h=500&fit=crop' },
-  { city: 'Cancún', code: 'CUN', price: 599, oldPrice: 920, airline: 'Sunwing', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1548574505-5e239809ee19?w=800&h=500&fit=crop' },
-  { city: 'Varadero', code: 'VRA', price: 549, oldPrice: 880, airline: 'Air Transat', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&h=500&fit=crop' },
-  { city: 'Montego Bay', code: 'MBJ', price: 579, oldPrice: 890, airline: 'WestJet', stops: 0, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=500&fit=crop' },
-  { city: 'San José', code: 'SJO', price: 449, oldPrice: 700, airline: 'Air Canada', stops: 1, category: 'tout-inclus' as const, image: 'https://images.unsplash.com/photo-1519999482648-25049ddd37b1?w=800&h=500&fit=crop' },
-];
+// Static fallback deals removed — all data comes from real Skyscanner scans via Supabase
 
 // ── Unified deal type ──
 interface DealItem {
@@ -164,20 +140,30 @@ function formatScannedAgo(scannedAt: string): string {
   return `scanné il y a ${days}j`;
 }
 
-function getViewerCount(city: string, discount: number): number {
-  // Deterministic pseudo-random based on city name
-  let hash = 0;
-  for (let i = 0; i < city.length; i++) hash = ((hash << 5) - hash) + city.charCodeAt(i);
-  const base = Math.abs(hash % 20) + 5; // 5-24
-  const bonus = discount >= 40 ? 15 : discount >= 25 ? 8 : 0;
-  return base + bonus;
-}
+// Viewer count removed — was fabricated social proof
 
-// ── Animated Stats Counter ──
-function AnimatedStats() {
+// ── Animated Stats Counter (values from real deals) ──
+function AnimatedStats({ deals }: { deals: DealItem[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [counts, setCounts] = useState([0, 0, 0, 0]);
+
+  // Compute real stats from actual deal data
+  const targets = useMemo(() => {
+    const destCount = deals.length;
+    const discounts = deals.filter(d => d.discount > 0).map(d => d.discount);
+    const avgDiscount = discounts.length > 0
+      ? Math.round(discounts.reduce((a, b) => a + b, 0) / discounts.length)
+      : 0;
+    // Compute real scan span from actual data
+    const scanDates = deals.filter(d => d.scannedAt).map(d => new Date(d.scannedAt).getTime());
+    const spanDays = scanDates.length >= 2
+      ? Math.round((Math.max(...scanDates) - Math.min(...scanDates)) / 86400000)
+      : 0;
+    // Count unique airlines as a proxy for coverage depth
+    const uniqueAirlines = new Set(deals.map(d => d.airline).filter(Boolean)).size;
+    return [destCount, avgDiscount, uniqueAirlines, spanDays];
+  }, [deals]);
 
   useEffect(() => {
     const el = ref.current;
@@ -192,10 +178,9 @@ function AnimatedStats() {
 
   useEffect(() => {
     if (!visible) return;
-    const targets = [40, 35, 24, 90];
     const duration = 2000;
     const start = Date.now();
-    const ease = (t: number) => 1 - Math.pow(1 - t, 3); // easeOutCubic
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
     const frame = () => {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
@@ -204,13 +189,13 @@ function AnimatedStats() {
       if (progress < 1) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
-  }, [visible]);
+  }, [visible, targets]);
 
   const stats = [
     { value: `${counts[0]}+`, label: 'Destinations scannées', icon: '🌍' },
     { value: `-${counts[1]}%`, label: 'Rabais moyen détecté', icon: '📉' },
-    { value: `${counts[2]}h`, label: 'Mise à jour des prix', icon: '⏱️' },
-    { value: `${counts[3]}j`, label: 'D\'historique de prix', icon: '📊' },
+    { value: `${counts[2]}+`, label: 'Compagnies aériennes', icon: '✈️' },
+    { value: `${counts[3]}j`, label: 'De données analysées', icon: '📊' },
   ];
 
   return (
@@ -265,13 +250,7 @@ function AnimatedStats() {
 }
 
 // ── Boarding Pass Component ──
-const BOARDING_FALLBACK = [
-  { city: 'Lisbonne', code: 'LIS', price: 529, oldPrice: 780, discount: 32, airline: 'Air Transat', stops: 0, dealLevel: 'great', image: '' },
-  { city: 'Tokyo', code: 'NRT', price: 689, oldPrice: 1050, discount: 34, airline: 'ANA', stops: 1, dealLevel: 'incredible', image: '' },
-  { city: 'Punta Cana', code: 'PUJ', price: 649, oldPrice: 1050, discount: 38, airline: 'Air Transat', stops: 0, dealLevel: 'incredible', image: '' },
-  { city: 'Reykjavik', code: 'KEF', price: 399, oldPrice: 620, discount: 36, airline: 'Icelandair', stops: 0, dealLevel: 'great', image: '' },
-  { city: 'Barcelone', code: 'BCN', price: 519, oldPrice: 750, discount: 31, airline: 'Air Canada', stops: 0, dealLevel: 'good', image: '' },
-];
+// Boarding pass fallback removed — uses only real deals filtered from live data
 
 function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: (d: any) => void }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -279,12 +258,10 @@ function BoardingPass({ deals, onDealClick }: { deals: DealItem[]; onDealClick: 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const bpDeals = useMemo(() => {
-    const top = deals
+    return deals
       .filter(d => d.discount >= 20)
       .sort((a, b) => b.discount - a.discount)
       .slice(0, 5);
-    if (top.length >= 3) return top;
-    return BOARDING_FALLBACK;
   }, [deals]);
 
   const startTimer = useCallback(() => {
@@ -505,10 +482,10 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
   const [guideFade, setGuideFade] = useState(true); // true = visible
   const guideAutoRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const transitionTo = (next: number | ((p: number) => number)) => {
+  const transitionTo = (next: number) => {
     setGuideFade(false); // fade out
     setTimeout(() => {
-      setGuideTab(next as number); // works with functional updater too
+      setGuideTab(next);
       setGuideFade(true); // fade in
     }, 400);
   };
@@ -698,29 +675,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     }
     if (ssrDeals.length > 0) return ssrDeals;
 
-    // Fallback: static deals so the site is never empty
-    return STATIC_DEALS.map(d => ({
-      city: d.city,
-      code: d.code,
-      country: CITY_COUNTRY[d.city] || '',
-      price: d.price,
-      oldPrice: d.oldPrice,
-      discount: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100),
-      dealLevel: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100) >= 35 ? 'great' : 'good',
-      airline: d.airline,
-      stops: d.stops,
-      image: d.image,
-      category: d.category,
-      isLive: false,
-      departureDate: '',
-      returnDate: '',
-      bookingLink: `https://www.skyscanner.ca/transport/flights/yul/${d.code.toLowerCase()}/`,
-      duration: 0,
-      scannedAt: '',
-      medianPrice: d.oldPrice,
-      avgPrice: d.oldPrice,
-      historyCount: 0,
-    }));
+    // No fake fallback — show empty state instead of invented prices
+    return [];
   }, [livePrices, isLive, ssrDeals]);
 
   // Override images avec le cache Supabase (Unsplash)
@@ -787,7 +743,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
     }
 
     return result;
-  }, [allDeals, activeFilter, sortMode, searchQuery, maxBudget, favorites]);
+  }, [dealsWithImages, activeFilter, sortMode, searchQuery, maxBudget, favorites]);
 
   // Reset visible count when filters change
   useEffect(() => { setVisibleCount(9); }, [activeFilter, searchQuery, sortMode, maxBudget]);
@@ -967,25 +923,8 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
 
       {/* ─── TICKER BAR ─── */}
       {(() => {
-        // Use live deals for ticker when available, otherwise static
-        const tickerDeals = dealsWithImages.length >= 6
-          ? dealsWithImages.filter(d => d.discount >= 15).slice(0, 12).map(d => ({
-              city: d.city, code: d.code, price: d.price, oldPrice: d.oldPrice,
-              discount: d.discount, image: d.image, category: d.category,
-              country: d.country, dealLevel: d.dealLevel, airline: d.airline,
-              stops: d.stops, isLive: d.isLive, departureDate: d.departureDate,
-              returnDate: d.returnDate, bookingLink: d.bookingLink, duration: d.duration,
-              scannedAt: d.scannedAt, medianPrice: d.medianPrice, avgPrice: d.avgPrice,
-              historyCount: d.historyCount, totalPackPrice: d.totalPackPrice,
-            }))
-          : STATIC_DEALS.map(d => ({
-              city: d.city, code: d.code, price: d.price,
-              oldPrice: d.oldPrice, discount: Math.round(((d.oldPrice - d.price) / d.oldPrice) * 100),
-              image: d.image, category: d.category as 'canada' | 'monde' | 'tout-inclus',
-              country: CITY_COUNTRY[d.city] || '', dealLevel: 'normal', airline: '',
-              stops: -1, isLive: false, departureDate: '', returnDate: '', bookingLink: '', duration: 0,
-              scannedAt: '', medianPrice: d.oldPrice, avgPrice: d.oldPrice, historyCount: 0, totalPackPrice: undefined as number | undefined,
-            }));
+        // Use live deals for ticker — no fake fallback
+        const tickerDeals = dealsWithImages.filter(d => d.discount >= 15).slice(0, 12);
         const half = Math.ceil(tickerDeals.length / 2);
         const row1 = tickerDeals.slice(0, half);
         const row2 = tickerDeals.slice(half);
@@ -1453,7 +1392,6 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 const rank = idx + 1;
                 const rankColor = rank <= 3 ? RANK_COLORS[rank - 1] : undefined;
                 const level = DEAL_LEVELS[deal.dealLevel];
-                const viewers = getViewerCount(deal.city, deal.discount);
                 const isTopDeal = ['lowest_ever', 'incredible', 'great', 'good'].includes(deal.dealLevel);
                 const topColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
                   : deal.dealLevel === 'incredible' ? '#DC2626'
@@ -1733,16 +1671,6 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                             {deal.airline ? ` · ${deal.airline}` : ''}
                             {deal.stops > 0 ? ` · ${deal.stops} esc.` : ''}
                           </span>
-                          {deal.isLive && viewers > 10 && (
-                            <span style={{
-                              fontSize: 10, color: '#F59E0B', fontWeight: 600,
-                              fontFamily: "'Outfit', sans-serif",
-                              display: 'flex', alignItems: 'center', gap: 3,
-                            }}>
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                              {viewers} regardent
-                            </span>
-                          )}
                         </div>
 
                         {/* Tags row: baggage + dates */}
@@ -1954,7 +1882,6 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                 const rank = idx + 2;
                 const level = DEAL_LEVELS[deal.dealLevel];
                 const nights = getTripNights(deal.departureDate, deal.returnDate);
-                const viewers = getViewerCount(deal.city, deal.discount);
                 const listTopColor = deal.dealLevel === 'lowest_ever' ? '#7C3AED'
                   : deal.dealLevel === 'incredible' ? '#DC2626'
                   : deal.dealLevel === 'great' ? '#F59E0B'
@@ -2047,13 +1974,6 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                       )}
                     </div>
 
-                    {/* Social proof */}
-                    {deal.isLive && viewers > 10 && (
-                      <span style={{ fontSize: 10, color: '#F59E0B', fontWeight: 600, fontFamily: "'Outfit', sans-serif", whiteSpace: 'nowrap', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        {viewers}
-                      </span>
-                    )}
 
                     {/* Price */}
                     <div style={{ textAlign: 'right', flexShrink: 0, minWidth: 80 }}>
@@ -2873,7 +2793,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       </section>
 
       {/* ─── STATS COUNTER (animated) ─── */}
-      <AnimatedStats />
+      <AnimatedStats deals={dealsWithImages} />
 
       {/* ─── FINAL CTA + NEWSLETTER ─── */}
       <section className="lp-final-cta">

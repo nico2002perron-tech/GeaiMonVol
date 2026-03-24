@@ -1,0 +1,41 @@
+name: Daily Deal Scanner
+
+on:
+  schedule:
+    # 8h UTC chaque jour (3h EST / 4h EDT)
+    - cron: '0 8 * * *'
+    # 16h UTC chaque jour (11h EST / 12h EDT) — 2e scan quotidien
+    - cron: '0 16 * * *'
+  workflow_dispatch: # Permet de déclencher manuellement depuis GitHub
+
+jobs:
+  scan-prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger scan-prices on Vercel
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "${{ secrets.VERCEL_APP_URL }}/api/cron/scan-prices?secret=${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Scan failed with HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+  send-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs: scan-prices
+    steps:
+      - name: Trigger send-alerts on Vercel
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "${{ secrets.VERCEL_APP_URL }}/api/cron/send-alerts?secret=${{ secrets.CRON_SECRET }}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"

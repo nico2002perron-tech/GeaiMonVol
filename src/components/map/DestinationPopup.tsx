@@ -5,7 +5,7 @@ import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, COUNTRY_S
 import type { SubDestination } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { useAuth } from '@/lib/auth/AuthProvider';
-import { TIERS } from '@/lib/constants/premium';
+import { TIERS, PREMIUM_PRICE } from '@/lib/constants/premium';
 
 interface DestinationDeal {
     price: number;
@@ -218,7 +218,7 @@ export default function DestinationPopup({
     const [loading, setLoading] = useState(false);
     const [liveSearching, setLiveSearching] = useState(false);
     const [error, setError] = useState('');
-    const [sortMode, setSortMode] = useState<SortMode>('date');
+    const [sortMode, setSortMode] = useState<SortMode>('price');
     const [avgPrice, setAvgPrice] = useState(0);
     const [medianPrice, setMedianPrice] = useState(0);
     const [historyCount, setHistoryCount] = useState(0);
@@ -845,7 +845,7 @@ export default function DestinationPopup({
         setDeals([]);
         setLiveSearching(false);
 
-        fetch(`/api/prices/destination?name=${encodeURIComponent(activeCity)}`, { signal: abortController.signal })
+        fetch(`/api/prices/destination?code=${encodeURIComponent(activeCode)}&name=${encodeURIComponent(activeCity)}`, { signal: abortController.signal })
             .then((res) => res.json())
             .then((data) => {
                 if (data.error) {
@@ -862,17 +862,8 @@ export default function DestinationPopup({
                 if (dbDeals.length > 0) {
                     setDeals(dbDeals);
                     setLoading(false);
-
-                    // If few results, also trigger live search to fill in gaps
-                    if (dbDeals.length < 4 && canLiveSearch) {
-                        setLiveSearching(true);
-                        fetchLiveDeals(dbDeals);
-                    }
-                } else if (canLiveSearch) {
-                    // No DB deals — do live search
-                    setLiveSearching(true);
-                    fetchLiveDeals([]);
                 } else {
+                    // No DB deals at all — show empty state (no slow live search)
                     setLoading(false);
                 }
             })
@@ -930,30 +921,43 @@ export default function DestinationPopup({
 
     // ── Premium lock overlay for gated sections ──
     const PremiumLock = ({ label, children }: { label: string; children: React.ReactNode }) => (
-        <div style={{ position: 'relative', marginBottom: 12 }}>
-            <div style={{ filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none' }}>
+        <div style={{ position: 'relative', marginBottom: 12, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ filter: 'blur(8px)', pointerEvents: 'none', userSelect: 'none', transform: 'scale(1.02)' }}>
                 {children}
             </div>
             <div style={{
                 position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.7)', borderRadius: 14,
+                alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'linear-gradient(135deg, rgba(15,23,42,0.55), rgba(30,41,59,0.45))',
+                backdropFilter: 'blur(2px)', borderRadius: 16,
             }}>
-                <span style={{ fontSize: 22 }}>&#x1F512;</span>
+                <div style={{
+                    width: 44, height: 44, borderRadius: 14,
+                    background: 'linear-gradient(135deg, rgba(14,165,233,0.2), rgba(6,182,212,0.15))',
+                    border: '1px solid rgba(14,165,233,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 20px rgba(14,165,233,0.2)',
+                }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                </div>
                 <span style={{
-                    fontSize: 12, fontWeight: 700, color: '#0F172A',
-                    fontFamily: "'Outfit', sans-serif", textAlign: 'center',
+                    fontSize: 13, fontWeight: 700, color: '#fff',
+                    fontFamily: "'Fredoka', sans-serif", textAlign: 'center',
+                    textShadow: '0 2px 8px rgba(0,0,0,0.5)',
                 }}>
                     {label}
                 </span>
                 <a href="/pricing" style={{
-                    fontSize: 11, fontWeight: 700, color: '#fff',
-                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                    padding: '6px 16px', borderRadius: 100, textDecoration: 'none',
+                    fontSize: 12, fontWeight: 700, color: '#0F172A',
+                    background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                    padding: '8px 22px', borderRadius: 100, textDecoration: 'none',
                     fontFamily: "'Outfit', sans-serif",
-                    boxShadow: '0 2px 8px rgba(14,165,233,0.3)',
+                    boxShadow: '0 4px 16px rgba(255,215,0,0.35)',
+                    transition: 'transform 0.2s',
                 }}>
-                    Premium — Débloquer
+                    Débloquer
                 </a>
             </div>
         </div>
@@ -2707,159 +2711,238 @@ export default function DestinationPopup({
                                 </div>
                             </div>
                             ) : (
-                            /* ── Premium Intelligence Teaser for free users (dynamic FOMO) ── */
+                            /* ── Premium Intelligence — Blurred Real Dashboard for free users ── */
                             <div style={{
-                                marginBottom: 16, padding: '18px', borderRadius: 18,
+                                marginBottom: 16, borderRadius: 18,
                                 background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-                                border: '1px solid rgba(255,215,0,0.15)',
+                                border: '1px solid rgba(14,165,233,0.2)',
+                                overflow: 'hidden', position: 'relative',
                             }}>
-                                {/* Header */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                                {/* Real header (identical to premium) */}
+                                <div style={{
+                                    padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 10,
+                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                }}>
                                     <div style={{
-                                        width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                                        background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                                        width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                        background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
+                                        boxShadow: '0 2px 10px rgba(14,165,233,0.4)',
                                     }}>
-                                        <img src="/logo_geai.png" alt="GeAI" width={24} height={24} style={{ borderRadius: '50%' }} />
+                                        <img src="/logo_geai.png" alt="GeAI" width={22} height={22} style={{ borderRadius: '50%' }} />
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>
-                                            Tu passes à côté de ça...
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
+                                            Intelligence GeAI
                                         </div>
                                         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
-                                            Intelligence GeAI · Analyse en temps réel
+                                            {deals.length} vols · {historyCount > 0 ? `${historyCount} scans historiques` : 'analyse en cours'}
+                                        </div>
+                                    </div>
+                                    <div style={{
+                                        marginLeft: 'auto', padding: '3px 10px', borderRadius: 100,
+                                        background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                                        fontSize: 9, fontWeight: 800, color: '#5C4A00',
+                                        fontFamily: "'Fredoka', sans-serif",
+                                    }}>PREMIUM</div>
+                                </div>
+
+                                {/* ── Blurred dashboard content (shows REAL data, blurred) ── */}
+                                <div style={{ position: 'relative' }}>
+                                    {/* Actual content with real data — blurred */}
+                                    <div style={{
+                                        filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none',
+                                        transform: 'scale(1.01)',
+                                    }}>
+                                        {/* Savings banner */}
+                                        {premiumAnalytics && premiumAnalytics.savingsVsAvg > 0 && (
+                                            <div style={{
+                                                padding: '12px 16px',
+                                                background: 'linear-gradient(135deg, rgba(16,185,129,0.12) 0%, rgba(6,182,212,0.08) 100%)',
+                                                borderBottom: '1px solid rgba(16,185,129,0.15)',
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <div style={{
+                                                        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+                                                        background: 'linear-gradient(135deg, #10B981, #06B6D4)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}>
+                                                        <span style={{ fontSize: 20 }}>💸</span>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(16,185,129,0.7)', fontFamily: "'Outfit', sans-serif", letterSpacing: 0.5 }}>
+                                                            TON ÉCONOMIE GEAI
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                            <span style={{ fontSize: 24, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
+                                                                {premiumAnalytics.savingsVsAvg}$
+                                                            </span>
+                                                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif" }}>
+                                                                de moins que la moyenne
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Score + Recommendation */}
+                                        <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <div style={{ display: 'flex', gap: 12 }}>
+                                                <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                                                    <div style={{
+                                                        width: 68, height: 68, borderRadius: '50%',
+                                                        background: `conic-gradient(${premiumAnalytics ? (premiumAnalytics.dealScore >= 70 ? '#10B981' : premiumAnalytics.dealScore >= 40 ? '#F59E0B' : '#EF4444') : '#0EA5E9'} ${premiumAnalytics ? premiumAnalytics.dealScore * 3.6 : 200}deg, rgba(255,255,255,0.06) 0deg)`,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    }}>
+                                                        <div style={{
+                                                            width: 54, height: 54, borderRadius: '50%',
+                                                            background: 'linear-gradient(135deg, #0F172A, #1E293B)',
+                                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                                        }}>
+                                                            <span style={{
+                                                                fontSize: 22, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                                                                color: premiumAnalytics ? (premiumAnalytics.dealScore >= 70 ? '#10B981' : premiumAnalytics.dealScore >= 40 ? '#F59E0B' : '#EF4444') : '#0EA5E9',
+                                                            }}>{premiumAnalytics?.dealScore || 72}</span>
+                                                            <span style={{ fontSize: 7, fontWeight: 700, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif" }}>/100</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <div style={{
+                                                        fontSize: 14, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+                                                        color: premiumAnalytics?.recommendation.urgency === 'buy' ? '#10B981' : premiumAnalytics?.recommendation.urgency === 'wait' ? '#F59E0B' : '#94A3B8',
+                                                        marginBottom: 4,
+                                                    }}>
+                                                        {premiumAnalytics?.recommendation.urgency === 'buy' ? '✅' : premiumAnalytics?.recommendation.urgency === 'wait' ? '⏳' : '➡️'}{' '}
+                                                        {premiumAnalytics?.recommendation.action || 'Acheter maintenant'}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", lineHeight: 1.5 }}>
+                                                        {premiumAnalytics?.recommendation.reason || 'Les prix montent et le deal actuel est excellent.'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Best month + airline row */}
+                                        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                                            <div style={{ flex: 1, padding: '12px 16px', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                                                <div style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5, marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>MEILLEUR MOIS</div>
+                                                <div style={{ fontSize: 18, fontWeight: 800, color: '#10B981', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    {premiumAnalytics?.cheapestMonth?.name || 'Juin'}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
+                                                    dès {premiumAnalytics?.cheapestMonth?.min || cheapestPrice}$
+                                                </div>
+                                            </div>
+                                            <div style={{ flex: 1, padding: '12px 16px' }}>
+                                                <div style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5, marginBottom: 4, fontFamily: "'Outfit', sans-serif" }}>MEILLEURE COMPAGNIE</div>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: '#0EA5E9', fontFamily: "'Outfit', sans-serif" }}>
+                                                    {premiumAnalytics?.bestAirline?.name || 'Air Canada'}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif" }}>
+                                                    moy. {premiumAnalytics?.bestAirline?.avg || cheapestPrice + 50}$
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Mini price chart silhouette */}
+                                        <div style={{ padding: '12px 16px' }}>
+                                            <div style={{ fontSize: 8, fontWeight: 800, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5, marginBottom: 8, fontFamily: "'Outfit', sans-serif" }}>HISTORIQUE 90 JOURS</div>
+                                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 40 }}>
+                                                {Array.from({ length: 20 }, (_, i) => {
+                                                    const h = 15 + Math.sin(i * 0.7) * 12 + Math.random() * 8;
+                                                    const isLow = i >= 14 && i <= 17;
+                                                    return <div key={i} style={{
+                                                        flex: 1, height: h, borderRadius: 2,
+                                                        background: isLow ? 'rgba(16,185,129,0.6)' : 'rgba(14,165,233,0.3)',
+                                                    }} />;
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ── Glass overlay with CTA ── */}
+                                    <div style={{
+                                        position: 'absolute', inset: 0,
+                                        background: 'linear-gradient(180deg, rgba(15,23,42,0.3) 0%, rgba(15,23,42,0.65) 40%, rgba(15,23,42,0.85) 100%)',
+                                        backdropFilter: 'blur(1px)',
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'flex-end',
+                                        padding: '20px 16px',
+                                    }}>
+                                        {/* Urgency tag — only if real data supports it */}
+                                        {premiumAnalytics && premiumAnalytics.recommendation.urgency === 'buy' && (
+                                            <div style={{
+                                                padding: '6px 14px', borderRadius: 100, marginBottom: 10,
+                                                background: 'rgba(16,185,129,0.15)',
+                                                border: '1px solid rgba(16,185,129,0.3)',
+                                                fontSize: 11, fontWeight: 700, color: '#10B981',
+                                                fontFamily: "'Outfit', sans-serif",
+                                            }}>
+                                                L&apos;IA recommande d&apos;acheter maintenant
+                                            </div>
+                                        )}
+
+                                        {/* Savings + ROI line */}
+                                        {premiumAnalytics && premiumAnalytics.savingsVsAvg > 10 && (
+                                            <div style={{
+                                                fontSize: 13, fontWeight: 700, color: '#fff',
+                                                fontFamily: "'Outfit', sans-serif", textAlign: 'center',
+                                                marginBottom: 6, textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                                            }}>
+                                                Ce deal est <span style={{ color: '#10B981' }}>{premiumAnalytics.savingsVsAvg}$ sous la moyenne</span>
+                                            </div>
+                                        )}
+
+                                        {premiumAnalytics && premiumAnalytics.savingsVsAvg > 10 && (
+                                            <div style={{
+                                                fontSize: 11, color: 'rgba(255,255,255,0.6)',
+                                                fontFamily: "'Outfit', sans-serif", textAlign: 'center',
+                                                marginBottom: 14, textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+                                            }}>
+                                                Pour un couple : {premiumAnalytics.savingsVsAvg * 2}$ d&apos;économie · Abonnement : {PREMIUM_PRICE}$/mois
+                                            </div>
+                                        )}
+
+                                        {/* CTA button */}
+                                        <a href="/pricing" style={{
+                                            textDecoration: 'none', display: 'block', width: '100%',
+                                        }}>
+                                            <div style={{
+                                                padding: '14px 20px', borderRadius: 14, textAlign: 'center',
+                                                background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
+                                                boxShadow: '0 6px 28px rgba(255,215,0,0.4)',
+                                                cursor: 'pointer',
+                                            }}>
+                                                <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    Débloquer l&apos;analyse complète
+                                                </div>
+                                                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(15,23,42,0.55)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
+                                                    {premiumAnalytics && premiumAnalytics.savingsVsAvg > 20
+                                                        ? `Rentabilisé dès le 1er vol · ROI ${Math.round(premiumAnalytics.savingsVsAvg / PREMIUM_PRICE)}x`
+                                                        : `Score, prédictions, historique, alertes · ${PREMIUM_PRICE}$/mois`
+                                                    }
+                                                </div>
+                                            </div>
+                                        </a>
+
+                                        {/* Hidden deals count */}
+                                        {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (
+                                            <div style={{
+                                                fontSize: 11, color: 'rgba(255,255,255,0.5)',
+                                                fontFamily: "'Outfit', sans-serif", marginTop: 10, textAlign: 'center',
+                                                textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+                                            }}>
+                                                + <strong style={{ color: '#0EA5E9' }}>{sortedDeals.length - tier.dealsPerDestination} vols cachés</strong> sur {sortedDeals.length} trouvés
+                                            </div>
+                                        )}
+
+                                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif", marginTop: 8 }}>
+                                            Sans engagement · Annulable en 1 clic
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Blurred deal score ring */}
-                                {premiumAnalytics && (
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14,
-                                        padding: '12px 14px', borderRadius: 14,
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                    }}>
-                                        <div style={{
-                                            width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
-                                            background: 'conic-gradient(rgba(255,215,0,0.5) 200deg, rgba(255,255,255,0.06) 0deg)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            filter: 'blur(6px)',
-                                        }}>
-                                            <div style={{
-                                                width: 44, height: 44, borderRadius: '50%',
-                                                background: '#0F172A',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                            }}>
-                                                <span style={{ fontSize: 16, fontWeight: 800, color: '#FFD700', fontFamily: "'Fredoka', sans-serif" }}>??</span>
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', fontFamily: "'Outfit', sans-serif" }}>
-                                                Ce deal est-il bon?
-                                            </div>
-                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
-                                                Score sur 100 + recommandation achat/attendre
-                                            </div>
-                                            <div style={{ fontSize: 10, fontWeight: 700, color: '#FFD700', fontFamily: "'Outfit', sans-serif", marginTop: 4 }}>
-                                                La réponse est là...
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Dynamic savings */}
-                                {premiumAnalytics && premiumAnalytics.savingsVsAvg > 0 && (
-                                    <div style={{
-                                        padding: '12px 14px', borderRadius: 12, marginBottom: 10,
-                                        background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05))',
-                                        border: '1px solid rgba(16,185,129,0.15)',
-                                    }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981', fontFamily: "'Outfit', sans-serif" }}>
-                                            Les Premium économisent <strong>{premiumAnalytics.savingsVsAvg}$</strong> sur cette destination
-                                        </div>
-                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: "'Outfit', sans-serif", marginTop: 3 }}>
-                                            Pour un couple : <strong style={{ color: '#10B981' }}>{premiumAnalytics.savingsVsAvg * 2}$ d&apos;économie</strong>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Cheapest vs expensive month */}
-                                {premiumAnalytics && premiumAnalytics.cheapestMonth && premiumAnalytics.expensiveMonth && premiumAnalytics.monthSaving > 30 && (
-                                    <div style={{
-                                        padding: '12px 14px', borderRadius: 12, marginBottom: 10,
-                                        background: 'rgba(255,255,255,0.03)',
-                                        border: '1px solid rgba(255,255,255,0.06)',
-                                    }}>
-                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif" }}>
-                                            Pars en <strong style={{ color: '#10B981' }}>{premiumAnalytics.cheapestMonth.name}</strong> plutôt que {premiumAnalytics.expensiveMonth.name},
-                                            économise <strong style={{ color: '#10B981' }}>{premiumAnalytics.monthSaving}$</strong>
-                                        </div>
-                                        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontFamily: "'Outfit', sans-serif", marginTop: 3 }}>
-                                            Les Premium savent quand partir. Pas toi... pour l&apos;instant.
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Hidden deals counter */}
-                                {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (
-                                    <div style={{
-                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
-                                        background: 'rgba(14,165,233,0.06)',
-                                        border: '1px solid rgba(14,165,233,0.12)',
-                                        display: 'flex', alignItems: 'center', gap: 8,
-                                    }}>
-                                        <span style={{ fontSize: 16 }}>&#9992;&#65039;</span>
-                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontFamily: "'Outfit', sans-serif" }}>
-                                            <strong style={{ color: '#0EA5E9' }}>{sortedDeals.length - tier.dealsPerDestination} vols cachés</strong> sur {sortedDeals.length} trouvés
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Urgency messages */}
-                                {premiumAnalytics && premiumAnalytics.priceRarity.pct <= 30 && (
-                                    <div style={{
-                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
-                                        background: premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.06)',
-                                        border: `1px solid ${premiumAnalytics.priceRarity.pct <= 10 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.12)'}`,
-                                    }}>
-                                        <div style={{
-                                            fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
-                                            color: premiumAnalytics.priceRarity.pct <= 10 ? '#EF4444' : '#F59E0B',
-                                        }}>
-                                            Ce prix est {premiumAnalytics.priceRarity.label.toLowerCase()}. Les Premium le savent déjà.
-                                        </div>
-                                    </div>
-                                )}
-                                {premiumAnalytics && premiumAnalytics.recommendation.urgency === 'buy' && (
-                                    <div style={{
-                                        padding: '10px 14px', borderRadius: 12, marginBottom: 10,
-                                        background: 'rgba(16,185,129,0.06)',
-                                        border: '1px solid rgba(16,185,129,0.12)',
-                                    }}>
-                                        <div style={{ fontSize: 12, fontWeight: 700, color: '#10B981', fontFamily: "'Outfit', sans-serif" }}>
-                                            Notre IA dit d&apos;acheter. T&apos;attends quoi?
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* CTA */}
-                                <a href="/pricing" style={{ textDecoration: 'none', display: 'block', marginTop: 14 }}>
-                                    <div style={{
-                                        padding: '14px 20px', borderRadius: 14, textAlign: 'center',
-                                        background: 'linear-gradient(135deg, #FFD700, #F59E0B)',
-                                        boxShadow: '0 4px 20px rgba(255,215,0,0.3)',
-                                        cursor: 'pointer', transition: 'all 0.2s',
-                                    }}>
-                                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
-                                            Débloquer pour 5$/mois
-                                        </div>
-                                        <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(15,23,42,0.6)', fontFamily: "'Outfit', sans-serif", marginTop: 2 }}>
-                                            Ça se rentabilise en 1 voyage.
-                                        </div>
-                                    </div>
-                                </a>
                             </div>
                             )
                         )}
@@ -4049,48 +4132,93 @@ export default function DestinationPopup({
                                     );
                                 })}
 
-                                {/* Premium upsell for hidden deals */}
+                                {/* Premium upsell — show blurred real deal cards */}
                                 {!tier.allDeals && sortedDeals.length > tier.dealsPerDestination && (() => {
                                     const hidden = sortedDeals.length - tier.dealsPerDestination;
-                                    const nextCheapest = sortedDeals[tier.dealsPerDestination];
+                                    const previewDeals = sortedDeals.slice(tier.dealsPerDestination, tier.dealsPerDestination + 2);
                                     return (
-                                        <a href="/pricing" style={{
-                                            display: 'block', padding: '16px', borderRadius: 16,
-                                            background: 'linear-gradient(135deg, rgba(14,165,233,0.06), rgba(6,182,212,0.03))',
-                                            border: '1px solid rgba(14,165,233,0.2)',
-                                            textDecoration: 'none', cursor: 'pointer',
-                                            transition: 'all 0.2s',
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                                                <div style={{
-                                                    width: 36, height: 36, borderRadius: 10,
-                                                    background: 'linear-gradient(135deg, rgba(14,165,233,0.15), rgba(6,182,212,0.1))',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 18,
-                                                }}>&#x1F512;</div>
-                                                <div>
-                                                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0EA5E9', fontFamily: "'Fredoka', sans-serif" }}>
-                                                        {hidden} autre{hidden > 1 ? 's' : ''} option{hidden > 1 ? 's' : ''} de vol
-                                                    </div>
-                                                    {nextCheapest && (
-                                                        <div style={{ fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
-                                                            Dont des vols à partir de <strong style={{ color: '#0EA5E9' }}>{Math.round(nextCheapest.price)}$</strong>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div style={{ fontSize: 10, color: '#94A3B8', fontFamily: "'Outfit', sans-serif", marginBottom: 10 }}>
-                                                Plus d&apos;options = meilleurs prix trouvés
-                                            </div>
+                                        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden' }}>
+                                            {/* Blurred real deal cards */}
                                             <div style={{
-                                                padding: '10px 16px', borderRadius: 10, textAlign: 'center',
-                                                background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
-                                                color: '#fff', fontSize: 13, fontWeight: 700,
-                                                fontFamily: "'Outfit', sans-serif",
+                                                filter: 'blur(6px)', pointerEvents: 'none', userSelect: 'none',
+                                                transform: 'scale(1.02)',
+                                                display: 'flex', flexDirection: 'column', gap: 8,
                                             }}>
-                                                Voir tous les vols — Premium
+                                                {previewDeals.map((deal, i) => (
+                                                    <div key={i} style={{
+                                                        display: 'flex', alignItems: 'center', gap: 12,
+                                                        padding: '14px 16px', borderRadius: 14,
+                                                        background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                                    }}>
+                                                        <div style={{
+                                                            width: 56, height: 56, borderRadius: 12, flexShrink: 0,
+                                                            background: '#E0F2FE',
+                                                            display: 'flex', flexDirection: 'column',
+                                                            alignItems: 'center', justifyContent: 'center',
+                                                        }}>
+                                                            <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "'Fredoka', sans-serif", color: '#0284C7' }}>
+                                                                {new Date(deal.departureDate + 'T00:00:00').getDate()}
+                                                            </span>
+                                                            <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', fontFamily: "'Outfit', sans-serif", color: '#0284C7' }}>
+                                                                {['jan','fev','mar','avr','mai','juin','juil','aout','sep','oct','nov','dec'][new Date(deal.departureDate + 'T00:00:00').getMonth()]}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A', fontFamily: "'Outfit', sans-serif" }}>
+                                                                {formatDateFr(deal.departureDate)} - {formatDateFr(deal.returnDate)}
+                                                            </div>
+                                                            <div style={{ fontSize: 11, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
+                                                                {deal.airline || 'Compagnie'} · {deal.stops === 0 ? 'Direct' : `${deal.stops} escale${deal.stops > 1 ? 's' : ''}`}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                                            {Math.round(deal.price)}$
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {hidden > 2 && (
+                                                    <div style={{
+                                                        padding: '12px', borderRadius: 14,
+                                                        background: '#F8FAFC', border: '1px solid #E2E8F0',
+                                                        textAlign: 'center', fontSize: 12, color: '#64748B',
+                                                    }}>
+                                                        + {hidden - 2} autres options
+                                                    </div>
+                                                )}
                                             </div>
-                                        </a>
+
+                                            {/* Overlay CTA */}
+                                            <a href="/pricing" style={{
+                                                position: 'absolute', inset: 0,
+                                                background: 'linear-gradient(180deg, rgba(248,250,252,0.4) 0%, rgba(248,250,252,0.85) 60%, rgba(248,250,252,0.95) 100%)',
+                                                display: 'flex', flexDirection: 'column',
+                                                alignItems: 'center', justifyContent: 'center', gap: 8,
+                                                textDecoration: 'none', borderRadius: 16,
+                                            }}>
+                                                <div style={{
+                                                    width: 44, height: 44, borderRadius: 14,
+                                                    background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(6,182,212,0.08))',
+                                                    border: '1px solid rgba(14,165,233,0.25)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                }}>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="2.5" strokeLinecap="round">
+                                                        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                                                    </svg>
+                                                </div>
+                                                <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                                                    {hidden} vol{hidden > 1 ? 's' : ''} de plus
+                                                </div>
+                                                <div style={{
+                                                    padding: '10px 24px', borderRadius: 100,
+                                                    background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+                                                    color: '#fff', fontSize: 13, fontWeight: 700,
+                                                    fontFamily: "'Outfit', sans-serif",
+                                                    boxShadow: '0 4px 16px rgba(14,165,233,0.3)',
+                                                }}>
+                                                    Voir tous les vols
+                                                </div>
+                                            </a>
+                                        </div>
                                     );
                                 })()}
 

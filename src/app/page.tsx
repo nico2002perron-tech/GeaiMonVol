@@ -1,7 +1,7 @@
 import ClientHome from './ClientHome';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { calculateRealDiscount } from '@/lib/services/flights';
-import { COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
+import { MAX_PRICE } from '@/lib/constants/deals';
 
 // Revalidate every 5 minutes — ISR
 export const revalidate = 300;
@@ -15,6 +15,7 @@ async function getDeals() {
         const supabase = await createServerSupabase();
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+        const today = new Date().toISOString().split('T')[0];
 
         const [latestResult, historyResult] = await Promise.all([
             supabase
@@ -22,6 +23,7 @@ async function getDeals() {
                 .select('destination, destination_code, price, currency, airline, stops, departure_date, return_date, source, scanned_at, raw_data')
                 .gte('scanned_at', thirtyDaysAgo)
                 .neq('source', 'historical_seed')
+                .lte('price', MAX_PRICE)
                 .order('price', { ascending: true }),
             supabase
                 .from('price_history')
@@ -34,41 +36,47 @@ async function getDeals() {
 
         if (latestResult.error || !latestResult.data) return [];
 
-        // Filter out old Google Flights
+        // Filter out non-bookable data + past departure dates
         const rows = latestResult.data.filter(
-            (r: any) => !r.source?.startsWith('google_flights')
+            (r: any) => {
+                if (r.source?.startsWith('google_flights')) return false;
+                if (r.source === 'skyscanner_explore') return false;
+                if (r.departure_date && r.departure_date < today) return false;
+                return true;
+            }
         );
 
-        // Dedup: best price per destination, prefer dated deals
+        // Dedup: best price per destination code (IATA), prefer dated deals
         const bestByDest: Record<string, any> = {};
         for (const row of rows) {
-            const ex = bestByDest[row.destination];
-            if (!ex) { bestByDest[row.destination] = row; continue; }
+            const key = row.destination_code || row.destination;
+            const ex = bestByDest[key];
+            if (!ex) { bestByDest[key] = row; continue; }
             const exDates = !!ex.departure_date, rowDates = !!row.departure_date;
-            if (rowDates && !exDates) bestByDest[row.destination] = row;
-            else if (rowDates === exDates && row.price < ex.price) bestByDest[row.destination] = row;
+            if (rowDates && !exDates) bestByDest[key] = row;
+            else if (rowDates === exDates && row.price < ex.price) bestByDest[key] = row;
         }
 
-        // Filter useless country codes
-        for (const [dest, p] of Object.entries(bestByDest)) {
+        // Filter out all country-level explore deals (2-letter codes)
+        for (const [key, p] of Object.entries(bestByDest)) {
             const code = (p as any).destination_code || '';
             const isCC = code.length === 2 && code === code.toUpperCase();
-            if (isCC && !(COUNTRY_SUBDESTINATIONS[code]?.length > 0) && !(p as any).departure_date) {
-                delete bestByDest[dest];
+            if (isCC) {
+                delete bestByDest[key];
             }
         }
 
-        // Group history
-        const histByDest: Record<string, Array<{ price: number; scanned_at: string }>> = {};
+        // Group history by destination code (matches how popup API looks up data)
+        const histByCode: Record<string, Array<{ price: number; scanned_at: string }>> = {};
         for (const row of historyResult.data || []) {
-            (histByDest[row.destination] ??= []).push({ price: row.price, scanned_at: row.scanned_at });
+            (histByCode[row.destination] ??= []).push({ price: row.price, scanned_at: row.scanned_at });
         }
 
         // Enrich
         const enriched = [];
         for (const [, price] of Object.entries(bestByDest)) {
             const p = price as any;
-            const hist = histByDest[p.destination] || [];
+            const hist = histByCode[p.destination] || [];
             const info = calculateRealDiscount(p.price, hist);
             enriched.push({
                 ...p,

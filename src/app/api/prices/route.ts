@@ -38,10 +38,11 @@ export async function GET() {
             return NextResponse.json({ error: latestResult.error?.message || 'Failed to fetch prices' }, { status: 500 });
         }
 
-        // Filter out old Google Flights data and deals with past departure dates
+        // Filter out non-bookable data: explore (indicative prices), Google Flights, past dates
         const skyscannerRows = (latestResult.data || []).filter(
             (row: any) => {
                 if (row.source?.startsWith('google_flights')) return false;
+                if (row.source === 'skyscanner_explore') return false; // Indicative prices, not real deals
                 if (row.departure_date && row.departure_date < today) return false;
                 return true;
             }
@@ -65,13 +66,13 @@ export async function GET() {
             }
         }
 
-        // Filter out country-level explore deals that have no city picker
+        // Filter out country-level explore deals (2-letter codes like KR, FR, IT...)
+        // These are Skyscanner "explore" results with no real dates/airline/booking link.
+        // Only keep actual airport-level deals (3-letter IATA codes).
         for (const [dest, price] of Object.entries(bestByDest)) {
             const code = price.destination_code || '';
             const isCountryCode = code.length === 2 && code === code.toUpperCase();
-            const hasCityPicker = isCountryCode && COUNTRY_SUBDESTINATIONS[code]?.length > 0;
-            const hasDates = !!price.departure_date;
-            if (isCountryCode && !hasCityPicker && !hasDates) {
+            if (isCountryCode) {
                 delete bestByDest[dest];
             }
         }

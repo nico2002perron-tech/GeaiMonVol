@@ -36,6 +36,9 @@ const SKYID_MAP: Record<string, string> = {
     'GRU': 'SAOP', 'EZE': 'BUEA', 'MBJ': 'MBJ', 'SJO': 'SJO',
     // Asia
     'BKK': 'BKK', 'NRT': 'TYOA', 'HND': 'TYOA', 'DPS': 'DPS', 'SGN': 'SGN',
+    'ICN': 'SELA', 'IST': 'ISTA', 'CAI': 'CAI',
+    // Caribbean / Central America
+    'BGI': 'BGI', 'SDQ': 'SDQ', 'LAS': 'LAS', 'GUA': 'GUA',
     // Canada
     'YYZ': 'YTOA', 'YOW': 'YOW', 'YVR': 'YVRA', 'YYC': 'YYC',
     'YEG': 'YEG', 'YWG': 'YWG', 'YHZ': 'YHZ', 'YQB': 'YQB',

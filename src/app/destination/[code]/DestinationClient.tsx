@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import DestinationHero from '@/components/destination/DestinationHero';
-import PriceHistoryChart from '@/components/ui/PriceHistoryChart';
 import PriceCalendar from '@/components/destination/PriceCalendar';
 import BestMonths from '@/components/destination/BestMonths';
 import { CITY_IMAGES, DEFAULT_CITY_IMAGE } from '@/lib/constants/deals';
@@ -105,14 +104,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
     const [discount, setDiscount] = useState(0);
     const [cheapestAirline, setCheapestAirline] = useState('');
 
-    // History chart
-    const [historyPoints, setHistoryPoints] = useState<Array<{ date: string; price: number }>>([]);
-    const [historyAvg, setHistoryAvg] = useState(0);
-    const [historyMin, setHistoryMin] = useState(0);
-    const [historyMax, setHistoryMax] = useState(0);
-    const [historyDays, setHistoryDays] = useState(30);
-    const [historyLoading, setHistoryLoading] = useState(true);
-
     // Calendar
     const [calendarDates, setCalendarDates] = useState<Record<string, any>>({});
     const [cheapestMonth, setCheapestMonth] = useState('');
@@ -136,21 +127,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .catch(() => {});
     }, [code]);
 
-    // Fetch history (by IATA code)
-    useEffect(() => {
-        setHistoryLoading(true);
-        fetch(`/api/prices/history?code=${code}&days=${historyDays}`)
-            .then(r => r.json())
-            .then(data => {
-                setHistoryPoints(data.points || []);
-                setHistoryAvg(data.avg || 0);
-                setHistoryMin(data.min || 0);
-                setHistoryMax(data.max || 0);
-            })
-            .catch(() => {})
-            .finally(() => setHistoryLoading(false));
-    }, [code, historyDays]);
-
     // Fetch calendar
     useEffect(() => {
         setCalendarLoading(true);
@@ -166,27 +142,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
 
     // Determine if we show premium content
     const showPremiumContent = isPremium || premiumLoading;
-
-    // Chart content (shared between locked/unlocked)
-    const chartContent = (
-        <div style={{
-            background: '#fff',
-            borderRadius: 16,
-            border: '1px solid #E2E8F0',
-            padding: 20,
-            marginBottom: 24,
-        }}>
-            <PriceHistoryChart
-                points={historyPoints}
-                avg={historyAvg}
-                min={historyMin}
-                max={historyMax}
-                days={historyDays}
-                onDaysChange={setHistoryDays}
-                loading={historyLoading}
-            />
-        </div>
-    );
 
     const calendarContent = (
         <div style={{ marginBottom: 24 }}>
@@ -239,49 +194,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     cheapestAirline={cheapestAirline}
                 />
 
-                {/* Stats summary — always visible (basic info) */}
-                {historyAvg > 0 && (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                        gap: 12,
-                        marginBottom: 24,
-                    }}>
-                        {[
-                            { label: 'Prix actuel', value: currentPrice ? `${currentPrice} $` : '—', color: '#0EA5E9' },
-                            { label: 'Moyenne 30j', value: `${historyAvg} $`, color: '#F59E0B' },
-                            { label: 'Plus bas 30j', value: `${historyMin} $`, color: '#10B981' },
-                            { label: 'Plus haut 30j', value: `${historyMax} $`, color: '#EF4444' },
-                        ].map(stat => (
-                            <div key={stat.label} style={{
-                                background: '#fff',
-                                borderRadius: 14,
-                                border: '1px solid #E2E8F0',
-                                padding: '14px 16px',
-                                textAlign: 'center',
-                            }}>
-                                <div style={{
-                                    fontSize: 11,
-                                    color: '#94A3B8',
-                                    fontFamily: "'Outfit', sans-serif",
-                                    fontWeight: 500,
-                                    marginBottom: 4,
-                                }}>
-                                    {stat.label}
-                                </div>
-                                <div style={{
-                                    fontSize: 22,
-                                    fontWeight: 700,
-                                    color: stat.color,
-                                    fontFamily: "'Fredoka', sans-serif",
-                                }}>
-                                    {stat.value}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 {/* Cheapest month callout — always visible */}
                 {cheapestMonth && (
                     <div style={{
@@ -307,13 +219,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                 )}
 
                 {/* ═══ PREMIUM SECTIONS ═══ */}
-
-                {/* Price History Chart */}
-                {showPremiumContent ? chartContent : (
-                    <PremiumLock label="Historique des prix">
-                        {chartContent}
-                    </PremiumLock>
-                )}
 
                 {/* Price Calendar */}
                 {!calendarLoading && Object.keys(calendarDates).length > 0 && (

@@ -45,9 +45,9 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: scansResult.error.message }, { status: 500 });
         }
 
-        // Filter out old Google Flights data + seed data
+        // Filter out non-bookable data
         const filtered = (scansResult.data || []).filter(
-            (row: any) => !row.source?.startsWith('google_flights') && row.source !== 'historical_seed'
+            (row: any) => !row.source?.startsWith('google_flights') && row.source !== 'historical_seed' && row.source !== 'skyscanner_explore'
         );
 
         // IQR outlier filter

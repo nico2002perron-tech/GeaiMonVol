@@ -9,6 +9,7 @@ import {
     buildBookingLink,
     resolveEntityIds,
 } from '@/lib/providers/flights/skyscanner';
+import { COUNTRY_SUBDESTINATIONS } from '@/lib/constants/deals';
 
 interface FlightDeal {
     city: string;
@@ -63,6 +64,13 @@ const PRIORITY_DESTINATIONS = [
     { city: 'Ho Chi Minh', code: 'SGN', country: 'Vietnam' },
     { city: 'Madrid', code: 'MAD', country: 'Espagne' },
     { city: 'Berlin', code: 'BER', country: 'Allemagne' },
+    { city: 'Séoul', code: 'ICN', country: 'Corée du Sud' },
+    { city: 'Le Caire', code: 'CAI', country: 'Égypte' },
+    { city: 'Istanbul', code: 'IST', country: 'Turquie' },
+    { city: 'Bridgetown', code: 'BGI', country: 'Barbade' },
+    { city: 'Las Vegas', code: 'LAS', country: 'États-Unis' },
+    { city: 'Santo Domingo', code: 'SDQ', country: 'Rép. Dominicaine' },
+    { city: 'Guatemala City', code: 'GUA', country: 'Guatemala' },
     { city: 'Toronto', code: 'YYZ', country: 'Canada' },
     { city: 'Ottawa', code: 'YOW', country: 'Canada' },
     { city: 'Vancouver', code: 'YVR', country: 'Canada' },
@@ -177,12 +185,39 @@ export async function scanExplore(): Promise<FlightDeal[]> {
             });
         }
 
-        console.log(`[Explore] Found ${results.length} deals from Skyscanner`);
+        console.log(`[Explore] Found ${results.length} raw deals from Skyscanner`);
+
+        // Auto-resolve country codes (2-letter) to airport codes via COUNTRY_SUBDESTINATIONS.
+        // e.g. KR at 182$ → Seoul (ICN) at 182$
+        const resolved: FlightDeal[] = [];
+        for (const deal of results) {
+            const code = deal.airportCode;
+            const isCountryCode = code.length === 2 && code === code.toUpperCase();
+            if (isCountryCode && COUNTRY_SUBDESTINATIONS[code]?.length > 0) {
+                // Expand into one deal per sub-destination airport
+                for (const sub of COUNTRY_SUBDESTINATIONS[code]) {
+                    resolved.push({
+                        ...deal,
+                        city: sub.city,
+                        airportCode: sub.code,
+                        route: `YUL – ${sub.code}`,
+                        bookingLink: buildBookingLink(ORIGIN, sub.code, '', ''),
+                    });
+                }
+                console.log(`[Explore] Expanded ${deal.city} (${code}) → ${COUNTRY_SUBDESTINATIONS[code].map(s => s.code).join(', ')}`);
+            } else if (!isCountryCode) {
+                resolved.push(deal);
+            }
+            // Drop country codes with no sub-destinations (unresolvable)
+        }
+
+        console.log(`[Explore] ${resolved.length} deals after country→airport expansion`);
+        return resolved;
     } catch (error) {
         console.error('[Explore] Error scanning Skyscanner:', error);
     }
 
-    return results;
+    return [];
 }
 
 // ============================================

@@ -1,6 +1,5 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { FLIGHTS } from '@/lib/data/flights';
 
 interface LivePrice {
     destination: string;
@@ -21,34 +20,13 @@ interface LivePrice {
     raw_data?: any;
 }
 
-// Static fallback — shown INSTANTLY while API loads
-function getStaticFallback(): LivePrice[] {
-    return FLIGHTS.map(f => ({
-        destination: f.city,
-        destination_code: f.route.split(' – ')[1] || '',
-        price: f.price,
-        airline: '',
-        stops: f.stops,
-        departure_date: '',
-        return_date: '',
-        scanned_at: '',
-        discount: 0,
-        avgPrice: 0,
-        medianPrice: 0,
-        dealLevel: 'normal',
-        historyCount: 0,
-        bookingLink: '',
-        raw_data: { lat: f.lat, lon: f.lon, tags: f.tags, img: f.img, imgSmall: f.imgSmall },
-    }));
-}
-
 // Module-level cache — survives across re-renders and component mounts
 let moduleCache: { prices: LivePrice[]; updatedAt: string } | null = null;
 
 export function useLivePrices() {
-    // Start with cached data or static fallback — NEVER empty
+    // Start with cached data or empty — no fake fallback
     const [prices, setPrices] = useState<LivePrice[]>(
-        moduleCache?.prices || getStaticFallback()
+        moduleCache?.prices || []
     );
     const [loading, setLoading] = useState(!moduleCache);
     const [lastUpdated, setLastUpdated] = useState<string | null>(
