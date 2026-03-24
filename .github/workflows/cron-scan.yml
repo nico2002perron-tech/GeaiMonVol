@@ -2,27 +2,70 @@ name: Daily Deal Scanner
 
 on:
   schedule:
-    # 8h UTC chaque jour (3h EST / 4h EDT)
+    # 8h UTC (3h EST) et 16h UTC (11h EST) — 2 scans/jour
     - cron: '0 8 * * *'
-    # 16h UTC chaque jour (11h EST / 12h EDT) — 2e scan quotidien
     - cron: '0 16 * * *'
-  workflow_dispatch: # Permet de déclencher manuellement depuis GitHub
+  workflow_dispatch:
+    inputs:
+      phases:
+        description: 'Number of phases to run (default 5)'
+        required: false
+        default: '5'
+
+env:
+  TOTAL_PHASES: 51  # 1 explore + 47 deep (1 dest each) + 3 hotel
 
 jobs:
   scan-prices:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
-      - name: Trigger scan-prices on Vercel
+      - name: Run multiple scan phases
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" \
-            "${{ secrets.VERCEL_APP_URL }}/api/cron/scan-prices?secret=${{ secrets.CRON_SECRET }}")
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP $HTTP_CODE"
-          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Scan failed with HTTP $HTTP_CODE"
+          PHASES="${{ github.event.inputs.phases || '5' }}"
+          DAY=$(date +%j)
+          # Offset by 5 for the 16h run to avoid scanning same phases twice
+          HOUR=$(date +%H)
+          OFFSET=0
+          if [ "$HOUR" -ge 12 ]; then
+            OFFSET=5
+          fi
+
+          echo "Running $PHASES phases (day=$DAY, offset=$OFFSET)..."
+          SUCCESS=0
+          FAIL=0
+
+          for i in $(seq 0 $((PHASES - 1))); do
+            PHASE=$(( (DAY * 10 + OFFSET + i) % $TOTAL_PHASES ))
+            echo ""
+            echo "=== Phase $PHASE ==="
+
+            RESPONSE=$(curl -s -m 65 -w "\n%{http_code}" \
+              "${{ secrets.VERCEL_APP_URL }}/api/cron/scan-prices?secret=${{ secrets.CRON_SECRET }}&phase=$PHASE")
+            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            echo "HTTP $HTTP_CODE"
+            echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              SUCCESS=$((SUCCESS + 1))
+            else
+              FAIL=$((FAIL + 1))
+              echo "::warning::Phase $PHASE failed with HTTP $HTTP_CODE"
+            fi
+
+            # Wait between phases to avoid overwhelming the API
+            if [ "$i" -lt "$((PHASES - 1))" ]; then
+              sleep 5
+            fi
+          done
+
+          echo ""
+          echo "=== Summary: $SUCCESS succeeded, $FAIL failed out of $PHASES ==="
+
+          if [ "$FAIL" -gt "$((PHASES / 2))" ]; then
+            echo "::error::More than half of phases failed"
             exit 1
           fi
 
@@ -33,7 +76,7 @@ jobs:
     steps:
       - name: Trigger send-alerts on Vercel
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" \
+          RESPONSE=$(curl -s -m 30 -w "\n%{http_code}" \
             "${{ secrets.VERCEL_APP_URL }}/api/cron/send-alerts?secret=${{ secrets.CRON_SECRET }}")
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)

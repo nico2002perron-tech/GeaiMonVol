@@ -235,8 +235,9 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // Scanner les 12 prochains mois (20k req/mois permet un scan complet)
-    const datesToScan = dates;
+    // In chunked mode (cron), only scan 7-night trips to fit within 60s timeout
+    // Full scan still uses all durations
+    const datesToScan = dates.filter(d => d.tripDuration <= 7);
 
     for (const date of datesToScan) {
         try {
@@ -284,7 +285,7 @@ export async function scanDestinationDeep(
                 },
             });
 
-            await sleep(600);
+            await sleep(300);
         } catch (error) {
             console.error(`[Deep] Error scanning ${destCity} ${date.month}:`, error);
         }
@@ -511,8 +512,8 @@ export function calculateRealDiscount(
 // Rotation automatique basée sur le jour de l'année
 // ============================================
 
-const BATCH_SIZE = 2; // 2 destinations × 12 mois × 2 durées = 48 appels ≈ 55s
-const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE); // 20
+const BATCH_SIZE = 1; // 1 destination × 12 mois = 12 appels ≈ 30s (fits in 60s Vercel limit)
+const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE);
 const HOTEL_PHASES = 3; // 3 phases for all-inclusive hotel scanning
 const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1 + HOTEL_PHASES; // +1 Explore + 3 hotel phases
 

@@ -11,11 +11,10 @@ export const maxDuration = 60; // Chaque phase tient dans 60s
 
 // Calculate the first hotel phase number
 function getFlightPhasesEnd(): number {
-    // TOTAL_PHASES - HOTEL_PHASES = first hotel phase index
-    const BATCH_SIZE = 2;
-    const PRIORITY_COUNT = 40; // from flights.ts
+    const BATCH_SIZE = 1; // Must match flights.ts
+    const PRIORITY_COUNT = 47; // Must match PRIORITY_DESTINATIONS length
     const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_COUNT / BATCH_SIZE);
-    return TOTAL_DEEP_BATCHES + 1;
+    return TOTAL_DEEP_BATCHES + 1; // +1 for explore phase
 }
 
 export async function GET(request: Request) {
