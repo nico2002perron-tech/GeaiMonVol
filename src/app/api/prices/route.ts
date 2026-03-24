@@ -127,19 +127,17 @@ export async function GET() {
             });
         }
 
-        // Enrich all-inclusive deals with hotel prices from hotel_prices table
-        const allInclusiveCodes = enrichedPrices
-            .filter(p => ALL_INCLUSIVE_CODES.includes(p.destination_code))
-            .map(p => p.destination_code);
+        // Enrich ALL deals with hotel prices from hotel_prices table
+        // All-inclusive: free users see pack price. Regular hotels: premium-only enrichment.
+        const allDestCodes = enrichedPrices.map(p => p.destination_code).filter(Boolean);
 
-        if (allInclusiveCodes.length > 0) {
+        if (allDestCodes.length > 0) {
             const hotelCacheThreshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
             const adminSupabase = createAdminSupabase();
             const { data: hotelData } = await adminSupabase
                 .from('hotel_prices')
-                .select('destination_code, hotel_name, stars, price_per_night, total_price, nights, rating, image_url, booking_url')
-                .in('destination_code', allInclusiveCodes)
-                .eq('is_all_inclusive', true)
+                .select('destination_code, hotel_name, stars, price_per_night, total_price, nights, rating, image_url, booking_url, is_all_inclusive')
+                .in('destination_code', allDestCodes)
                 .gte('scanned_at', hotelCacheThreshold)
                 .gte('stars', 3)
                 .order('price_per_night', { ascending: true });
@@ -157,6 +155,7 @@ export async function GET() {
                 for (const deal of enrichedPrices) {
                     const hotel = bestHotelByDest[deal.destination_code];
                     if (hotel) {
+                        const isAI = ALL_INCLUSIVE_CODES.includes(deal.destination_code);
                         const nights = hotel.nights || 7;
                         deal.hotelPrice = hotel.price_per_night;
                         deal.hotelTotal = hotel.total_price || hotel.price_per_night * nights;
@@ -166,7 +165,10 @@ export async function GET() {
                         deal.hotelImage = hotel.image_url;
                         deal.hotelBookingUrl = hotel.booking_url;
                         deal.hotelNights = nights;
+                        deal.hotelIsAllInclusive = hotel.is_all_inclusive;
+                        // totalPackPrice shown on cards: free for all-inclusive, premium flag for regular
                         deal.totalPackPrice = deal.price + (hotel.total_price || hotel.price_per_night * nights);
+                        deal.hotelPremiumOnly = !isAI; // Regular hotels = premium only
                     }
                 }
             }

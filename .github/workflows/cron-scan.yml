@@ -14,7 +14,7 @@ on:
         default: '12'
 
 env:
-  TOTAL_PHASES: 51  # 1 explore + 47 deep (1 dest each) + 3 hotel
+  TOTAL_PHASES: 59  # 1 explore + 47 deep + 3 all-inclusive hotel + 8 regular hotel
 
 jobs:
   scan-prices:

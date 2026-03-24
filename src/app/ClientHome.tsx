@@ -97,7 +97,7 @@ interface DealItem {
   medianPrice: number;
   avgPrice: number;
   historyCount: number;
-  // Hotel / pack fields (enriched for tout-inclus)
+  // Hotel / pack fields (enriched for tout-inclus + premium)
   hotelPrice?: number;
   hotelTotal?: number;
   hotelName?: string;
@@ -107,6 +107,7 @@ interface DealItem {
   hotelBookingUrl?: string;
   hotelNights?: number;
   totalPackPrice?: number;
+  hotelPremiumOnly?: boolean;
 }
 
 function formatDateShort(dateStr: string): string {
@@ -451,6 +452,7 @@ function mapPricesToDeals(prices: any[]): DealItem[] {
       hotelBookingUrl: p.hotelBookingUrl,
       hotelNights: p.hotelNights,
       totalPackPrice: p.totalPackPrice,
+      hotelPremiumOnly: p.hotelPremiumOnly || false,
     });
   }
 

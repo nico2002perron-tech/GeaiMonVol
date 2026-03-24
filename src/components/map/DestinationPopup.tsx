@@ -370,18 +370,25 @@ export default function DestinationPopup({
         setCalMonth('');
     }, [isOpen]);
 
-    // Fetch hotels for all-inclusive destinations
+    // Fetch hotels: all-inclusive (free) or any destination (premium)
     const isAllInclusive = ALL_INCLUSIVE_CODES.includes(activeCode);
+    const showPackFlow = isAllInclusive || isPremium; // Premium unlocks hotel flow everywhere
     useEffect(() => {
         if (!isOpen || !activeCode || activeCode.length < 3) return;
-        if (!isAllInclusive) {
+        if (!showPackFlow) {
             setHotels([]);
             return;
         }
 
         setHotelsLoading(true);
         fetch(`/api/prices/hotels?code=${encodeURIComponent(activeCode)}`)
-            .then(res => res.json())
+            .then(res => {
+                if (res.status === 403 || res.status === 401) {
+                    // Not premium — no hotels for non-all-inclusive
+                    return { hotels: [] };
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.hotels && data.hotels.length > 0) {
                     setHotels((data.hotels || []).filter((h: any) => !h.stars || h.stars >= 3));
@@ -391,7 +398,7 @@ export default function DestinationPopup({
             })
             .catch(() => setHotels([]))
             .finally(() => setHotelsLoading(false));
-    }, [isOpen, activeCode, isAllInclusive]);
+    }, [isOpen, activeCode, showPackFlow]);
 
     // Premium: fetch extended calendar dates (6 months of best-price-per-day)
     useEffect(() => {
@@ -1091,7 +1098,7 @@ export default function DestinationPopup({
                     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px' }}>
 
                         {/* ═══ STEP INDICATOR (All-Inclusive only) ═══ */}
-                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && (
+                        {showPackFlow && deals.length > 0 && hotels.length > 0 && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 marginBottom: 18, gap: 0,
@@ -1174,7 +1181,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ── Pricing mode toggle (All-Inclusive) ── */}
-                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && (
+                        {showPackFlow && deals.length > 0 && hotels.length > 0 && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 marginBottom: 14, gap: 0,
@@ -1223,7 +1230,7 @@ export default function DestinationPopup({
                             </div>
                         )}
                         {/* Family configuration panel */}
-                        {isAllInclusive && deals.length > 0 && hotels.length > 0 && pricingMode === 'family' && (
+                        {showPackFlow && deals.length > 0 && hotels.length > 0 && pricingMode === 'family' && (
                             <div style={{
                                 marginTop: -6, marginBottom: 14, padding: '10px 14px', borderRadius: 10,
                                 background: 'rgba(14,165,233,0.04)', border: '1px solid rgba(14,165,233,0.1)',
@@ -1343,7 +1350,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ── Header bar: count + sort + Skyscanner link ── */}
-                        {(!isAllInclusive || packStep === 1) && (!isCountryLevel || selectedSubDest || subDestinations.length === 0) && (
+                        {(!showPackFlow || packStep === 1) && (!isCountryLevel || selectedSubDest || subDestinations.length === 0) && (
                             <div style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 marginBottom: 12, gap: 8,
@@ -1420,7 +1427,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ GeAI MASCOT ═══ */}
-                        {(!isAllInclusive || packStep === 1) && bestPrice != null && bestPrice > 0 && !loading && deals.length > 0 && (() => {
+                        {(!showPackFlow || packStep === 1) && bestPrice != null && bestPrice > 0 && !loading && deals.length > 0 && (() => {
                             const effMedian = medianPrice || propMedianPrice || 0;
                             const effAvg = avgPrice || propAvgPrice || 0;
                             const effHistory = historyCount || propHistoryCount || 0;
@@ -1557,7 +1564,7 @@ export default function DestinationPopup({
                         })()}
 
                         {/* ── TREND INDICATOR ── */}
-                        {(!isAllInclusive || packStep === 1) && priceTrend && !loading && deals.length > 0 && (
+                        {(!showPackFlow || packStep === 1) && priceTrend && !loading && deals.length > 0 && (
                             tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 12, padding: '10px 14px', borderRadius: 12,
@@ -1646,7 +1653,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ PREMIUM INTELLIGENCE PANEL ═══ */}
-                        {(!isAllInclusive || packStep === 1) && !loading && deals.length >= 2 && premiumAnalytics && (
+                        {(!showPackFlow || packStep === 1) && !loading && deals.length >= 2 && premiumAnalytics && (
                             tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 16, borderRadius: 18,
@@ -2948,7 +2955,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* Error */}
-                        {(!isAllInclusive || packStep === 1) && error && (
+                        {(!showPackFlow || packStep === 1) && error && (
                             <div style={{
                                 padding: '12px 16px', borderRadius: 12,
                                 background: 'rgba(239,68,68,0.06)', color: '#DC2626',
@@ -2959,7 +2966,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* Loading skeleton */}
-                        {(!isAllInclusive || packStep === 1) && loading && !liveSearching && (
+                        {(!showPackFlow || packStep === 1) && loading && !liveSearching && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {[1, 2, 3].map((i) => (
                                     <div key={i} style={{
@@ -2976,7 +2983,7 @@ export default function DestinationPopup({
 
 
                         {/* ═══ STEP 2 — HOTEL SELECTION (All-Inclusive) ═══ */}
-                        {isAllInclusive && packStep === 2 && selectedFlight && (
+                        {showPackFlow && packStep === 2 && selectedFlight && (
                             <div style={{ animation: 'destFadeIn 0.3s ease-out' }}>
 
                                 {/* Back button + selected flight summary */}
@@ -3379,7 +3386,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ STEP 3 — AI DEAL ANALYSIS ═══ */}
-                        {isAllInclusive && packStep === 3 && selectedFlight && selectedHotel && (
+                        {showPackFlow && packStep === 3 && selectedFlight && selectedHotel && (
                             !tier.aiPackAnalysis ? (
                             <PremiumLock label="Analyse IA des tout-inclus">
                                 <div style={{
@@ -3773,7 +3780,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ DATE FLEXIBILITY SCROLLER ═══ */}
-                        {(!isAllInclusive || packStep === 1) && dateFlexibility && (
+                        {(!showPackFlow || packStep === 1) && dateFlexibility && (
                             tier.priceInsights ? (
                             <div style={{
                                 marginBottom: 14, padding: '12px 14px', borderRadius: 14,
@@ -3900,7 +3907,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ STEP 1 TITLE (All-Inclusive) ═══ */}
-                        {isAllInclusive && packStep === 1 && deals.length > 0 && hotels.length > 0 && (
+                        {showPackFlow && packStep === 1 && deals.length > 0 && hotels.length > 0 && (
                             <div style={{
                                 fontSize: 14, fontWeight: 700, color: '#0F172A',
                                 fontFamily: "'Fredoka', sans-serif",
@@ -3918,7 +3925,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ═══ DEAL DATE CARDS ═══ */}
-                        {(!isAllInclusive || packStep === 1) && sortedDeals.length > 0 && (
+                        {(!showPackFlow || packStep === 1) && sortedDeals.length > 0 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {sortedDeals.slice(0, tier.dealsPerDestination).map((deal, i) => {
                                     const isCheapest = deal.price === cheapestPrice;
@@ -3928,9 +3935,9 @@ export default function DestinationPopup({
                                         : 0);
                                     const isBelow = avgPrice > 0 && deal.price < avgPrice;
 
-                                    const isFlightSelected = isAllInclusive && selectedFlight?.departureDate === deal.departureDate && selectedFlight?.returnDate === deal.returnDate && selectedFlight?.price === deal.price;
-                                    const CardTag = (isAllInclusive && hotels.length > 0) ? 'div' as const : 'a' as const;
-                                    const cardLinkProps = (isAllInclusive && hotels.length > 0)
+                                    const isFlightSelected = showPackFlow && selectedFlight?.departureDate === deal.departureDate && selectedFlight?.returnDate === deal.returnDate && selectedFlight?.price === deal.price;
+                                    const CardTag = (showPackFlow && hotels.length > 0) ? 'div' as const : 'a' as const;
+                                    const cardLinkProps = (showPackFlow && hotels.length > 0)
                                         ? {}
                                         : { href: deal.bookingLink || fallbackUrl, target: '_blank' as const, rel: 'noopener noreferrer' };
 
@@ -3938,7 +3945,7 @@ export default function DestinationPopup({
                                         <CardTag
                                             key={`${deal.departureDate}-${deal.returnDate}-${i}`}
                                             {...cardLinkProps}
-                                            onClick={(isAllInclusive && hotels.length > 0) ? () => {
+                                            onClick={(showPackFlow && hotels.length > 0) ? () => {
                                                 setSelectedFlight(deal);
                                                 setSelectedHotel(null);
                                                 setPackStep(2);
@@ -4088,12 +4095,12 @@ export default function DestinationPopup({
                                                         -{dealDiscount}%
                                                     </span>
                                                 )}
-                                                {isAllInclusive && pricingMode === 'total-2' && (
+                                                {showPackFlow && pricingMode === 'total-2' && (
                                                     <div style={{ fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
                                                         {Math.round(deal.price * 2)} $ pour 2
                                                     </div>
                                                 )}
-                                                {isAllInclusive && pricingMode === 'family' && (
+                                                {showPackFlow && pricingMode === 'family' && (
                                                     <div style={{ fontSize: 10, color: '#64748B', fontFamily: "'Outfit', sans-serif" }}>
                                                         {Math.round(deal.price * flightMultiplier)} $ famille
                                                     </div>
@@ -4110,7 +4117,7 @@ export default function DestinationPopup({
 
                                             {/* Arrow or Select indicator */}
                                             <div style={{ flexShrink: 0, color: isFlightSelected ? '#0EA5E9' : '#94A3B8' }}>
-                                                {(isAllInclusive && hotels.length > 0) ? (
+                                                {(showPackFlow && hotels.length > 0) ? (
                                                     <div style={{
                                                         width: 20, height: 20, borderRadius: '50%',
                                                         border: isFlightSelected ? '2px solid #0EA5E9' : '2px solid #CBD5E1',
@@ -4282,7 +4289,7 @@ export default function DestinationPopup({
                         )}
 
                         {/* ── Average price info ── */}
-                        {(!isAllInclusive || packStep === 1) && avgPrice > 0 && deals.length > 0 && (
+                        {(!showPackFlow || packStep === 1) && avgPrice > 0 && deals.length > 0 && (
                             <div style={{
                                 marginTop: 12, padding: '10px 14px', borderRadius: 12,
                                 background: '#F8FAFC', border: '1px solid #E2E8F0',
@@ -4306,7 +4313,7 @@ export default function DestinationPopup({
 
 
                         {/* ── Share + Tip row ── */}
-                        {(!isAllInclusive || packStep === 1) && <div style={{
+                        {(!showPackFlow || packStep === 1) && <div style={{
                             marginTop: 12, display: 'flex', gap: 8,
                         }}>
                             <button
@@ -4334,7 +4341,7 @@ export default function DestinationPopup({
                                     fontSize: 10, color: '#64748B', lineHeight: 1.3,
                                     fontFamily: "'Outfit', sans-serif",
                                 }}>
-                                    {isAllInclusive && hotels.length > 0 ? 'Clique sur un vol pour passer a l\'etape 2' : 'Clique sur une date pour reserver sur Skyscanner'}
+                                    {showPackFlow && hotels.length > 0 ? 'Clique sur un vol pour passer a l\'etape 2' : 'Clique sur une date pour reserver sur Skyscanner'}
                                 </span>
                             </div>
                         </div>}

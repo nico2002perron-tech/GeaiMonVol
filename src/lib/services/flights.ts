@@ -518,8 +518,10 @@ export function calculateRealDiscount(
 
 const BATCH_SIZE = 1; // 1 destination × 12 mois = 12 appels ≈ 30s (fits in 60s Vercel limit)
 const TOTAL_DEEP_BATCHES = Math.ceil(PRIORITY_DESTINATIONS.length / BATCH_SIZE);
-const HOTEL_PHASES = 3; // 3 phases for all-inclusive hotel scanning
-const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1 + HOTEL_PHASES; // +1 Explore + 3 hotel phases
+const HOTEL_AI_PHASES = 3;  // 3 phases for all-inclusive hotel scanning
+const HOTEL_REG_PHASES = 8; // 8 phases for regular hotel scanning (premium)
+const HOTEL_PHASES = HOTEL_AI_PHASES + HOTEL_REG_PHASES; // 11 total hotel phases
+const TOTAL_PHASES = TOTAL_DEEP_BATCHES + 1 + HOTEL_PHASES; // +1 Explore + 11 hotel phases
 
 export type ScanPhase = number;
 
@@ -541,6 +543,18 @@ const HOTEL_GROUPS = [
     [0, 1, 2, 3, 4],    // Phase N+1: CUN, PUJ, VRA, HAV, MBJ
     [5, 6, 7, 8, 9],    // Phase N+2: SJO, NAS, BGI, CCC, PVR
     [10, 11, 12, 13, 14], // Phase N+3: SJD, LIR, POP, SDQ, FPO
+];
+
+// Regular hotel groups (indices into HOTEL_DESTINATIONS — premium feature)
+const REGULAR_HOTEL_GROUPS = [
+    [0, 1, 2, 3, 4],      // Paris, New York, Barcelone, Lisbonne, Rome
+    [5, 6, 7, 8, 9],      // Londres, Marrakech, Bangkok, Tokyo, Bogota
+    [10, 11, 12, 13, 14],  // Lima, São Paulo, Bali, Miami, Fort Lauderdale
+    [15, 16, 17, 18, 19],  // Los Angeles, Reykjavik, Athènes, Dublin, Amsterdam
+    [20, 21, 22, 23, 24],  // Porto, Cartagena, Buenos Aires, Ho Chi Minh, Madrid
+    [25, 26, 27, 28, 29],  // Berlin, Séoul, Le Caire, Istanbul, Las Vegas
+    [30, 31, 32, 33, 34],  // Guatemala, Toronto, Ottawa, Vancouver, Calgary
+    [35, 36, 37, 38],      // Edmonton, Winnipeg, Halifax, Québec
 ];
 
 export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
@@ -608,7 +622,7 @@ export async function chunkedScan(phase?: ScanPhase): Promise<FlightDeal[]> {
     return uniqueDeals;
 }
 
-export { HOTEL_GROUPS, HOTEL_PHASES };
+export { HOTEL_GROUPS, HOTEL_PHASES, HOTEL_AI_PHASES, REGULAR_HOTEL_GROUPS };
 
 // Export pour backward compatibility
 export async function scanFlightPrices(): Promise<FlightDeal[]> {

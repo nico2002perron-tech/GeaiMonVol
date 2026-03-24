@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { chunkedScan, getPhaseForToday, HOTEL_GROUPS, HOTEL_PHASES } from '@/lib/services/flights';
+import { chunkedScan, getPhaseForToday, HOTEL_GROUPS, HOTEL_PHASES, HOTEL_AI_PHASES, REGULAR_HOTEL_GROUPS } from '@/lib/services/flights';
 import { MAX_PRICE } from '@/lib/constants/deals';
 import type { ScanPhase } from '@/lib/services/flights';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { createAdminSupabase } from '@/lib/supabase/admin';
 import { refreshDestinationImages } from '@/lib/services/images';
-import { scanToutInclus, TOUT_INCLUS_DESTINATIONS } from '@/lib/services/hotels';
+import { scanToutInclus, scanRegularHotels, TOUT_INCLUS_DESTINATIONS, HOTEL_DESTINATIONS } from '@/lib/services/hotels';
 
 export const maxDuration = 60; // Chaque phase tient dans 60s
 
@@ -40,35 +40,57 @@ export async function GET(request: Request) {
 
         console.log(`Starting ${isHotelPhase ? 'hotel' : 'flight'} scan — Phase ${phase}...`);
 
-        // ── Hotel phases: scan all-inclusive resorts ──
+        // ── Hotel phases: all-inclusive (first 3) + regular (next 8) ──
         if (isHotelPhase) {
             const hotelGroupIdx = phase - flightPhasesEnd;
-            const groupIndices = HOTEL_GROUPS[hotelGroupIdx];
+            const isAllInclusivePhase = hotelGroupIdx < HOTEL_AI_PHASES;
 
-            if (!groupIndices) {
+            if (isAllInclusivePhase) {
+                // All-inclusive hotel scan (phases 0-2)
+                const groupIndices = HOTEL_GROUPS[hotelGroupIdx];
+                if (!groupIndices) {
+                    return NextResponse.json({ message: `Phase ${phase}: invalid AI hotel group`, phase, count: 0 });
+                }
+
+                const destinations = groupIndices
+                    .filter(i => i < TOUT_INCLUS_DESTINATIONS.length)
+                    .map(i => TOUT_INCLUS_DESTINATIONS[i]);
+
+                console.log(`[Hotels AI] Scanning group ${hotelGroupIdx + 1}: ${destinations.map(d => d.city).join(', ')}`);
+                const hotelsSaved = await scanToutInclus(destinations);
+
                 return NextResponse.json({
-                    message: `Phase ${phase}: invalid hotel group`,
+                    message: `Phase ${phase} all-inclusive hotel scan complete`,
                     phase,
-                    count: 0,
+                    type: 'hotel_all_inclusive',
+                    group: hotelGroupIdx + 1,
+                    destinations: destinations.map(d => d.city),
+                    hotelsSaved,
+                });
+            } else {
+                // Regular hotel scan (phases 3-10) — premium feature
+                const regGroupIdx = hotelGroupIdx - HOTEL_AI_PHASES;
+                const groupIndices = REGULAR_HOTEL_GROUPS[regGroupIdx];
+                if (!groupIndices) {
+                    return NextResponse.json({ message: `Phase ${phase}: invalid regular hotel group`, phase, count: 0 });
+                }
+
+                const destinations = groupIndices
+                    .filter(i => i < HOTEL_DESTINATIONS.length)
+                    .map(i => HOTEL_DESTINATIONS[i]);
+
+                console.log(`[Hotels REG] Scanning group ${regGroupIdx + 1}: ${destinations.map(d => d.city).join(', ')}`);
+                const hotelsSaved = await scanRegularHotels(destinations);
+
+                return NextResponse.json({
+                    message: `Phase ${phase} regular hotel scan complete`,
+                    phase,
+                    type: 'hotel_regular',
+                    group: regGroupIdx + 1,
+                    destinations: destinations.map(d => d.city),
+                    hotelsSaved,
                 });
             }
-
-            const destinations = groupIndices
-                .filter(i => i < TOUT_INCLUS_DESTINATIONS.length)
-                .map(i => TOUT_INCLUS_DESTINATIONS[i]);
-
-            console.log(`[Hotels] Scanning group ${hotelGroupIdx + 1}: ${destinations.map(d => d.city).join(', ')}`);
-
-            const hotelsSaved = await scanToutInclus(destinations);
-
-            return NextResponse.json({
-                message: `Phase ${phase} hotel scan complete`,
-                phase,
-                type: 'hotel',
-                group: hotelGroupIdx + 1,
-                destinations: destinations.map(d => d.city),
-                hotelsSaved,
-            });
         }
 
         // ── Flight phases ──
