@@ -235,9 +235,11 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // In chunked mode (cron), only scan 7-night trips to fit within 60s timeout
-    // Full scan still uses all durations
-    const datesToScan = dates.filter(d => d.tripDuration <= 7);
+    // In chunked mode (cron), only scan 7-night trips for next 6 months
+    // to fit within Vercel's 60s timeout. Full scan uses all durations.
+    const datesToScan = dates
+        .filter(d => d.tripDuration <= 7)
+        .slice(0, 6);
 
     for (const date of datesToScan) {
         try {
