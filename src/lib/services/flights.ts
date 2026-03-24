@@ -237,10 +237,10 @@ export async function scanDestinationDeep(
     const results: FlightDeal[] = [];
     const dates = getMonthlyDates();
 
-    // In chunked mode (cron): 4× 7-night + 2× 14-night = 6 dates, fits in 60s
+    // In chunked mode (cron): 5× 7-night + 3× 14-night = 8 dates, fits in 60s
     const datesToScan = [
-        ...dates.filter(d => d.tripDuration === 7).slice(0, 4),
-        ...dates.filter(d => d.tripDuration === 14).slice(0, 2),
+        ...dates.filter(d => d.tripDuration === 7).slice(0, 5),
+        ...dates.filter(d => d.tripDuration === 14).slice(0, 3),
     ];
 
     for (const date of datesToScan) {

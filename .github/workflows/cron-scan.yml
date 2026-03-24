@@ -2,15 +2,16 @@ name: Daily Deal Scanner
 
 on:
   schedule:
-    # 8h UTC (3h EST) et 16h UTC (11h EST) — 2 scans/jour
-    - cron: '0 8 * * *'
-    - cron: '0 16 * * *'
+    # 3 scans/jour — cycle complet en ~1.4 jours
+    - cron: '0 8 * * *'    # 8h UTC (3h EST)
+    - cron: '0 16 * * *'   # 16h UTC (11h EST)
+    - cron: '0 0 * * *'    # 0h UTC (19h EST)
   workflow_dispatch:
     inputs:
       phases:
-        description: 'Number of phases to run (default 8)'
+        description: 'Number of phases to run (default 12)'
         required: false
-        default: '8'
+        default: '12'
 
 env:
   TOTAL_PHASES: 51  # 1 explore + 47 deep (1 dest each) + 3 hotel
@@ -18,17 +19,21 @@ env:
 jobs:
   scan-prices:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Run multiple scan phases
         run: |
-          PHASES="${{ github.event.inputs.phases || '8' }}"
+          PHASES="${{ github.event.inputs.phases || '12' }}"
           DAY=$(date +%j)
-          # Offset by 8 for the 16h run to avoid scanning same phases twice
+          # Offset by 12 per run to avoid scanning same phases across 3 daily runs
           HOUR=$(date +%H)
-          OFFSET=0
-          if [ "$HOUR" -ge 12 ]; then
-            OFFSET=8
+          # 0h UTC → offset 0, 8h UTC → offset 12, 16h UTC → offset 24
+          if [ "$HOUR" -ge 16 ]; then
+            OFFSET=24
+          elif [ "$HOUR" -ge 8 ]; then
+            OFFSET=12
+          else
+            OFFSET=0
           fi
 
           echo "Running $PHASES phases (day=$DAY, offset=$OFFSET)..."
