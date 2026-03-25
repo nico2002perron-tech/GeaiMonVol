@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import DestinationHero from '@/components/destination/DestinationHero';
 import PriceCalendar from '@/components/destination/PriceCalendar';
 import BestMonths from '@/components/destination/BestMonths';
-import { CITY_IMAGES, DEFAULT_CITY_IMAGE } from '@/lib/constants/deals';
+import PackBuilder from '@/components/destination/PackBuilder';
+import TravelIntelligence from '@/components/destination/TravelIntelligence';
+import PriceInsightsCard from '@/components/destination/PriceInsightsCard';
+import MonthlyComparison from '@/components/destination/MonthlyComparison';
+import ForecastCard from '@/components/destination/ForecastCard';
+import { PremiumLock } from '@/components/destination/ui';
+import { FlightDeal, HotelInfo, TravelIntel, ForecastData, MonthStats, PackAnalysis } from '@/components/destination/types';
+import { getTripNights } from '@/components/destination/helpers';
+import { CITY_IMAGES, DEFAULT_CITY_IMAGE, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { usePremium } from '@/lib/hooks/usePremium';
 
 interface DestinationClientProps {
@@ -14,109 +22,71 @@ interface DestinationClientProps {
     country: string;
 }
 
-// ── Premium lock overlay component ──
-function PremiumLock({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden' }}>
-            {/* Blurred content preview */}
-            <div style={{
-                filter: 'blur(6px)',
-                opacity: 0.55,
-                pointerEvents: 'none',
-                userSelect: 'none',
-            }}>
-                {children}
-            </div>
-            {/* Premium upsell overlay */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(255,255,255,0.3)',
-                backdropFilter: 'blur(2px)',
-                borderRadius: 16,
-                zIndex: 2,
-            }}>
-                <div style={{
-                    background: 'linear-gradient(135deg, #0F172A, #1E293B)',
-                    borderRadius: 16,
-                    padding: '20px 32px',
-                    textAlign: 'center',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-                    maxWidth: 340,
-                }}>
-                    <div style={{
-                        fontSize: 28,
-                        marginBottom: 8,
-                    }}>🔒</div>
-                    <div style={{
-                        fontSize: 15,
-                        fontWeight: 700,
-                        color: '#FFD700',
-                        fontFamily: "'Fredoka', sans-serif",
-                        marginBottom: 6,
-                    }}>
-                        {label}
-                    </div>
-                    <p style={{
-                        fontSize: 12,
-                        color: 'rgba(255,255,255,0.6)',
-                        fontFamily: "'Outfit', sans-serif",
-                        margin: '0 0 14px',
-                        lineHeight: 1.5,
-                    }}>
-                        Passe Premium pour accéder à l&apos;analyse complète de cette destination.
-                    </p>
-                    <a
-                        href="/pricing"
-                        style={{
-                            display: 'inline-block',
-                            background: 'linear-gradient(135deg, #FFB800, #FFD700)',
-                            color: '#5C4A00',
-                            fontSize: 13,
-                            fontWeight: 700,
-                            fontFamily: "'Fredoka', sans-serif",
-                            padding: '10px 28px',
-                            borderRadius: 100,
-                            textDecoration: 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(255,184,0,0.4)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
-                    >
-                        ⭐ Débloquer — 4,99$/mois
-                    </a>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 export default function DestinationClient({ code, city, country }: DestinationClientProps) {
     const { isPremium, loading: premiumLoading } = usePremium();
+    const showPremiumContent = isPremium || premiumLoading;
+    const isAllInclusive = ALL_INCLUSIVE_CODES.includes(code);
 
-    // Deal data
+    // ── Core deal data ──
     const [currentPrice, setCurrentPrice] = useState<number | null>(null);
     const [dealLevel, setDealLevel] = useState('normal');
     const [discount, setDiscount] = useState(0);
     const [cheapestAirline, setCheapestAirline] = useState('');
 
-    // Calendar
+    // ── All flights ──
+    const [flights, setFlights] = useState<FlightDeal[]>([]);
+    const [flightsLoading, setFlightsLoading] = useState(true);
+
+    // ── Hotels ──
+    const [hotels, setHotels] = useState<HotelInfo[]>([]);
+    const [hotelsLoading, setHotelsLoading] = useState(false);
+
+    // ── Pack builder state ──
+    const [packStep, setPackStep] = useState<0 | 1 | 2>(0);
+    const [selectedFlight, setSelectedFlight] = useState<FlightDeal | null>(null);
+    const [selectedHotel, setSelectedHotel] = useState<HotelInfo | null>(null);
+    const [packAnalysis, setPackAnalysis] = useState<PackAnalysis | null>(null);
+    const [analysisLoading, setAnalysisLoading] = useState(false);
+
+    // ── Travel intelligence ──
+    const [travelIntel, setTravelIntel] = useState<TravelIntel | null>(null);
+    const [intelLoading, setIntelLoading] = useState(false);
+
+    // ── Calendar ──
     const [calendarDates, setCalendarDates] = useState<Record<string, any>>({});
     const [cheapestMonth, setCheapestMonth] = useState('');
     const [calendarLoading, setCalendarLoading] = useState(true);
 
+    // ── Monthly data ──
+    const [monthlyData, setMonthlyData] = useState<{ months: MonthStats[]; totalDataPoints: number } | null>(null);
+    const [monthlyLoading, setMonthlyLoading] = useState(false);
+
+    // ── AI Forecast ──
+    const [forecast, setForecast] = useState<ForecastData | null>(null);
+    const [forecastLoading, setForecastLoading] = useState(false);
+
+    // ── Price Insights ──
+    const [priceInsights, setPriceInsights] = useState<{
+        lowest_price: number;
+        price_level: 'low' | 'typical' | 'high';
+        typical_price_range: [number, number];
+    } | null>(null);
+    const [insightsLoading, setInsightsLoading] = useState(false);
+
     const imageUrl = CITY_IMAGES[city] || DEFAULT_CITY_IMAGE;
 
-    // Fetch deal data (by IATA code for reliability)
+    // ════════════════════════════════════════════════
+    // DATA FETCHING
+    // ════════════════════════════════════════════════
+
+    // Fetch flights
     useEffect(() => {
+        setFlightsLoading(true);
         fetch(`/api/prices/destination?code=${code}`)
             .then(r => r.json())
             .then(data => {
                 if (data.deals && data.deals.length > 0) {
+                    setFlights(data.deals);
                     const best = data.deals[0];
                     setCurrentPrice(Math.round(best.price));
                     setDealLevel(best.dealLevel || 'normal');
@@ -124,8 +94,38 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     setCheapestAirline(best.airline || '');
                 }
             })
-            .catch(() => {});
+            .catch(() => {})
+            .finally(() => setFlightsLoading(false));
     }, [code]);
+
+    // Fetch hotels (premium OR all-inclusive)
+    useEffect(() => {
+        if (!code || (!isPremium && !isAllInclusive)) return;
+        setHotelsLoading(true);
+        fetch(`/api/prices/hotels?code=${encodeURIComponent(code)}`)
+            .then(res => {
+                if (res.status === 403 || res.status === 401) return { hotels: [] };
+                return res.json();
+            })
+            .then(data => {
+                setHotels((data.hotels || []).filter((h: any) => !h.stars || h.stars >= 3));
+            })
+            .catch(() => setHotels([]))
+            .finally(() => setHotelsLoading(false));
+    }, [code, isPremium, isAllInclusive]);
+
+    // Fetch travel intelligence (premium)
+    useEffect(() => {
+        if (!isPremium || !code) return;
+        setIntelLoading(true);
+        fetch(`/api/prices/travel-intel?code=${encodeURIComponent(code)}&city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.tagline) setTravelIntel(data);
+            })
+            .catch(() => {})
+            .finally(() => setIntelLoading(false));
+    }, [code, city, country, isPremium]);
 
     // Fetch calendar
     useEffect(() => {
@@ -140,140 +140,243 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .finally(() => setCalendarLoading(false));
     }, [code]);
 
-    // Determine if we show premium content
-    const showPremiumContent = isPremium || premiumLoading;
+    // Premium: Monthly data
+    useEffect(() => {
+        if (!isPremium || !code) return;
+        setMonthlyLoading(true);
+        fetch(`/api/prices/monthly?code=${encodeURIComponent(code)}&years=1`)
+            .then(res => res.json())
+            .then(data => { if (data.months) setMonthlyData({ months: data.months, totalDataPoints: data.totalDataPoints || 0 }); })
+            .catch(() => {})
+            .finally(() => setMonthlyLoading(false));
+    }, [code, isPremium]);
 
-    const calendarContent = (
-        <div style={{ marginBottom: 24 }}>
-            <PriceCalendar dates={calendarDates} destinationCode={code} />
-        </div>
-    );
+    // Premium: Forecast
+    useEffect(() => {
+        if (!isPremium || !code || currentPrice === null || currentPrice <= 0) return;
+        setForecastLoading(true);
+        fetch(`/api/prices/forecast?code=${encodeURIComponent(code)}&price=${currentPrice}`)
+            .then(res => res.json())
+            .then(data => { if (data.verdict) setForecast(data); })
+            .catch(() => {})
+            .finally(() => setForecastLoading(false));
+    }, [code, isPremium, currentPrice]);
 
-    const bestMonthsContent = (
-        <div style={{ marginBottom: 24 }}>
-            <BestMonths dates={calendarDates} />
-        </div>
-    );
+    // Premium: Insights
+    useEffect(() => {
+        if (!isPremium || !code) return;
+        setInsightsLoading(true);
+        fetch(`/api/prices/insights?destination=${encodeURIComponent(code)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.price_history?.length > 0) {
+                    setPriceInsights({ lowest_price: data.lowest_price, price_level: data.price_level, typical_price_range: data.typical_price_range });
+                }
+            })
+            .catch(() => {})
+            .finally(() => setInsightsLoading(false));
+    }, [code, isPremium]);
+
+    // Fetch pack analysis when both flight and hotel are selected
+    useEffect(() => {
+        if (!selectedFlight || !selectedHotel || packAnalysis) return;
+        setAnalysisLoading(true);
+        const nights = getTripNights(selectedFlight.departureDate, selectedFlight.returnDate) || 7;
+        fetch('/api/prices/pack-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destination: city,
+                destination_code: code,
+                flight_price: selectedFlight.price,
+                hotel_name: selectedHotel.name,
+                hotel_stars: selectedHotel.stars,
+                hotel_rating: selectedHotel.rating,
+                hotel_review_count: selectedHotel.reviewCount,
+                hotel_price_per_night: selectedHotel.pricePerNight,
+                hotel_amenities: selectedHotel.amenities || [],
+                nights,
+                departure_date: selectedFlight.departureDate,
+                return_date: selectedFlight.returnDate,
+                airline: selectedFlight.airline,
+                stops: selectedFlight.stops,
+            }),
+        })
+            .then(res => res.json())
+            .then(data => { if (!data.error) setPackAnalysis(data); })
+            .catch(() => {})
+            .finally(() => setAnalysisLoading(false));
+    }, [selectedFlight, selectedHotel, city, code, packAnalysis]);
+
+    // ── Computed ──
+    const recommendedHotel = useMemo(() => {
+        if (hotels.length === 0) return null;
+        if (hotels.length === 1) return hotels[0];
+        const maxP = Math.max(...hotels.map(h => h.pricePerNight));
+        const maxR = Math.max(...hotels.map(h => h.rating), 1);
+        return hotels.reduce((best, h) => {
+            const s = (maxP > 0 ? ((maxP - h.pricePerNight) / maxP) * 0.4 : 0) + (maxR > 0 ? (h.rating / maxR) * 0.6 : 0);
+            const bs = (maxP > 0 ? ((maxP - best.pricePerNight) / maxP) * 0.4 : 0) + (maxR > 0 ? (best.rating / maxR) * 0.6 : 0);
+            return s > bs ? h : best;
+        });
+    }, [hotels]);
+
+    const selectedNights = useMemo(() => {
+        if (!selectedFlight) return 7;
+        const n = getTripNights(selectedFlight.departureDate, selectedFlight.returnDate);
+        return n > 0 ? n : 7;
+    }, [selectedFlight]);
+
+    const combinedTotal = useMemo(() => {
+        if (!selectedFlight || !selectedHotel) return null;
+        return Math.round(selectedFlight.price + selectedHotel.pricePerNight * selectedNights);
+    }, [selectedFlight, selectedHotel, selectedNights]);
+
+    const sortedFlights = useMemo(() =>
+        [...flights].sort((a, b) => a.price - b.price).slice(0, 15),
+    [flights]);
+
+    // Auto-select recommended hotel when entering step 2
+    useEffect(() => {
+        if (packStep === 2 && recommendedHotel && !selectedHotel) {
+            setSelectedHotel(recommendedHotel);
+        }
+    }, [packStep, recommendedHotel, selectedHotel]);
+
+    // ════════════════════════════════════════════════
+    // RENDER
+    // ════════════════════════════════════════════════
 
     return (
         <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
             <Navbar dark />
 
-            <main style={{
-                maxWidth: 800,
-                margin: '0 auto',
-                padding: '90px 16px 40px',
-            }}>
+            <main style={{ maxWidth: 800, margin: '0 auto', padding: '90px 16px 40px' }}>
                 {/* Back link */}
-                <a
-                    href="/"
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 13,
-                        color: '#64748B',
-                        textDecoration: 'none',
-                        fontFamily: "'Outfit', sans-serif",
-                        fontWeight: 500,
-                        marginBottom: 16,
-                    }}
-                >
+                <a href="/" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13,
+                    color: '#64748B', textDecoration: 'none', fontFamily: "'Outfit', sans-serif",
+                    fontWeight: 500, marginBottom: 16,
+                }}>
                     &larr; Retour au palmarès
                 </a>
 
-                {/* Hero — always visible */}
+                {/* Hero */}
                 <DestinationHero
-                    destination={city}
-                    destinationCode={code}
-                    country={country}
-                    currentPrice={currentPrice}
-                    dealLevel={dealLevel}
-                    discount={discount}
-                    imageUrl={imageUrl}
-                    cheapestAirline={cheapestAirline}
+                    destination={city} destinationCode={code} country={country}
+                    currentPrice={currentPrice} dealLevel={dealLevel} discount={discount}
+                    imageUrl={imageUrl} cheapestAirline={cheapestAirline}
                 />
 
-                {/* Cheapest month callout — always visible */}
+                {/* Cheapest month */}
                 {cheapestMonth && (
                     <div style={{
                         background: 'linear-gradient(135deg, #ECFDF5, #F0FDFA)',
-                        border: '1px solid #A7F3D0',
-                        borderRadius: 14,
-                        padding: '12px 18px',
-                        marginBottom: 24,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
+                        border: '1px solid #A7F3D0', borderRadius: 14, padding: '12px 18px',
+                        marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10,
                     }}>
                         <span style={{ fontSize: 20 }}>💡</span>
-                        <span style={{
-                            fontSize: 13,
-                            color: '#065F46',
-                            fontFamily: "'Outfit', sans-serif",
-                            fontWeight: 600,
-                        }}>
+                        <span style={{ fontSize: 13, color: '#065F46', fontFamily: "'Outfit', sans-serif", fontWeight: 600 }}>
                             Le mois le moins cher pour partir à {city} est <strong>{cheapestMonth}</strong>
                         </span>
                     </div>
                 )}
 
-                {/* ═══ PREMIUM SECTIONS ═══ */}
+                {/* ═══ PACK BUILDER ═══ */}
+                {(flights.length > 0 || flightsLoading) && (hotels.length > 0 || hotelsLoading || isAllInclusive || isPremium) && (() => {
+                    const packContent = (
+                        <PackBuilder
+                            city={city} code={code} isAllInclusive={isAllInclusive}
+                            flights={flights} sortedFlights={sortedFlights}
+                            hotels={hotels} hotelsLoading={hotelsLoading}
+                            packStep={packStep} setPackStep={setPackStep}
+                            selectedFlight={selectedFlight} setSelectedFlight={setSelectedFlight}
+                            selectedHotel={selectedHotel} setSelectedHotel={setSelectedHotel}
+                            selectedNights={selectedNights} combinedTotal={combinedTotal}
+                            recommendedHotel={recommendedHotel}
+                            packAnalysis={packAnalysis} setPackAnalysis={setPackAnalysis}
+                            analysisLoading={analysisLoading}
+                        />
+                    );
+                    return showPremiumContent ? packContent : (
+                        <PremiumLock label="Constructeur de Pack Vol + Hôtel">
+                            {packContent}
+                        </PremiumLock>
+                    );
+                })()}
 
-                {/* Price Calendar */}
+                {/* ═══ TRAVEL INTELLIGENCE ═══ */}
+                {(intelLoading || travelIntel) && (() => {
+                    const intelContent = (
+                        <TravelIntelligence
+                            travelIntel={travelIntel}
+                            intelLoading={intelLoading}
+                            city={city}
+                        />
+                    );
+                    return showPremiumContent ? intelContent : (
+                        <PremiumLock label="Intelligence Voyage GeAI">
+                            {intelContent}
+                        </PremiumLock>
+                    );
+                })()}
+
+                {/* ═══ PRICE CALENDAR ═══ */}
                 {!calendarLoading && Object.keys(calendarDates).length > 0 && (
-                    showPremiumContent ? calendarContent : (
+                    showPremiumContent ? (
+                        <div style={{ marginBottom: 24 }}><PriceCalendar dates={calendarDates} destinationCode={code} /></div>
+                    ) : (
                         <PremiumLock label="Calendrier des prix">
-                            {calendarContent}
+                            <div style={{ marginBottom: 24 }}><PriceCalendar dates={calendarDates} destinationCode={code} /></div>
                         </PremiumLock>
                     )
                 )}
 
-                {/* Best Months */}
+                {/* ═══ BEST MONTHS ═══ */}
                 {!calendarLoading && Object.keys(calendarDates).length > 0 && (
-                    showPremiumContent ? bestMonthsContent : (
+                    showPremiumContent ? (
+                        <div style={{ marginBottom: 24 }}><BestMonths dates={calendarDates} /></div>
+                    ) : (
                         <PremiumLock label="Meilleurs mois pour partir">
-                            {bestMonthsContent}
+                            <div style={{ marginBottom: 24 }}><BestMonths dates={calendarDates} /></div>
                         </PremiumLock>
                     )
                 )}
 
-                {/* JSON-LD structured data */}
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            '@context': 'https://schema.org',
-                            '@type': 'Product',
-                            name: `Vol Montréal → ${city}`,
-                            description: `Meilleur prix pour un vol aller-retour Montréal (YUL) → ${city} (${code})`,
-                            offers: currentPrice ? {
-                                '@type': 'Offer',
-                                priceCurrency: 'CAD',
-                                price: currentPrice,
-                                availability: 'https://schema.org/InStock',
-                            } : undefined,
-                        }),
-                    }}
-                />
+                {/* ═══ PRICE INSIGHTS ═══ */}
+                {(insightsLoading || priceInsights) && (() => {
+                    const content = <PriceInsightsCard priceInsights={priceInsights} insightsLoading={insightsLoading} />;
+                    return showPremiumContent ? content : <PremiumLock label="Analyse Google Flights">{content}</PremiumLock>;
+                })()}
+
+                {/* ═══ MONTHLY COMPARISON ═══ */}
+                {(monthlyLoading || (monthlyData && monthlyData.months.some(m => m.count > 0))) && (() => {
+                    const content = <MonthlyComparison monthlyData={monthlyData} monthlyLoading={monthlyLoading} />;
+                    return showPremiumContent ? content : <PremiumLock label="Prix par mois">{content}</PremiumLock>;
+                })()}
+
+                {/* ═══ AI FORECAST ═══ */}
+                {(forecastLoading || forecast?.pronostic) && (() => {
+                    const content = <ForecastCard forecast={forecast} forecastLoading={forecastLoading} />;
+                    return showPremiumContent ? content : <PremiumLock label="Pronostic IA">{content}</PremiumLock>;
+                })()}
+
+                {/* JSON-LD */}
+                <script type="application/ld+json" dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        '@context': 'https://schema.org', '@type': 'Product',
+                        name: `Vol Montréal → ${city}`,
+                        description: `Meilleur prix pour un vol aller-retour Montréal (YUL) → ${city} (${code})`,
+                        offers: currentPrice ? { '@type': 'Offer', priceCurrency: 'CAD', price: currentPrice, availability: 'https://schema.org/InStock' } : undefined,
+                    }),
+                }} />
             </main>
 
-            {/* Simple footer */}
-            <footer style={{
-                textAlign: 'center',
-                padding: '24px 16px',
-                borderTop: '1px solid #E2E8F0',
-                marginTop: 40,
-            }}>
-                <span style={{
-                    fontSize: 12,
-                    color: '#94A3B8',
-                    fontFamily: "'Outfit', sans-serif",
-                }}>
+            <footer style={{ textAlign: 'center', padding: '24px 16px', borderTop: '1px solid #E2E8F0', marginTop: 40 }}>
+                <span style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
                     GeaiMonVol — Deals de vols depuis Montréal
                 </span>
             </footer>
         </div>
     );
 }
-
