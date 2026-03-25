@@ -5,12 +5,19 @@
         },
         "src/app/api/cron/send-alerts/route.ts": {
             "maxDuration": 60
+        },
+        "src/app/api/cron/aggregate-daily/route.ts": {
+            "maxDuration": 60
         }
     },
     "crons": [
         {
             "path": "/api/cron/scan-prices",
             "schedule": "0 8 * * *"
+        },
+        {
+            "path": "/api/cron/aggregate-daily",
+            "schedule": "30 8 * * *"
         },
         {
             "path": "/api/cron/send-alerts",
