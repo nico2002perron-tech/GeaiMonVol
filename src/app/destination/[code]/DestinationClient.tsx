@@ -9,10 +9,9 @@ import PackBuilder from '@/components/destination/PackBuilder';
 import TravelIntelligence from '@/components/destination/TravelIntelligence';
 import PriceInsightsCard from '@/components/destination/PriceInsightsCard';
 import MonthlyComparison from '@/components/destination/MonthlyComparison';
-import ForecastCard from '@/components/destination/ForecastCard';
 import AIAnalysisCard, { AIAnalysis } from '@/components/destination/AIAnalysisCard';
 import { PremiumLock } from '@/components/destination/ui';
-import { FlightDeal, HotelInfo, TravelIntel, ForecastData, MonthStats, PackAnalysis } from '@/components/destination/types';
+import { FlightDeal, HotelInfo, TravelIntel, MonthStats, PackAnalysis } from '@/components/destination/types';
 import { getTripNights } from '@/components/destination/helpers';
 import { CITY_IMAGES, DEFAULT_CITY_IMAGE, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { usePremium } from '@/lib/hooks/usePremium';
@@ -61,10 +60,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
     // ── Monthly data ──
     const [monthlyData, setMonthlyData] = useState<{ months: MonthStats[]; totalDataPoints: number } | null>(null);
     const [monthlyLoading, setMonthlyLoading] = useState(false);
-
-    // ── AI Forecast ──
-    const [forecast, setForecast] = useState<ForecastData | null>(null);
-    const [forecastLoading, setForecastLoading] = useState(false);
 
     // ── AI Analysis ──
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
@@ -155,17 +150,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .catch(() => {})
             .finally(() => setMonthlyLoading(false));
     }, [code, isPremium]);
-
-    // Premium: Forecast
-    useEffect(() => {
-        if (!isPremium || !code || currentPrice === null || currentPrice <= 0) return;
-        setForecastLoading(true);
-        fetch(`/api/prices/forecast?code=${encodeURIComponent(code)}&price=${currentPrice}`)
-            .then(res => res.json())
-            .then(data => { if (data.verdict) setForecast(data); })
-            .catch(() => {})
-            .finally(() => setForecastLoading(false));
-    }, [code, isPremium, currentPrice]);
 
     // AI Analysis (agent de voyage) — gratuit pour tous
     useEffect(() => {
