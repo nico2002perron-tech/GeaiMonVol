@@ -141,6 +141,67 @@ export async function GET(request: Request) {
             }
         }
 
+        // ── Agréger daily_best_prices : meilleur prix par destination × mois de départ ──
+        try {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+            // Grouper les deals par destination_code + mois de départ
+            const bestByDestMonth: Record<string, {
+                destination_code: string;
+                destination: string;
+                departure_month: string;
+                best_price: number;
+                airline: string;
+                stops: number | null;
+                departure_date: string | null;
+                return_date: string | null;
+                source: string;
+            }> = {};
+
+            for (const d of deals) {
+                if (!d.departureDate || d.price > MAX_PRICE) continue;
+                const depMonth = d.departureDate.substring(0, 7); // 'YYYY-MM'
+                const key = `${d.airportCode}::${depMonth}`;
+
+                if (!bestByDestMonth[key] || d.price < bestByDestMonth[key].best_price) {
+                    bestByDestMonth[key] = {
+                        destination_code: d.airportCode,
+                        destination: d.city,
+                        departure_month: depMonth,
+                        best_price: Math.round(d.price),
+                        airline: d.airline,
+                        stops: d.stops >= 0 ? d.stops : null,
+                        departure_date: d.departureDate,
+                        return_date: d.returnDate || null,
+                        source: d.source,
+                    };
+                }
+            }
+
+            const dailyRows = Object.values(bestByDestMonth).map(row => ({
+                ...row,
+                scan_date: today,
+            }));
+
+            if (dailyRows.length > 0) {
+                const adminSupabase = createAdminSupabase();
+                // Upsert : si on re-scanne le même jour, on met à jour avec le meilleur prix
+                for (let i = 0; i < dailyRows.length; i += batchSize) {
+                    const batch = dailyRows.slice(i, i + batchSize);
+                    const { error: dailyErr } = await adminSupabase
+                        .from('daily_best_prices')
+                        .upsert(batch, { onConflict: 'destination_code,scan_date,departure_month' });
+
+                    if (dailyErr) {
+                        console.error(`[DailyBest] Upsert error:`, dailyErr);
+                    }
+                }
+                console.log(`[DailyBest] Saved ${dailyRows.length} daily best prices for ${today}`);
+            }
+        } catch (dailyBestError) {
+            console.error('[DailyBest] Error saving daily best prices:', dailyBestError);
+        }
+
         // Résumé
         const summary = {
             message: `Phase ${phase} scan complete`,
