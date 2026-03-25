@@ -7,7 +7,6 @@ import PriceCalendar from '@/components/destination/PriceCalendar';
 import BestMonths from '@/components/destination/BestMonths';
 import PackBuilder from '@/components/destination/PackBuilder';
 import TravelIntelligence from '@/components/destination/TravelIntelligence';
-import PriceInsightsCard from '@/components/destination/PriceInsightsCard';
 import MonthlyComparison from '@/components/destination/MonthlyComparison';
 import AIAnalysisCard, { AIAnalysis } from '@/components/destination/AIAnalysisCard';
 import { PremiumLock } from '@/components/destination/ui';
@@ -64,14 +63,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
     // ── AI Analysis ──
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
     const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
-
-    // ── Price Insights ──
-    const [priceInsights, setPriceInsights] = useState<{
-        lowest_price: number;
-        price_level: 'low' | 'typical' | 'high';
-        typical_price_range: [number, number];
-    } | null>(null);
-    const [insightsLoading, setInsightsLoading] = useState(false);
 
     const imageUrl = CITY_IMAGES[city] || DEFAULT_CITY_IMAGE;
 
@@ -161,21 +152,6 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .catch(() => {})
             .finally(() => setAiAnalysisLoading(false));
     }, [code, city, currentPrice]);
-
-    // Premium: Insights
-    useEffect(() => {
-        if (!isPremium || !code) return;
-        setInsightsLoading(true);
-        fetch(`/api/prices/insights?destination=${encodeURIComponent(code)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.price_history?.length > 0) {
-                    setPriceInsights({ lowest_price: data.lowest_price, price_level: data.price_level, typical_price_range: data.typical_price_range });
-                }
-            })
-            .catch(() => {})
-            .finally(() => setInsightsLoading(false));
-    }, [code, isPremium]);
 
     // Fetch pack analysis when both flight and hotel are selected
     useEffect(() => {
@@ -348,19 +324,11 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     )
                 )}
 
-                {/* ═══ PRICE INSIGHTS ═══ */}
-                {(insightsLoading || priceInsights) && (() => {
-                    const content = <PriceInsightsCard priceInsights={priceInsights} insightsLoading={insightsLoading} />;
-                    return showPremiumContent ? content : <PremiumLock label="Analyse Google Flights">{content}</PremiumLock>;
-                })()}
-
                 {/* ═══ MONTHLY COMPARISON ═══ */}
                 {(monthlyLoading || (monthlyData && monthlyData.months.some(m => m.count > 0))) && (() => {
                     const content = <MonthlyComparison monthlyData={monthlyData} monthlyLoading={monthlyLoading} />;
                     return showPremiumContent ? content : <PremiumLock label="Prix par mois">{content}</PremiumLock>;
                 })()}
-
-                {/* Old ForecastCard removed — replaced by AIAnalysisCard above */}
 
                 {/* JSON-LD */}
                 <script type="application/ld+json" dangerouslySetInnerHTML={{

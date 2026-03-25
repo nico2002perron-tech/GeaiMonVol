@@ -116,26 +116,6 @@ export interface TravelIntel {
     };
 }
 
-export interface ForecastData {
-    verdict: 'BUY_NOW' | 'BUY_SOON' | 'WAIT' | 'NEUTRAL';
-    verdictScore: number;
-    confidence: number;
-    reasoning: string[];
-    predicted7d: number;
-    predicted14d: number;
-    predicted30d: number;
-    curve: Array<{ day: number; predicted: number; lower95: number; upper95: number }>;
-    signals: Array<{ name: string; direction: 'bullish' | 'bearish' | 'neutral'; strength: number; score: number; label: string; detail: string }>;
-    optimalWindow: { min: number; max: number; label: string };
-    dataQuality: { points: number; spanDays: number; level: string };
-    pronostic?: {
-        verdictLine: string;
-        reasons: Array<{ icon: string; text: string; impact: 'positive' | 'negative' | 'neutral' }>;
-        monthlyOutlook: Array<{ month: string; medianPrice: number; vsCurrent: number }> | null;
-        confidenceNote: string;
-    };
-}
-
 export interface MonthStats {
     month: number;
     median: number;

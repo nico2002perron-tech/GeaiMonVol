@@ -14,7 +14,6 @@ export type PremiumFeature =
     | 'expeditions'
     | 'aiGuides'
     | 'watchlist'
-    | 'priceInsights'
     | 'allDeals'
     | 'aiPackAnalysis';
 
@@ -28,7 +27,6 @@ export const TIERS = {
         advancedAlerts: false,
         expeditions: false,
         aiGuides: false,
-        priceInsights: false,
         allDeals: false,
         aiPackAnalysis: false,
         watchlistMax: 3,
@@ -46,7 +44,6 @@ export const TIERS = {
         advancedAlerts: true,
         expeditions: true,
         aiGuides: true,
-        priceInsights: true,
         allDeals: true,
         aiPackAnalysis: true,
         watchlistMax: Infinity,
@@ -71,7 +68,6 @@ export const PREMIUM_MAX_TOKENS = TIERS.premium.maxTokens;
 export const FREE_DEALS_PER_DESTINATION = TIERS.free.dealsPerDestination;
 
 export const PREMIUM_FEATURES = [
-    { key: 'priceInsights' as const, icon: '📊', label: 'Analyse de prix complète', desc: 'Historique, tendance, meilleure semaine et mois le moins cher' },
     { key: 'allDeals' as const, icon: '✈️', label: 'Tous les deals', desc: 'Accès à tous les deals trouvés, pas de limite par destination' },
     { key: 'aiPackAnalysis' as const, icon: '🧠', label: 'Analyse IA tout-inclus', desc: 'L\'IA analyse tes packs vol + hôtel pour trouver le meilleur rapport qualité-prix' },
     { key: 'expeditions' as const, icon: '🗺️', label: 'Packs Expédition', desc: 'Itinéraires multi-étapes avec hébergements curated' },
