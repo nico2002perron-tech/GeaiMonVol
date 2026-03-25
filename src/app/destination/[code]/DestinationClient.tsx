@@ -10,6 +10,7 @@ import TravelIntelligence from '@/components/destination/TravelIntelligence';
 import PriceInsightsCard from '@/components/destination/PriceInsightsCard';
 import MonthlyComparison from '@/components/destination/MonthlyComparison';
 import ForecastCard from '@/components/destination/ForecastCard';
+import AIAnalysisCard, { AIAnalysis } from '@/components/destination/AIAnalysisCard';
 import { PremiumLock } from '@/components/destination/ui';
 import { FlightDeal, HotelInfo, TravelIntel, ForecastData, MonthStats, PackAnalysis } from '@/components/destination/types';
 import { getTripNights } from '@/components/destination/helpers';
@@ -64,6 +65,10 @@ export default function DestinationClient({ code, city, country }: DestinationCl
     // ── AI Forecast ──
     const [forecast, setForecast] = useState<ForecastData | null>(null);
     const [forecastLoading, setForecastLoading] = useState(false);
+
+    // ── AI Analysis ──
+    const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+    const [aiAnalysisLoading, setAiAnalysisLoading] = useState(false);
 
     // ── Price Insights ──
     const [priceInsights, setPriceInsights] = useState<{
@@ -161,6 +166,17 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .catch(() => {})
             .finally(() => setForecastLoading(false));
     }, [code, isPremium, currentPrice]);
+
+    // Premium: AI Analysis (agent de voyage)
+    useEffect(() => {
+        if (!isPremium || !code || currentPrice === null || currentPrice <= 0) return;
+        setAiAnalysisLoading(true);
+        fetch(`/api/prices/ai-analysis?code=${encodeURIComponent(code)}&city=${encodeURIComponent(city)}&price=${currentPrice}`)
+            .then(res => res.json())
+            .then(data => { if (data.verdict) setAiAnalysis(data); })
+            .catch(() => {})
+            .finally(() => setAiAnalysisLoading(false));
+    }, [code, city, isPremium, currentPrice]);
 
     // Premium: Insights
     useEffect(() => {
@@ -305,6 +321,12 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     );
                 })()}
 
+                {/* ═══ AI ANALYSIS — AGENT DE VOYAGE ═══ */}
+                {(aiAnalysisLoading || aiAnalysis) && (() => {
+                    const content = <AIAnalysisCard analysis={aiAnalysis} loading={aiAnalysisLoading} city={city} />;
+                    return showPremiumContent ? content : <PremiumLock label="Analyse IA — Agent de voyage">{content}</PremiumLock>;
+                })()}
+
                 {/* ═══ TRAVEL INTELLIGENCE ═══ */}
                 {(intelLoading || travelIntel) && (() => {
                     const intelContent = (
@@ -355,11 +377,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     return showPremiumContent ? content : <PremiumLock label="Prix par mois">{content}</PremiumLock>;
                 })()}
 
-                {/* ═══ AI FORECAST ═══ */}
-                {(forecastLoading || forecast?.pronostic) && (() => {
-                    const content = <ForecastCard forecast={forecast} forecastLoading={forecastLoading} />;
-                    return showPremiumContent ? content : <PremiumLock label="Pronostic IA">{content}</PremiumLock>;
-                })()}
+                {/* Old ForecastCard removed — replaced by AIAnalysisCard above */}
 
                 {/* JSON-LD */}
                 <script type="application/ld+json" dangerouslySetInnerHTML={{
