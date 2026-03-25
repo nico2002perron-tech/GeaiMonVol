@@ -167,16 +167,16 @@ export default function DestinationClient({ code, city, country }: DestinationCl
             .finally(() => setForecastLoading(false));
     }, [code, isPremium, currentPrice]);
 
-    // Premium: AI Analysis (agent de voyage)
+    // AI Analysis (agent de voyage) — gratuit pour tous
     useEffect(() => {
-        if (!isPremium || !code || currentPrice === null || currentPrice <= 0) return;
+        if (!code || currentPrice === null || currentPrice <= 0) return;
         setAiAnalysisLoading(true);
         fetch(`/api/prices/ai-analysis?code=${encodeURIComponent(code)}&city=${encodeURIComponent(city)}&price=${currentPrice}`)
             .then(res => res.json())
             .then(data => { if (data.verdict) setAiAnalysis(data); })
             .catch(() => {})
             .finally(() => setAiAnalysisLoading(false));
-    }, [code, city, isPremium, currentPrice]);
+    }, [code, city, currentPrice]);
 
     // Premium: Insights
     useEffect(() => {
@@ -321,11 +321,10 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     );
                 })()}
 
-                {/* ═══ AI ANALYSIS — AGENT DE VOYAGE ═══ */}
-                {(aiAnalysisLoading || aiAnalysis) && (() => {
-                    const content = <AIAnalysisCard analysis={aiAnalysis} loading={aiAnalysisLoading} city={city} />;
-                    return showPremiumContent ? content : <PremiumLock label="Analyse IA — Agent de voyage">{content}</PremiumLock>;
-                })()}
+                {/* ═══ AI ANALYSIS — AGENT DE VOYAGE (gratuit) ═══ */}
+                {(aiAnalysisLoading || aiAnalysis) && (
+                    <AIAnalysisCard analysis={aiAnalysis} loading={aiAnalysisLoading} city={city} />
+                )}
 
                 {/* ═══ TRAVEL INTELLIGENCE ═══ */}
                 {(intelLoading || travelIntel) && (() => {
