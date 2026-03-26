@@ -6,11 +6,10 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
-    onOpenHowItWorks?: () => void;
     dark?: boolean;
 }
 
-export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
+export default function Navbar({ dark }: NavbarProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const { user, profile } = useAuth();
     const isPremium = profile?.plan === 'premium';
@@ -28,14 +27,8 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
 
             {/* Desktop menu */}
             <ul className="nav-menu">
-                <li><Link href="#deals">Aubaines</Link></li>
-                <li>
-                    <button onClick={(e) => { e.preventDefault(); onOpenHowItWorks?.(); }} className="nav-link-btn">
-                        Comment ça marche
-                    </button>
-                </li>
-                <li><Link href="/explore">Globe</Link></li>
-                <li><Link href="/expeditions">Expéditions</Link></li>
+                <li><Link href="/#deals">Deals</Link></li>
+                <li><Link href="/explore">Explorer</Link></li>
                 <li><Link href="/pricing">Tarifs</Link></li>
                 {user && <li style={{ display: 'flex', alignItems: 'center' }}><NotificationBell /></li>}
                 {user ? (
@@ -59,15 +52,10 @@ export default function Navbar({ onOpenHowItWorks, dark }: NavbarProps) {
             {/* Mobile menu */}
             {menuOpen && (
                 <div className="nav-mobile-menu">
-                    <Link href="/" onClick={() => setMenuOpen(false)}>Carte interactive</Link>
-                    <Link href="#deals" onClick={() => setMenuOpen(false)}>Aubaines</Link>
-                    <button onClick={() => { onOpenHowItWorks?.(); setMenuOpen(false); }} className="nav-link-btn">
-                        Comment ça marche
-                    </button>
-                    <Link href="/explore" onClick={() => setMenuOpen(false)}>Globe</Link>
-                    <Link href="/expeditions" onClick={() => setMenuOpen(false)}>Expéditions</Link>
+                    <Link href="/#deals" onClick={() => setMenuOpen(false)}>Deals</Link>
+                    <Link href="/explore" onClick={() => setMenuOpen(false)}>Explorer</Link>
                     <Link href="/pricing" onClick={() => setMenuOpen(false)}>Tarifs</Link>
-                    {user && <Link href="/inbox" onClick={() => setMenuOpen(false)}>🔔 Notifications</Link>}
+                    {user && <Link href="/inbox" onClick={() => setMenuOpen(false)}>Notifications</Link>}
                     {user ? (
                         <Link href="/profile" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ textAlign: 'center' }}>
                             Mon profil
