@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import { useCheckout } from '@/lib/hooks/useCheckout';
 
 /**
  * Slim banner between homepage sections — highlights premium value.
- * Only shown to free users.
+ * Only shown to free users. Direct checkout on click.
  */
 export function HomePremiumBanner() {
     const { profile } = useAuth();
+    const { checkout, loading } = useCheckout();
     if (profile?.plan === 'premium') return null;
 
     return (
@@ -54,26 +55,31 @@ export function HomePremiumBanner() {
                         </div>
                     </div>
                 </div>
-                <Link href="/pricing" style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '10px 24px',
-                    borderRadius: 100,
-                    background: 'linear-gradient(135deg, #FFB800, #FFD700)',
-                    color: '#5C4A00',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    fontFamily: "'Fredoka', sans-serif",
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                }}
+                <button
+                    onClick={checkout}
+                    disabled={loading}
+                    style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '10px 24px',
+                        borderRadius: 100,
+                        background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                        color: '#5C4A00',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        fontFamily: "'Fredoka', sans-serif",
+                        border: 'none',
+                        cursor: loading ? 'wait' : 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        opacity: loading ? 0.7 : 1,
+                    }}
                     onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,184,0,0.4)'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
                 >
-                    4,99$/mois &#8594;
-                </Link>
+                    {loading ? 'Redirection...' : '4,99$/mois \u2192'}
+                </button>
             </div>
         </div>
     );
@@ -81,10 +87,11 @@ export function HomePremiumBanner() {
 
 /**
  * Contextual nudge after the free AI analysis on destination page.
- * "L'IA a parlé — va plus loin avec le Pack Builder"
+ * Direct checkout on click.
  */
 export function PostAnalysisNudge({ city }: { city: string }) {
     const { profile } = useAuth();
+    const { checkout, loading } = useCheckout();
     if (profile?.plan === 'premium') return null;
 
     return (
@@ -119,29 +126,36 @@ export function PostAnalysisNudge({ city }: { city: string }) {
                     Combine vol + h&ocirc;tel pour {city} et laisse l&apos;IA analyser ton pack complet.
                 </div>
             </div>
-            <Link href="/pricing" style={{
-                padding: '8px 18px',
-                borderRadius: 100,
-                background: '#92400E',
-                color: '#FEF3C7',
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "'Outfit', sans-serif",
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-            }}>
-                D&eacute;bloquer
-            </Link>
+            <button
+                onClick={checkout}
+                disabled={loading}
+                style={{
+                    padding: '8px 18px',
+                    borderRadius: 100,
+                    background: '#92400E',
+                    color: '#FEF3C7',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "'Outfit', sans-serif",
+                    border: 'none',
+                    cursor: loading ? 'wait' : 'pointer',
+                    whiteSpace: 'nowrap',
+                    opacity: loading ? 0.7 : 1,
+                }}
+            >
+                {loading ? '...' : 'D\u00e9bloquer'}
+            </button>
         </div>
     );
 }
 
 /**
  * Sticky bottom bar — appears after scrolling 600px.
- * Gentle, non-intrusive reminder for free users.
+ * Direct checkout on click.
  */
 export function StickyPremiumBar() {
-    const { user, profile } = useAuth();
+    const { profile } = useAuth();
+    const { checkout, loading } = useCheckout();
     const [visible, setVisible] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
@@ -188,19 +202,25 @@ export function StickyPremiumBar() {
             }}>
                 &#9733; <strong style={{ color: '#FFD700' }}>Premium</strong> — Pack Builder + Calendrier des prix + Alertes prioritaires
             </span>
-            <Link href={user ? '/pricing' : '/auth?redirect=/pricing'} style={{
-                padding: '7px 18px',
-                borderRadius: 100,
-                background: 'linear-gradient(135deg, #FFB800, #FFD700)',
-                color: '#5C4A00',
-                fontSize: 12,
-                fontWeight: 700,
-                fontFamily: "'Fredoka', sans-serif",
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-            }}>
-                Essayer
-            </Link>
+            <button
+                onClick={checkout}
+                disabled={loading}
+                style={{
+                    padding: '7px 18px',
+                    borderRadius: 100,
+                    background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                    color: '#5C4A00',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    fontFamily: "'Fredoka', sans-serif",
+                    border: 'none',
+                    cursor: loading ? 'wait' : 'pointer',
+                    whiteSpace: 'nowrap',
+                    opacity: loading ? 0.7 : 1,
+                }}
+            >
+                {loading ? '...' : 'Essayer'}
+            </button>
             <button
                 onClick={() => setDismissed(true)}
                 style={{

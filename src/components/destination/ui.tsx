@@ -1,6 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { useCheckout } from '@/lib/hooks/useCheckout';
 
 export function PremiumLock({ label, children }: { label: string; children: React.ReactNode }) {
+    const { checkout, loading } = useCheckout();
+
     return (
         <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ filter: 'blur(6px)', opacity: 0.55, pointerEvents: 'none', userSelect: 'none' }}>
@@ -22,13 +27,18 @@ export function PremiumLock({ label, children }: { label: string; children: Reac
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontFamily: "'Outfit', sans-serif", margin: '0 0 14px', lineHeight: 1.5 }}>
                         Passe Premium pour acc&eacute;der &agrave; l&apos;analyse compl&egrave;te.
                     </p>
-                    <a href="/pricing" style={{
-                        display: 'inline-block', background: 'linear-gradient(135deg, #FFB800, #FFD700)',
-                        color: '#5C4A00', fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
-                        padding: '10px 28px', borderRadius: 100, textDecoration: 'none',
-                    }}>
-                        Débloquer — 4,99$/mois
-                    </a>
+                    <button
+                        onClick={checkout}
+                        disabled={loading}
+                        style={{
+                            display: 'inline-block', background: 'linear-gradient(135deg, #FFB800, #FFD700)',
+                            color: '#5C4A00', fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+                            padding: '10px 28px', borderRadius: 100, border: 'none', cursor: loading ? 'wait' : 'pointer',
+                            opacity: loading ? 0.7 : 1, transition: 'opacity 0.2s',
+                        }}
+                    >
+                        {loading ? 'Redirection...' : 'D\u00e9bloquer — 4,99$/mois'}
+                    </button>
                 </div>
             </div>
         </div>
