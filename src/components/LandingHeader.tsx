@@ -2,13 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { usePremium } from '@/lib/hooks/usePremium';
 
 export default function LandingHeader() {
-  const pathname = usePathname();
-  const isExplore = pathname === '/explore';
   const { user, profile, signOut } = useAuth();
   const { isPremium, loading: premLoading } = usePremium();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,8 +30,6 @@ export default function LandingHeader() {
     window.location.href = '/';
   };
 
-  const h = (hash: string) => isExplore ? `/${hash}` : hash;
-
   return (
     <>
     <header className="lp-header">
@@ -45,8 +40,8 @@ export default function LandingHeader() {
 
         <nav className="lp-nav">
           <div className="lp-nav-pill">
-            <a href={h('#deals')} className="lp-nav-link">Deals</a>
-            <Link href="/explore" className="lp-nav-link">Explorer</Link>
+            <Link href="/deals" className="lp-nav-link">Deals</Link>
+            <Link href="/planifier" className="lp-nav-link">Planifier</Link>
             <Link href="/pricing" className="lp-nav-link">Tarifs</Link>
           </div>
         </nav>
@@ -74,21 +69,20 @@ export default function LandingHeader() {
                     </div>
                   </div>
                   <div className="lp-h-drop-sep" />
-                  <Link href="/explore" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Globe interactif
-                    <span className="lp-h-drop-badge">Live</span>
+                  <Link href="/deals" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
+                    Deals en direct
                   </Link>
-                  <a href={h('#deals')} className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Deals du moment
-                  </a>
-                  <a href={h('#guide')} className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Guide GeaiAI
-                  </a>
+                  <Link href="/planifier" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
+                    Planifier un voyage
+                  </Link>
                   <Link href="/library" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
                     Mes guides
                   </Link>
+                  <Link href="/pricing" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
+                    Tarifs
+                  </Link>
                   <div className="lp-h-drop-sep" />
-                  <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se déconnecter</button>
+                  <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se deconnecter</button>
                 </div>
               )}
             </div>
@@ -101,8 +95,8 @@ export default function LandingHeader() {
 
       {mobileMenuOpen && (
         <div className="lp-mob">
-          <a href={h('#deals')} onClick={() => setMobileMenuOpen(false)}>Deals</a>
-          <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>Explorer</Link>
+          <Link href="/deals" onClick={() => setMobileMenuOpen(false)}>Deals</Link>
+          <Link href="/planifier" onClick={() => setMobileMenuOpen(false)}>Planifier</Link>
           <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Tarifs</Link>
           {user && <Link href="/library" onClick={() => setMobileMenuOpen(false)}>Mes guides</Link>}
           <div className="lp-mob-sep" />
@@ -120,7 +114,7 @@ export default function LandingHeader() {
                   <span>{user.email}</span>
                 </div>
               </div>
-              <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="lp-mob-logout">Se déconnecter</button>
+              <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="lp-mob-logout">Se deconnecter</button>
             </>
           )}
         </div>
