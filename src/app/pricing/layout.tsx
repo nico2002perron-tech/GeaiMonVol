@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
     title: 'Tarifs — Gratuit et Premium',
@@ -11,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-    return children;
+    return <>{children}<Footer /></>;
 }

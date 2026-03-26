@@ -4,13 +4,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
 export default function AuthPage() {
-    const [mode, setMode] = useState<'login' | 'signup'>('login');
+    const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [confirmSent, setConfirmSent] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
     const router = useRouter();
     const supabase = createClient();
 
@@ -20,7 +21,13 @@ export default function AuthPage() {
         setLoading(true);
 
         try {
-            if (mode === 'signup') {
+            if (mode === 'forgot') {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth`,
+                });
+                if (error) throw error;
+                setResetSent(true);
+            } else if (mode === 'signup') {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
@@ -51,7 +58,7 @@ export default function AuthPage() {
         }
     };
 
-    if (confirmSent) {
+    if (confirmSent || resetSent) {
         return (
             <div style={{
                 minHeight: '100vh',
@@ -71,7 +78,7 @@ export default function AuthPage() {
                     textAlign: 'center',
                     boxShadow: '0 4px 24px rgba(26,43,66,0.08)',
                 }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>📬</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>{resetSent ? '🔑' : '📬'}</div>
                     <h2 style={{
                         fontFamily: "'Fredoka', sans-serif",
                         fontSize: 22,
@@ -79,18 +86,20 @@ export default function AuthPage() {
                         color: '#1A2B42',
                         marginBottom: 8,
                     }}>
-                        Vérifie tes emails
+                        {resetSent ? 'Lien envoyé !' : 'Vérifie tes emails'}
                     </h2>
                     <p style={{
                         fontSize: 14,
                         color: '#5A7089',
                         lineHeight: 1.6,
                     }}>
-                        On t'a envoyé un lien de confirmation à <strong>{email}</strong>.
-                        Clique dessus pour activer ton compte, puis reviens ici.
+                        {resetSent
+                            ? <>On t&apos;a envoyé un lien de réinitialisation à <strong>{email}</strong>. Clique dessus pour choisir un nouveau mot de passe.</>
+                            : <>On t&apos;a envoyé un lien de confirmation à <strong>{email}</strong>. Clique dessus pour activer ton compte, puis reviens ici.</>
+                        }
                     </p>
                     <button
-                        onClick={() => router.push('/auth')}
+                        onClick={() => { setResetSent(false); setConfirmSent(false); setMode('login'); }}
                         style={{
                             marginTop: 20,
                             padding: '10px 24px',
@@ -143,60 +152,70 @@ export default function AuthPage() {
                         color: '#8FA3B8',
                         marginTop: 6,
                     }}>
-                        {mode === 'login'
-                            ? 'Connecte-toi pour accéder à tes deals'
-                            : 'Crée ton compte pour sauvegarder tes destinations'
+                        {mode === 'forgot'
+                            ? 'Réinitialise ton mot de passe'
+                            : mode === 'login'
+                                ? 'Connecte-toi pour accéder à tes deals'
+                                : 'Crée ton compte pour sauvegarder tes destinations'
                         }
                     </p>
                 </div>
 
                 {/* Toggle login / signup */}
-                <div style={{
-                    display: 'flex',
-                    background: 'rgba(26,43,66,0.04)',
-                    borderRadius: 100,
-                    padding: 3,
-                    marginBottom: 24,
-                }}>
-                    <button
-                        onClick={() => { setMode('login'); setError(''); }}
-                        style={{
-                            flex: 1,
-                            padding: '9px 0',
-                            borderRadius: 100,
-                            border: 'none',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            fontFamily: "'Outfit', sans-serif",
-                            background: mode === 'login' ? 'white' : 'none',
-                            color: mode === 'login' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: mode === 'login' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                        }}
-                    >
-                        Connexion
-                    </button>
-                    <button
-                        onClick={() => { setMode('signup'); setError(''); }}
-                        style={{
-                            flex: 1,
-                            padding: '9px 0',
-                            borderRadius: 100,
-                            border: 'none',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            fontFamily: "'Outfit', sans-serif",
-                            background: mode === 'signup' ? 'white' : 'none',
-                            color: mode === 'signup' ? '#1A2B42' : '#8FA3B8',
-                            boxShadow: mode === 'signup' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
-                        }}
-                    >
-                        Inscription
-                    </button>
-                </div>
+                {mode !== 'forgot' ? (
+                    <div style={{
+                        display: 'flex',
+                        background: 'rgba(26,43,66,0.04)',
+                        borderRadius: 100,
+                        padding: 3,
+                        marginBottom: 24,
+                    }}>
+                        <button
+                            onClick={() => { setMode('login'); setError(''); }}
+                            style={{
+                                flex: 1,
+                                padding: '9px 0',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                fontFamily: "'Outfit', sans-serif",
+                                background: mode === 'login' ? 'white' : 'none',
+                                color: mode === 'login' ? '#1A2B42' : '#8FA3B8',
+                                boxShadow: mode === 'login' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            }}
+                        >
+                            Connexion
+                        </button>
+                        <button
+                            onClick={() => { setMode('signup'); setError(''); }}
+                            style={{
+                                flex: 1,
+                                padding: '9px 0',
+                                borderRadius: 100,
+                                border: 'none',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                fontFamily: "'Outfit', sans-serif",
+                                background: mode === 'signup' ? 'white' : 'none',
+                                color: mode === 'signup' ? '#1A2B42' : '#8FA3B8',
+                                boxShadow: mode === 'signup' ? '0 1px 4px rgba(26,43,66,0.08)' : 'none',
+                            }}
+                        >
+                            Inscription
+                        </button>
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                        <p style={{ fontSize: 13, color: '#5A7089', margin: 0 }}>
+                            Entre ton email et on t&apos;envoie un lien de réinitialisation.
+                        </p>
+                    </div>
+                )}
 
                 {/* Error */}
                 {error && (
@@ -273,37 +292,54 @@ export default function AuthPage() {
                         />
                     </div>
 
-                    <div>
-                        <label style={{
-                            fontSize: 12, fontWeight: 600, color: '#5A7089',
-                            display: 'block', marginBottom: 5,
-                        }}>
-                            Mot de passe
-                        </label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={mode === 'signup' ? 'Minimum 6 caractères' : '••••••••'}
+                    {mode !== 'forgot' && (
+                        <div>
+                            <label style={{
+                                fontSize: 12, fontWeight: 600, color: '#5A7089',
+                                display: 'block', marginBottom: 5,
+                            }}>
+                                Mot de passe
+                            </label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder={mode === 'signup' ? 'Minimum 6 caractères' : '••••••••'}
+                                style={{
+                                    width: '100%',
+                                    padding: '11px 14px',
+                                    borderRadius: 10,
+                                    border: '1px solid rgba(26,43,66,0.1)',
+                                    fontSize: 14,
+                                    fontFamily: "'Outfit', sans-serif",
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s',
+                                    background: '#FAFBFC',
+                                }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = '#2E7DDB'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(26,43,66,0.1)'}
+                            />
+                        </div>
+                    )}
+
+                    {mode === 'login' && (
+                        <button
+                            type="button"
+                            onClick={() => { setMode('forgot'); setError(''); }}
                             style={{
-                                width: '100%',
-                                padding: '11px 14px',
-                                borderRadius: 10,
-                                border: '1px solid rgba(26,43,66,0.1)',
-                                fontSize: 14,
-                                fontFamily: "'Outfit', sans-serif",
-                                outline: 'none',
-                                transition: 'border-color 0.2s',
-                                background: '#FAFBFC',
+                                background: 'none', border: 'none', padding: 0,
+                                fontSize: 12, color: '#2E7DDB', fontWeight: 600,
+                                cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+                                textAlign: 'right', marginTop: -6,
                             }}
-                            onFocus={(e) => e.currentTarget.style.borderColor = '#2E7DDB'}
-                            onBlur={(e) => e.currentTarget.style.borderColor = 'rgba(26,43,66,0.1)'}
-                        />
-                    </div>
+                        >
+                            Mot de passe oublié ?
+                        </button>
+                    )}
 
                     <button
                         onClick={handleSubmit}
-                        disabled={loading || !email || !password}
+                        disabled={loading || !email || (mode !== 'forgot' && !password)}
                         style={{
                             width: '100%',
                             padding: '12px 0',
@@ -322,9 +358,11 @@ export default function AuthPage() {
                     >
                         {loading
                             ? 'Chargement...'
-                            : mode === 'login'
-                                ? 'Se connecter'
-                                : 'Créer mon compte'
+                            : mode === 'forgot'
+                                ? 'Envoyer le lien'
+                                : mode === 'login'
+                                    ? 'Se connecter'
+                                    : 'Créer mon compte'
                         }
                     </button>
                 </div>
@@ -336,9 +374,23 @@ export default function AuthPage() {
                     fontSize: 12,
                     color: '#8FA3B8',
                 }}>
-                    <a href="/" style={{ color: '#2E7DDB', textDecoration: 'none', fontWeight: 600 }}>
-                        ← Retour à la carte
-                    </a>
+                    {mode === 'forgot' ? (
+                        <button
+                            type="button"
+                            onClick={() => { setMode('login'); setError(''); }}
+                            style={{
+                                background: 'none', border: 'none', padding: 0,
+                                color: '#2E7DDB', textDecoration: 'none', fontWeight: 600,
+                                fontSize: 12, cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+                            }}
+                        >
+                            &larr; Retour au login
+                        </button>
+                    ) : (
+                        <a href="/" style={{ color: '#2E7DDB', textDecoration: 'none', fontWeight: 600 }}>
+                            &larr; Retour au site
+                        </a>
+                    )}
                 </div>
             </div>
         </div>

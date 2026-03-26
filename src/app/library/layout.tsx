@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
     title: 'Ma bibliothèque de guides',
@@ -7,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function LibraryLayout({ children }: { children: React.ReactNode }) {
-    return children;
+    return <>{children}<Footer /></>;
 }

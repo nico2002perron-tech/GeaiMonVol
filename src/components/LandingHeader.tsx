@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/AuthProvider';
@@ -11,13 +10,10 @@ export default function LandingHeader() {
   const pathname = usePathname();
   const isExplore = pathname === '/explore';
   const { user, profile, signOut } = useAuth();
-  const { isPremium, canGenerateGuide, loading: premLoading } = usePremium();
+  const { isPremium, loading: premLoading } = usePremium();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const showBanner = !premLoading && !isPremium && !bannerDismissed;
 
   const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Voyageur';
 
@@ -41,23 +37,7 @@ export default function LandingHeader() {
 
   return (
     <>
-      {/* Promo banner */}
-      {showBanner && (
-        <div className="promo-banner">
-          <div className="promo-banner-inner">
-            <span className="promo-banner-text">
-              <span className="promo-banner-badge">Offre de lancement</span>
-              Récupère ton guide IA Premium gratuit — Québec, durée limitée !
-            </span>
-            <Link href={user ? (canGenerateGuide ? '/#guide' : '/pricing') : '/auth'} className="promo-banner-cta">
-              {canGenerateGuide ? 'Générer mon guide' : 'En savoir plus'}
-            </Link>
-            <button className="promo-banner-close" onClick={() => setBannerDismissed(true)} aria-label="Fermer">&#10005;</button>
-          </div>
-        </div>
-      )}
-
-    <header className={`lp-header${showBanner ? ' lp-header-with-banner' : ''}`}>
+    <header className="lp-header">
       <div className="lp-header-inner">
         <Link href="/" className="lp-logo">
           <span className="lp-logo-text">Geai<strong>MonVol</strong></span>
@@ -66,17 +46,8 @@ export default function LandingHeader() {
         <nav className="lp-nav">
           <div className="lp-nav-pill">
             <a href={h('#deals')} className="lp-nav-link">Deals</a>
-            <Link href="/explore" className="lp-nav-link">
-              Globe 3D
-              <span className="lp-live-dot" aria-hidden="true"><span /></span>
-            </Link>
-            <a href={h('#guide')} className="lp-nav-link">Guide GeaiAI</a>
-            <a href={h('#how')} className="lp-nav-link">Comment ça marche</a>
-            {!isPremium && !premLoading && (
-              <Link href={user ? '/pricing' : '/auth'} className="lp-nav-link lp-nav-promo">
-                &#9733; Guide gratuit
-              </Link>
-            )}
+            <Link href="/explore" className="lp-nav-link">Explorer</Link>
+            <Link href="/pricing" className="lp-nav-link">Tarifs</Link>
           </div>
         </nav>
 
@@ -84,7 +55,7 @@ export default function LandingHeader() {
           {!user ? (
             <>
               <Link href="/auth" className="lp-h-login">Se connecter</Link>
-              <Link href="/auth" className="lp-h-signup lp-h-signup-promo">Guide gratuit &#8594;</Link>
+              <Link href="/auth" className="lp-h-signup">Commencer</Link>
             </>
           ) : (
             <div ref={menuRef} className="lp-h-user">
@@ -131,22 +102,14 @@ export default function LandingHeader() {
       {mobileMenuOpen && (
         <div className="lp-mob">
           <a href={h('#deals')} onClick={() => setMobileMenuOpen(false)}>Deals</a>
-          <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>
-            Globe 3D <span className="lp-live-dot" aria-hidden="true"><span /></span>
-          </Link>
-          <a href={h('#guide')} onClick={() => setMobileMenuOpen(false)}>Guide GeaiAI</a>
-          <a href={h('#how')} onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
+          <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>Explorer</Link>
+          <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Tarifs</Link>
           {user && <Link href="/library" onClick={() => setMobileMenuOpen(false)}>Mes guides</Link>}
-          {!isPremium && !premLoading && (
-            <Link href={user ? '/pricing' : '/auth'} onClick={() => setMobileMenuOpen(false)} className="lp-mob-promo">
-              &#9733; Guide IA gratuit — Offre limitée
-            </Link>
-          )}
           <div className="lp-mob-sep" />
           {!user ? (
             <>
               <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-login">Se connecter</Link>
-              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-signup">Guide gratuit &#8594;</Link>
+              <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="lp-mob-signup">Commencer</Link>
             </>
           ) : (
             <>

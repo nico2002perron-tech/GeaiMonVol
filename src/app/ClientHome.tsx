@@ -18,6 +18,7 @@ import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import { computeVerdict, VERDICT_STYLES } from '@/lib/services/verdicts';
 import { HomePremiumBanner, StickyPremiumBar } from '@/components/ui/PremiumNudge';
+import Footer from '@/components/layout/Footer';
 import './landing.css';
 
 // ── City → Country mapping ──
@@ -1336,99 +1337,6 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
-
-              {/* View toggle */}
-              <div style={{
-                display: 'flex', border: '1px solid #E2E8F0', borderRadius: 10,
-                overflow: 'hidden', flexShrink: 0,
-              }}>
-                <button onClick={() => setViewMode('grid')} style={{
-                  padding: '10px 12px', border: 'none', cursor: 'pointer',
-                  background: viewMode === 'grid' ? '#0EA5E9' : 'white',
-                  color: viewMode === 'grid' ? '#fff' : '#94A3B8',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.2s', minWidth: 44, minHeight: 44,
-                }} title="Grille" aria-label="Affichage en grille" aria-pressed={viewMode === 'grid'}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                </button>
-                <button onClick={() => setViewMode('list')} style={{
-                  padding: '10px 12px', border: 'none', borderLeft: '1px solid #E2E8F0', cursor: 'pointer',
-                  background: viewMode === 'list' ? '#0EA5E9' : 'white',
-                  color: viewMode === 'list' ? '#fff' : '#94A3B8',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.2s', minWidth: 44, minHeight: 44,
-                }} title="Liste" aria-label="Affichage en liste" aria-pressed={viewMode === 'list'}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                </button>
-              </div>
-
-              {/* Budget presets + custom */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, flexWrap: 'wrap' }}>
-                {BUDGET_PRESETS.map(amount => {
-                  const isActive = maxBudget === amount;
-                  return (
-                    <button
-                      key={amount}
-                      onClick={() => setMaxBudget(isActive ? 0 : amount)}
-                      style={{
-                        padding: '7px 12px', borderRadius: 10,
-                        border: isActive ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
-                        background: isActive ? 'rgba(14,165,233,0.08)' : 'white',
-                        color: isActive ? '#0EA5E9' : '#334155',
-                        fontSize: 12, fontWeight: 700,
-                        fontFamily: "'Fredoka', sans-serif",
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      &lt; {amount}$
-                    </button>
-                  );
-                })}
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 0,
-                  border: maxBudget > 0 && !BUDGET_PRESETS.includes(maxBudget) ? '1.5px solid #0EA5E9' : '1px solid #E2E8F0',
-                  borderRadius: 12, overflow: 'hidden',
-                  background: 'white', flexShrink: 0,
-                  transition: 'border-color 0.2s',
-                }}>
-                  <span style={{
-                    padding: '7px 6px 7px 10px', fontSize: 11, color: '#94A3B8',
-                    fontFamily: "'Outfit', sans-serif", fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    Max
-                  </span>
-                  <input
-                    type="number"
-                    value={maxBudget > 0 && !BUDGET_PRESETS.includes(maxBudget) ? maxBudget : ''}
-                    onChange={(e) => setMaxBudget(parseInt(e.target.value) || 0)}
-                    placeholder="--"
-                    aria-label="Budget maximum personnalise"
-                    style={{
-                      width: 50, padding: '7px 2px', border: 'none',
-                      fontSize: 13, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
-                      color: '#0F172A', textAlign: 'center', outline: 'none',
-                      background: 'transparent',
-                    }}
-                  />
-                  <span style={{
-                    padding: '7px 8px 7px 0', fontSize: 12, color: '#94A3B8',
-                    fontFamily: "'Fredoka', sans-serif", fontWeight: 600,
-                  }}>$</span>
-                </div>
-                {maxBudget > 0 && (
-                  <button
-                    onClick={() => setMaxBudget(0)}
-                    style={{
-                      width: 24, height: 24, borderRadius: '50%',
-                      border: 'none', background: '#E2E8F0', color: '#64748B',
-                      fontSize: 12, cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >&times;</button>
-                )}
-              </div>
             </div>
 
             {/* Active filters summary */}
@@ -3042,43 +2950,7 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="lp-footer">
-        <div className="lp-footer-inner">
-          <div className="lp-footer-top">
-            <div>
-              <div className="lp-footer-brand">
-                <Image src="/logo_geai.png" alt="GeaiMonVol" width={28} height={28} />
-                <span>GeaiMonVol</span>
-              </div>
-              <p className="lp-footer-brand-desc">
-                Les meilleurs deals de vols au depart de Montreal.
-                Scanne automatique, alertes personnalisées et Guide GeaiAI.
-              </p>
-            </div>
-            <div className="lp-footer-col">
-              <div className="lp-footer-col-title">Produit</div>
-              <Link href="/explore">Globe interactif</Link>
-              <a href="#deals">Deals en direct</a>
-              <a href="#guide">Guide GeaiAI</a>
-            </div>
-            <div className="lp-footer-col">
-              <div className="lp-footer-col-title">Destinations</div>
-              <a href="#deals">Canada</a>
-              <a href="#deals">International</a>
-              <a href="#deals">Tout-inclus</a>
-            </div>
-            <div className="lp-footer-col">
-              <div className="lp-footer-col-title">Compte</div>
-              <Link href="/auth">Connexion</Link>
-              <Link href="/auth">Inscription</Link>
-            </div>
-          </div>
-          <div className="lp-footer-bottom">
-            <span className="lp-footer-copy">&copy; 2026 GeaiMonVol. Montreal, QC.</span>
-            <span className="lp-footer-made">Fait avec ❤️ au Quebec</span>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Share toast */}
       {shareToast && (

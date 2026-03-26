@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
     title: 'Expéditions Nomades — Itinéraires multi-étapes',
@@ -11,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function ExpeditionsLayout({ children }: { children: React.ReactNode }) {
-    return children;
+    return <>{children}<Footer /></>;
 }

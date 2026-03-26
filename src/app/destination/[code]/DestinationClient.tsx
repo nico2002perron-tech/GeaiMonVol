@@ -15,6 +15,7 @@ import { getTripNights } from '@/components/destination/helpers';
 import { CITY_IMAGES, DEFAULT_CITY_IMAGE, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { usePremium } from '@/lib/hooks/usePremium';
 import { PostAnalysisNudge } from '@/components/ui/PremiumNudge';
+import Footer from '@/components/layout/Footer';
 
 interface DestinationClientProps {
     code: string;
@@ -347,11 +348,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                 }} />
             </main>
 
-            <footer style={{ textAlign: 'center', padding: '24px 16px', borderTop: '1px solid #E2E8F0', marginTop: 40 }}>
-                <span style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
-                    GeaiMonVol — Deals de vols depuis Montréal
-                </span>
-            </footer>
+            <Footer />
         </div>
     );
 }
