@@ -1,5 +1,7 @@
 import { MetadataRoute } from 'next';
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://geaimonvol.com';
+
 const DESTINATION_CODES = [
     'CDG', 'CUN', 'PUJ', 'VRA', 'HAV', 'FLL', 'JFK', 'BCN', 'LIS', 'FCO',
     'LHR', 'RAK', 'BKK', 'NRT', 'BOG', 'LIM', 'GRU', 'DPS', 'MIA', 'LAX',
@@ -9,9 +11,9 @@ const DESTINATION_CODES = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
     return DESTINATION_CODES.map(code => ({
-        url: `https://geaimonvol.com/destination/${code}`,
+        url: `${SITE_URL}/destination/${code}`,
         lastModified: new Date(),
-        changeFrequency: 'daily',
+        changeFrequency: 'daily' as const,
         priority: 0.8,
     }));
 }

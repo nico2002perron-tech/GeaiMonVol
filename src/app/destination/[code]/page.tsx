@@ -59,13 +59,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const city = dest?.city || code;
     const country = dest?.country || '';
 
+    const upperCode = code.toUpperCase();
+
     return {
-        title: `Vols Montréal → ${city} | Prix et Historique | GeaiMonVol`,
-        description: `Trouvez les meilleurs prix pour un vol Montréal (YUL) → ${city}${country ? ` (${country})` : ''}. Historique de prix, calendrier et alertes en temps réel.`,
+        title: `Vol pas cher Montréal → ${city} (${upperCode})`,
+        description: `Meilleur prix pour un vol aller-retour Montréal (YUL) → ${city}${country ? `, ${country}` : ''} (${upperCode}). Calendrier des prix, analyse IA et alertes en temps réel.`,
+        alternates: { canonical: `/destination/${upperCode}` },
         openGraph: {
-            title: `Vol Montréal → ${city} — GeaiMonVol`,
-            description: `Deals de vols YUL → ${code.toUpperCase()} avec historique de prix et calendrier.`,
+            title: `Vol Montréal → ${city} à petit prix — GeaiMonVol`,
+            description: `Compare les prix de vols YUL → ${upperCode}. Deals en temps réel, calendrier des meilleurs mois et analyse IA.`,
             type: 'website',
+            url: `/destination/${upperCode}`,
+        },
+        twitter: {
+            card: 'summary',
+            title: `Vol Montréal → ${city} — GeaiMonVol`,
+            description: `Les meilleurs deals de vols vers ${city} depuis Montréal.`,
         },
     };
 }

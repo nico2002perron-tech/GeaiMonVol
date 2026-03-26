@@ -1,7 +1,14 @@
+import { Metadata } from 'next';
 import ClientHome from './ClientHome';
 import { createServerSupabase } from '@/lib/supabase/server';
 import { calculateRealDiscount } from '@/lib/services/flights';
 import { MAX_PRICE } from '@/lib/constants/deals';
+
+export const metadata: Metadata = {
+    title: 'GeaiMonVol — Deals de vols pas cher depuis Montréal',
+    description: 'Palmarès des meilleurs deals aériens depuis Montréal en temps réel. Analyse IA, alertes de prix et carte interactive des vols les moins chers.',
+    alternates: { canonical: '/' },
+};
 
 // Revalidate every 5 minutes — ISR
 export const revalidate = 300;
