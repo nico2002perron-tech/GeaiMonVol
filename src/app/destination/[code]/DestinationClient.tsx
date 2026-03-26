@@ -275,7 +275,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                         />
                     );
                     return showPremiumContent ? packContent : (
-                        <PremiumLock label="Constructeur de Pack Vol + Hôtel">
+                        <PremiumLock label="Pack Builder — Vol + Hôtel avec analyse IA">
                             {packContent}
                         </PremiumLock>
                     );
@@ -296,7 +296,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                         />
                     );
                     return showPremiumContent ? intelContent : (
-                        <PremiumLock label="Intelligence Voyage GeAI">
+                        <PremiumLock label="Intelligence Voyage — Météo, budget, culture, astuces">
                             {intelContent}
                         </PremiumLock>
                     );
@@ -307,7 +307,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     showPremiumContent ? (
                         <div style={{ marginBottom: 24 }}><PriceCalendar dates={calendarDates} destinationCode={code} /></div>
                     ) : (
-                        <PremiumLock label="Calendrier des prix">
+                        <PremiumLock label="Calendrier des prix — Trouve la date la moins chère">
                             <div style={{ marginBottom: 24 }}><PriceCalendar dates={calendarDates} destinationCode={code} /></div>
                         </PremiumLock>
                     )
@@ -318,7 +318,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                     showPremiumContent ? (
                         <div style={{ marginBottom: 24 }}><BestMonths dates={calendarDates} /></div>
                     ) : (
-                        <PremiumLock label="Meilleurs mois pour partir">
+                        <PremiumLock label="Meilleurs mois — Économise jusqu'à 40%">
                             <div style={{ marginBottom: 24 }}><BestMonths dates={calendarDates} /></div>
                         </PremiumLock>
                     )
@@ -327,7 +327,7 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                 {/* ═══ MONTHLY COMPARISON ═══ */}
                 {(monthlyLoading || (monthlyData && monthlyData.months.some(m => m.count > 0))) && (() => {
                     const content = <MonthlyComparison monthlyData={monthlyData} monthlyLoading={monthlyLoading} />;
-                    return showPremiumContent ? content : <PremiumLock label="Prix par mois">{content}</PremiumLock>;
+                    return showPremiumContent ? content : <PremiumLock label="Comparaison mensuelle — Tendances sur 12 mois">{content}</PremiumLock>;
                 })()}
 
                 {/* JSON-LD */}
