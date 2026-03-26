@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -13,6 +13,17 @@ import './landing.css';
 
 const EMPTY_DEALS: any[] = [];
 
+/* Floating emojis — positioned around the hero, react to mouse */
+const FLOATERS = [
+  { emoji: '\u2708\uFE0F', x: 8, y: 18, speed: 25, size: 44, delay: 0 },
+  { emoji: '\uD83C\uDFD6\uFE0F', x: 86, y: 10, speed: 18, size: 40, delay: 0.5 },
+  { emoji: '\uD83C\uDF34', x: 91, y: 50, speed: 22, size: 46, delay: 1.0 },
+  { emoji: '\uD83D\uDDFA\uFE0F', x: 5, y: 62, speed: 16, size: 34, delay: 1.5 },
+  { emoji: '\uD83C\uDF1E', x: 80, y: 74, speed: 28, size: 32, delay: 2.0 },
+  { emoji: '\uD83C\uDF0A', x: 14, y: 80, speed: 20, size: 36, delay: 2.5 },
+  { emoji: '\uD83D\uDC26', x: 74, y: 32, speed: 10, size: 72, delay: 0.3 },
+];
+
 interface ClientLandingProps {
   initialDeals?: any[];
 }
@@ -22,66 +33,74 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const allDeals = useMemo(() => mapPricesToDeals(stableInitial), [stableInitial]);
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
 
-  const heroStats = useMemo(() => {
-    const discounts = allDeals.filter(d => d.discount > 0).map(d => d.discount);
-    const avg = discounts.length > 0 ? Math.round(discounts.reduce((a, b) => a + b, 0) / discounts.length) : 30;
-    return { count: allDeals.length || 40, avg };
-  }, [allDeals]);
+  /* Mouse tracking with lerp — physics-like smooth follow */
+  useEffect(() => {
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+    let raf: number;
+
+    const onMove = (e: MouseEvent) => {
+      targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
+    const tick = () => {
+      currentX += (targetX - currentX) * 0.06;
+      currentY += (targetY - currentY) * 0.06;
+      document.documentElement.style.setProperty('--mx', String(currentX));
+      document.documentElement.style.setProperty('--my', String(currentY));
+      raf = requestAnimationFrame(tick);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    raf = requestAnimationFrame(tick);
+    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
+  }, []);
 
   return (
-    <div className="lp lp-dark">
+    <div className="lp">
       <LandingHeader />
 
-      {/* Background effects */}
-      <div className="lp-bg-grid" />
-      <div className="lp-aurora lp-aurora-1" />
-      <div className="lp-aurora lp-aurora-2" />
-      <div className="lp-aurora lp-aurora-3" />
-
       {/* ═══ HERO ═══ */}
-      <section className="lp-hero-dark">
+      <section className="lp-hero">
+        {/* Floating emojis */}
+        <div className="lp-floaters" aria-hidden="true">
+          {FLOATERS.map((f, i) => (
+            <div
+              key={i}
+              className="lp-floater"
+              style={{ left: `${f.x}%`, top: `${f.y}%`, '--speed': f.speed } as React.CSSProperties}
+            >
+              <span className="lp-floater-emoji" style={{ fontSize: f.size, animationDelay: `${f.delay}s` }}>
+                {f.emoji}
+              </span>
+            </div>
+          ))}
+        </div>
+
         <div className="lp-hero-inner">
-          <div className="lp-pill-badge">
-            <span className="lp-pill-dot" />
+          <div className="lp-badge">
+            <span className="lp-badge-dot" />
             {allDeals.length > 0 ? `${allDeals.length} deals scannes en direct` : 'Scanning en direct'}
           </div>
 
           <h1 className="lp-hero-h1">
-            Ton agent de voyage
+            Ton <span className="lp-text-orange">geai</span> trouve
             <br />
-            <span className="lp-gradient-text">propulse par l&apos;IA.</span>
+            les <span className="lp-text-blue">meilleurs vols</span>.
           </h1>
 
           <p className="lp-hero-p">
-            GeaiAI scanne les prix en temps reel et te trouve les meilleurs vols depuis Montreal. Dis-lui ou tu veux aller.
+            Dis-lui ou tu veux aller. Il scanne les prix, trouve les aubaines et te prepare un itineraire. Comme un ami qui travaille dans le voyage.
           </p>
 
           <div className="lp-hero-ctas">
-            <Link href="/agent" className="lp-cta-glow">
-              <span className="lp-cta-glow-border" />
-              <span className="lp-cta-glow-inner">
-                Parler avec GeaiAI
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-              </span>
+            <Link href="/agent" className="lp-btn lp-btn-primary">
+              Parler a GeaiAI
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
             </Link>
-            <Link href="/deals" className="lp-cta-ghost">
-              Voir les deals en direct
+            <Link href="/deals" className="lp-btn lp-btn-ghost">
+              Voir les deals
             </Link>
-          </div>
-
-          <div className="lp-stats-row">
-            <div className="lp-stat-card">
-              <span className="lp-stat-num">{heroStats.count}+</span>
-              <span className="lp-stat-label">Destinations</span>
-            </div>
-            <div className="lp-stat-card">
-              <span className="lp-stat-num">-{heroStats.avg}%</span>
-              <span className="lp-stat-label">En moyenne</span>
-            </div>
-            <div className="lp-stat-card">
-              <span className="lp-stat-num">24h</span>
-              <span className="lp-stat-label">Mise a jour</span>
-            </div>
           </div>
         </div>
       </section>
@@ -89,7 +108,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
       {/* ═══ AGENT PREVIEW ═══ */}
       <section className="lp-section">
         <div className="lp-preview-wrap">
-          <div className="lp-glass-card lp-preview-card">
+          <div className="lp-preview-card">
             <div className="lp-preview-bar">
               <div className="lp-preview-bar-dot" />
               <span>GeaiAI</span>
@@ -100,9 +119,9 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
                 <div className="lp-preview-bubble lp-preview-bubble-user">Je veux du beach pas cher, max 500$</div>
               </div>
               <div className="lp-preview-msg lp-preview-ai">
-                <div className="lp-preview-avatar">🐦</div>
+                <div className="lp-preview-avatar">{'\uD83D\uDC26'}</div>
                 <div className="lp-preview-bubble lp-preview-bubble-ai">
-                  Ayoye j&apos;ai exactement ce qu&apos;il te faut! 🏖️{'\n\n'}
+                  Ayoye j&apos;ai exactement ce qu&apos;il te faut! {'\uD83C\uDFD6\uFE0F\n\n'}
                   {topDeals.slice(0, 3).map((d, i) => (
                     <span key={i}>
                       {COUNTRY_FLAGS[CITY_COUNTRY[d.city] || ''] || ''} <strong>{d.city}</strong> — {Math.round(d.price)}$ A/R
@@ -111,9 +130,9 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
                     </span>
                   ))}
                   {topDeals.length === 0 && (
-                    <>🇲🇽 <strong>Cancun</strong> — 389$ A/R (-32%){'\n'}🇩🇴 <strong>Punta Cana</strong> — 425$ A/R{'\n'}🇨🇺 <strong>Varadero</strong> — 449$ A/R</>
+                    <>{'\uD83C\uDDF2\uD83C\uDDFD'} <strong>Cancun</strong> — 389$ A/R (-32%){'\n'}{'\uD83C\uDDE9\uD83C\uDDF4'} <strong>Punta Cana</strong> — 425$ A/R{'\n'}{'\uD83C\uDDE8\uD83C\uDDFA'} <strong>Varadero</strong> — 449$ A/R</>
                   )}
-                  {'\n\n'}Tu veux que je te planifie un itineraire? 🗺️
+                  {'\n\n'}Tu veux que je te planifie un itineraire? {'\uD83D\uDDFA\uFE0F'}
                 </div>
               </div>
             </div>
@@ -125,38 +144,29 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
       </section>
 
-      {/* ═══ FEATURES BENTO ═══ */}
-      <section className="lp-section">
+      {/* ═══ STEPS ═══ */}
+      <section className="lp-section lp-section-alt">
         <div className="lp-section-header">
-          <span className="lp-pill-badge lp-pill-badge-sm">Comment ca marche</span>
-          <h2 className="lp-h2">Tout ce dont tu as besoin<br /><span className="lp-gradient-text">pour voyager mieux.</span></h2>
+          <h2 className="lp-h2">Comment ca marche</h2>
         </div>
-
-        <div className="lp-bento">
-          <div className="lp-glass-card lp-bento-item lp-bento-featured">
-            <div className="lp-bento-icon">💬</div>
-            <h3 className="lp-bento-title">Parle a ton agent</h3>
-            <p className="lp-bento-desc">Dis a GeaiAI ou tu veux aller, ton budget, tes vibes. Il connait tous les deals en direct et te recommande les meilleures options.</p>
+        <div className="lp-steps">
+          <div className="lp-step lp-step-orange">
+            <span className="lp-step-num">1</span>
+            <div className="lp-step-icon">{'\uD83D\uDCAC'}</div>
+            <h3 className="lp-step-title">Parle a ton agent</h3>
+            <p className="lp-step-desc">Dis a GeaiAI ou tu veux aller, ton budget, tes vibes. Il connait tous les deals en direct.</p>
           </div>
-          <div className="lp-glass-card lp-bento-item">
-            <div className="lp-bento-icon">📡</div>
-            <h3 className="lp-bento-title">Scan en temps reel</h3>
-            <p className="lp-bento-desc">Prix calcules sur 90 jours de donnees. Pas de faux rabais.</p>
+          <div className="lp-step lp-step-blue">
+            <span className="lp-step-num">2</span>
+            <div className="lp-step-icon">{'\uD83D\uDCE1'}</div>
+            <h3 className="lp-step-title">Il scanne les prix</h3>
+            <p className="lp-step-desc">Prix calcules sur 90 jours de donnees. Pas de faux rabais, juste les vrais deals.</p>
           </div>
-          <div className="lp-glass-card lp-bento-item">
-            <div className="lp-bento-icon">🗺️</div>
-            <h3 className="lp-bento-title">Itineraires IA</h3>
-            <p className="lp-bento-desc">Activites, restos, budget — genere en 30 secondes.</p>
-          </div>
-          <div className="lp-glass-card lp-bento-item">
-            <div className="lp-bento-icon">🔔</div>
-            <h3 className="lp-bento-title">Alertes de prix</h3>
-            <p className="lp-bento-desc">Le prix baisse? Tu le sais en premier.</p>
-          </div>
-          <div className="lp-glass-card lp-bento-item">
-            <div className="lp-bento-icon">✈️</div>
-            <h3 className="lp-bento-title">Reserve direct</h3>
-            <p className="lp-bento-desc">Un clic vers Skyscanner pour le meilleur prix garanti.</p>
+          <div className="lp-step lp-step-green">
+            <span className="lp-step-num">3</span>
+            <div className="lp-step-icon">{'\u2708\uFE0F'}</div>
+            <h3 className="lp-step-title">Reserve en un clic</h3>
+            <p className="lp-step-desc">Un clic vers Skyscanner pour le meilleur prix. Itineraire IA en bonus.</p>
           </div>
         </div>
       </section>
@@ -165,7 +175,10 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
       {topDeals.length > 0 && (
         <section className="lp-section">
           <div className="lp-section-header">
-            <span className="lp-pill-badge lp-pill-badge-sm">En direct maintenant</span>
+            <div className="lp-badge lp-badge-sm">
+              <span className="lp-badge-dot" />
+              En direct maintenant
+            </div>
             <h2 className="lp-h2">Les deals que GeaiAI surveille.</h2>
           </div>
 
@@ -176,7 +189,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
           </div>
 
           <div className="lp-center-link">
-            <Link href="/deals" className="lp-cta-ghost">
+            <Link href="/deals" className="lp-btn lp-btn-ghost">
               Voir les {allDeals.length} deals
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
             </Link>
@@ -185,46 +198,39 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
       )}
 
       {/* ═══ PRICING ═══ */}
-      <section className="lp-section">
+      <section className="lp-section lp-section-alt">
         <div className="lp-section-header">
-          <span className="lp-pill-badge lp-pill-badge-sm">Tarifs</span>
           <h2 className="lp-h2">Commence gratuitement.</h2>
         </div>
 
         <div className="lp-pricing-grid">
-          <div className="lp-glass-card lp-price-card">
+          <div className="lp-price-card">
             <div className="lp-price-name">Gratuit</div>
             <div className="lp-price-amount">0$<span>/toujours</span></div>
             <div className="lp-price-features">
               {['Chat illimite avec GeaiAI', 'Palmares des deals', 'Courriel hebdo', 'Alertes de prix (hebdo)'].map((f, i) => (
                 <div key={i} className="lp-price-feat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#58CC02" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {f}
                 </div>
               ))}
             </div>
-            <Link href="/auth" className="lp-cta-ghost lp-price-btn">
-              Commencer
-            </Link>
+            <Link href="/auth" className="lp-btn lp-btn-ghost lp-price-btn">Commencer</Link>
           </div>
 
-          <div className="lp-glass-card lp-price-card lp-price-card-pro">
-            <div className="lp-price-card-pro-border" />
+          <div className="lp-price-card lp-price-card-pro">
             <div className="lp-price-popular">Le + populaire</div>
             <div className="lp-price-name lp-price-name-pro">Premium</div>
             <div className="lp-price-amount lp-price-amount-pro">{PREMIUM_PRICE}$<span>/mois CAD</span></div>
             <div className="lp-price-features">
               {['Itineraires IA illimites', 'Alertes quotidiennes', 'Tous les deals sans limite', 'Calendrier des prix', 'Watchlist illimitee', 'Analyse IA vol + hotel'].map((f, i) => (
                 <div key={i} className="lp-price-feat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF6B2C" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {f}
                 </div>
               ))}
             </div>
-            <Link href="/pricing" className="lp-cta-glow lp-price-btn">
-              <span className="lp-cta-glow-border" />
-              <span className="lp-cta-glow-inner lp-price-btn-inner">Passer Premium</span>
-            </Link>
+            <Link href="/pricing" className="lp-btn lp-btn-primary lp-price-btn">Passer Premium</Link>
           </div>
         </div>
       </section>
@@ -232,15 +238,11 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
       {/* ═══ FINAL CTA ═══ */}
       <section className="lp-section lp-final">
         <div className="lp-final-card">
-          <div className="lp-final-glow" />
-          <h2 className="lp-final-h2">Pret a trouver ton<br /><span className="lp-gradient-text">prochain vol?</span></h2>
+          <h2 className="lp-final-h2">Pret a trouver ton<br /><span className="lp-text-orange">prochain vol</span>?</h2>
           <p className="lp-final-p">Parle a GeaiAI. Gratuit, pas de compte requis.</p>
-          <Link href="/agent" className="lp-cta-glow">
-            <span className="lp-cta-glow-border" />
-            <span className="lp-cta-glow-inner">
-              Lancer GeaiAI
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-            </span>
+          <Link href="/agent" className="lp-btn lp-btn-primary lp-btn-lg">
+            Lancer GeaiAI
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
           </Link>
         </div>
       </section>
@@ -258,7 +260,7 @@ function DealCard({ deal }: { deal: DealItem }) {
   const bookingUrl = deal.bookingLink || `https://www.skyscanner.ca/transport/flights/yul/${(deal.code || '').toLowerCase()}/`;
 
   return (
-    <div className="lp-glass-card lp-deal-card">
+    <div className="lp-deal-card">
       <div className="lp-deal-img">
         <Image src={deal.image} alt={deal.city} fill sizes="(max-width: 640px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
         <div className="lp-deal-img-overlay" />
@@ -274,10 +276,10 @@ function DealCard({ deal }: { deal: DealItem }) {
       <div className="lp-deal-body">
         <div className="lp-deal-top">
           <span className="lp-deal-city">{flag} {deal.city}</span>
-          <span className="lp-deal-route">YUL → {deal.code}</span>
+          <span className="lp-deal-route">YUL &rarr; {deal.code}</span>
         </div>
         <div className="lp-deal-meta">
-          {country}{deal.airline ? ` · ${deal.airline}` : ''}{deal.stops === 0 ? ' · Direct' : ''}
+          {country}{deal.airline ? ` \u00B7 ${deal.airline}` : ''}{deal.stops === 0 ? ' \u00B7 Direct' : ''}
         </div>
         <div className="lp-deal-bottom">
           <div>
