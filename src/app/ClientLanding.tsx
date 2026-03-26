@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -14,18 +14,90 @@ import './deals.css';
 
 const EMPTY_DEALS: any[] = [];
 
-const DEST_CATS: Record<string, string[]> = {
-  beach: ['Cancún', 'Cancun', 'Punta Cana', 'Varadero', 'Bali', 'Montego Bay', 'Nassau', 'Fort Lauderdale', 'Miami', 'Phuket', 'Bridgetown', 'Freeport'],
-  city: ['Paris', 'Barcelone', 'New York', 'Tokyo', 'Rome', 'Londres', 'Berlin', 'Amsterdam', 'Madrid', 'Lisbonne', 'Istanbul', 'Seoul', 'Bogota', 'Buenos Aires', 'Porto'],
-  adventure: ['Reykjavik', 'Cusco', 'Lima', 'San Jose', 'San José', 'Medellin', 'Guatemala City', 'Marrakech', 'Ho Chi Minh', 'Hanoi', 'Cartagena', 'Belize City'],
-  tropical: ['Bali', 'Phuket', 'Bangkok', 'Cancún', 'Cancun', 'Punta Cana', 'Nassau', 'Bridgetown', 'Varadero', 'Fort Lauderdale'],
-};
+interface QuizStep {
+  intro?: string;
+  q: string;
+  options: { label: string; value: string }[];
+  reactions: Record<string, string>;
+}
 
-const TRAVEL_PERSONALITIES = [
-  { cats: ['beach', 'tropical'], emoji: '🏖️', name: 'Le Beach Bum Assume', desc: "Soleil, sable, cocktail. T'as besoin de la mer pour etre heureux. Et on te comprend." },
-  { cats: ['city'], emoji: '🏛️', name: "L'Explorateur Urbain", desc: "Ruelles, cafes, musees, rooftops. Tu vis pour la decouverte culturelle et les villes qui bougent." },
-  { cats: ['adventure'], emoji: '🧗', name: "L'Aventurier Sans Limites", desc: "Jungle, volcans, treks... t'es pas du genre a rester au bord de la piscine. Le monde est ton terrain de jeu." },
-  { cats: [] as string[], emoji: '🌍', name: 'Le Voyageur Eclectique', desc: "Impossible de te mettre dans une boite. Tu veux tout voir, tout gouter, tout vivre. Chaque destination est une nouvelle aventure." },
+const QUIZ: QuizStep[] = [
+  {
+    intro: "Salut! Moi c'est GeaiAI, ton buddy de voyage. En 5 petites questions, j'te trouve LA destination de tes reves. Let's go!",
+    q: "C'est quoi ton mood vacances en ce moment?",
+    options: [
+      { label: '🏖️ Plage & chill', value: 'plage' },
+      { label: '🏛️ Ville & culture', value: 'ville' },
+      { label: '🧗 Aventure & nature', value: 'aventure' },
+      { label: '🎲 Surprise-moi!', value: 'surprise' },
+    ],
+    reactions: {
+      plage: "Ohhh les orteils dans le sable, un drink a la main! J'te comprends tellement!",
+      ville: "Un(e) urbain(e)! Genre tu marches 25km par jour en vacances et tu trouves ca relax",
+      aventure: "YESSS! T'es du genre a sauter en parachute avant le dejeuner!",
+      surprise: "Oooh tu me fais confiance les yeux fermes? Bold move, j'aime ca",
+    },
+  },
+  {
+    q: "Le matin en vacances, tu fais quoi?",
+    options: [
+      { label: '😴 J\'dors jusqu\'a midi', value: 'dodo' },
+      { label: '☀️ Sunrise + cafe', value: 'sunrise' },
+      { label: '🏃 Run + explore', value: 'actif' },
+      { label: '🎉 J\'me couche a 6h du mat', value: 'party' },
+    ],
+    reactions: {
+      dodo: "Le roi/la reine du hamac! Zero jugement, des fois faut juste decrocher",
+      sunrise: "Aww cute! Y'a rien de mieux qu'un cafe avec un view de malade au lever du soleil",
+      actif: "T'es une MACHINE! Genre tu planifies 47 activites par jour et tu les fais TOUTES",
+      party: "HAHAHA le genre qui decouvre la ville de nuit! Les meilleurs souvenirs se font apres minuit, c'est connu",
+    },
+  },
+  {
+    q: "On parle bouffe. T'es comment?",
+    options: [
+      { label: '🌮 Street food a 3$', value: 'street' },
+      { label: '🍽️ Bon resto de temps en temps', value: 'modere' },
+      { label: '👨‍🍳 Full gastronomie', value: 'gastro' },
+      { label: '🏨 All-inclusive, open bar', value: 'allinc' },
+    ],
+    reactions: {
+      street: "LES VRAIS SAVENT! Les meilleurs repas de ma vie c'etait dans des stands de rue a 3$",
+      modere: "Smart! Le pad thai a 2$ le midi, le resto fancy le soir. Equilibre parfait",
+      gastro: "Un(e) gourmet! Genre tu reserves au resto avant de reserver ton vol??",
+      allinc: "Le bracelet au poignet pis tu stress pu! Y'a zero honte la-dedans",
+    },
+  },
+  {
+    q: "Tu voyages avec qui?",
+    options: [
+      { label: '🎒 Solo, just me', value: 'solo' },
+      { label: '💑 En couple', value: 'couple' },
+      { label: '🎉 Gang d\'amis', value: 'amis' },
+      { label: '👨‍👩‍👧‍👦 Famille', value: 'famille' },
+    ],
+    reactions: {
+      solo: "Main character energy! Voyager solo c'est la meilleure facon de se connaitre (et de faire ce qu'on veut)",
+      couple: "Awww! Rien de mieux que decouvrir le monde a deux. Y'a-tu un anniversaire a feter?",
+      amis: "ROAD TRIP ENERGY! Ca va etre chaotique, ca va etre drole, pis quelqu'un va se perdre garanti",
+      famille: "Les meilleurs souvenirs! Faut juste trouver un spot qui plait a tout le monde (le vrai defi)",
+    },
+  },
+  {
+    q: "Derniere question (la plus importante): t'arrives a l'aeroport...",
+    options: [
+      { label: '⏰ 4h d\'avance, lounge VIP', value: 'early' },
+      { label: '😎 Pile a l\'heure', value: 'ontime' },
+      { label: '🏃 En courant, gate ferme', value: 'late' },
+      { label: '🛒 Pas encore fait ma valise', value: 'chaos' },
+    ],
+    reactions: {
+      early: "Hahaha le genre organise! Tu dois avoir un spreadsheet Excel pour tes vacances, avoue",
+      ontime: "Efficace! Pas de temps perdu, juste... du stress modere. Respire",
+      late: "AH NON! Genre tu cours en flip-flops dans le terminal avec ton passeport entre les dents??",
+      chaos: "HAHAHA t'es mon genre de personne! \"On verra rendu la\" c'est ta philosophie de vie!",
+    },
+  },
 ];
 
 interface ClientLandingProps {
@@ -40,78 +112,133 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Swipe Tinder state ──
-  const [swipeIdx, setSwipeIdx] = useState(0);
-  const [liked, setLiked] = useState<DealItem[]>([]);
-  const [dragX, setDragX] = useState(0);
-  const [dragActive, setDragActive] = useState(false);
-  const [flyDir, setFlyDir] = useState<'left' | 'right' | null>(null);
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const dragXRef = useRef(0);
+  // ── GeaiAI Chat state ──
+  type ChatMsg = { role: 'ai' | 'user'; text: string };
+  const [chatStarted, setChatStarted] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [chatStep, setChatStep] = useState(0);
+  const [aiTyping, setAiTyping] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [chatDone, setChatDone] = useState(false);
+  const answersRef = useRef<{ q: string; a: string }[]>([]);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
 
-  const swipeCards = useMemo(() => allDeals.slice(0, 8), [allDeals]);
-  const swipeDone = swipeIdx >= swipeCards.length;
-
-  const personality = useMemo(() => {
-    if (!swipeDone) return null;
-    if (liked.length === 0) return TRAVEL_PERSONALITIES[3];
-    const counts: Record<string, number> = { beach: 0, city: 0, adventure: 0, tropical: 0 };
-    for (const d of liked) {
-      for (const [cat, cities] of Object.entries(DEST_CATS)) {
-        if (cities.some(c => d.city.includes(c) || c.includes(d.city))) counts[cat]++;
-      }
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
     }
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    if (!top || top[1] === 0) return TRAVEL_PERSONALITIES[3];
-    return TRAVEL_PERSONALITIES.find(p => p.cats.includes(top[0])) || TRAVEL_PERSONALITIES[3];
-  }, [liked, swipeDone]);
+  }, [chatMessages, aiTyping]);
 
-  const advanceCard = useCallback((dir: 'left' | 'right') => {
-    setFlyDir(dir);
-    setDragX(0);
-    if (dir === 'right') {
-      setLiked(prev => [...prev, swipeCards[swipeIdx]]);
-    }
+  const startChat = useCallback(() => {
+    setChatStarted(true);
+    setAiTyping(true);
     setTimeout(() => {
-      setSwipeIdx(prev => prev + 1);
-      setFlyDir(null);
-    }, 380);
-  }, [swipeIdx, swipeCards]);
-
-  const onCardPointerDown = useCallback((e: React.PointerEvent) => {
-    if (flyDir) return;
-    isDragging.current = true;
-    dragStartX.current = e.clientX;
-    dragXRef.current = 0;
-    setDragX(0);
-    setDragActive(true);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [flyDir]);
-
-  const onCardPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    const dx = e.clientX - dragStartX.current;
-    dragXRef.current = dx;
-    setDragX(dx);
+      setAiTyping(false);
+      setChatMessages([{ role: 'ai', text: QUIZ[0].intro! }]);
+    }, 900);
+    setTimeout(() => setAiTyping(true), 1200);
+    setTimeout(() => {
+      setAiTyping(false);
+      setChatMessages(prev => [...prev, { role: 'ai', text: QUIZ[0].q }]);
+    }, 1900);
+    setTimeout(() => setShowReplies(true), 2100);
   }, []);
 
-  const onCardPointerUp = useCallback(() => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    setDragActive(false);
-    const dx = dragXRef.current;
-    if (dx > 80) advanceCard('right');
-    else if (dx < -80) advanceCard('left');
-    else setDragX(0);
-  }, [advanceCard]);
+  const pickAnswer = useCallback((value: string, label: string) => {
+    const step = chatStep;
+    const currentQ = QUIZ[step];
 
-  const resetSwipe = useCallback(() => {
-    setSwipeIdx(0);
-    setLiked([]);
-    setDragX(0);
-    setFlyDir(null);
-    setDragActive(false);
+    // User message instantly
+    setChatMessages(prev => [...prev, { role: 'user', text: label }]);
+    answersRef.current = [...answersRef.current, { q: currentQ.q, a: label }];
+    setShowReplies(false);
+
+    // AI reaction with typing delay
+    setTimeout(() => setAiTyping(true), 250);
+    setTimeout(() => {
+      setAiTyping(false);
+      setChatMessages(prev => [...prev, { role: 'ai', text: currentQ.reactions[value] || "Nice!" }]);
+    }, 1000);
+
+    if (step < QUIZ.length - 1) {
+      // Next question
+      setTimeout(() => setAiTyping(true), 1400);
+      setTimeout(() => {
+        const next = step + 1;
+        setChatStep(next);
+        setAiTyping(false);
+        setChatMessages(prev => [...prev, { role: 'ai', text: QUIZ[next].q }]);
+      }, 2100);
+      setTimeout(() => setShowReplies(true), 2300);
+    } else {
+      // Final — AI personality reveal
+      setTimeout(() => setAiTyping(true), 1400);
+      setTimeout(() => {
+        setAiTyping(false);
+        setChatMessages(prev => [...prev, { role: 'ai', text: "Hmm attends 2 sec, j'analyse ton profil voyageur..." }]);
+      }, 2200);
+      setTimeout(() => {
+        setAiTyping(true);
+        fetchReveal();
+      }, 3000);
+    }
+  }, [chatStep]);
+
+  const fetchReveal = useCallback(async () => {
+    try {
+      const res = await fetch('/api/geai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: answersRef.current,
+          deals: allDeals.slice(0, 20).map(d => ({
+            city: d.city, country: d.country, price: Math.round(d.price),
+            discount: d.discount, dealLevel: d.dealLevel,
+          })),
+        }),
+      });
+
+      setAiTyping(false);
+
+      if (!res.ok || !res.body) throw new Error();
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = '';
+
+      setChatMessages(prev => [...prev, { role: 'ai', text: '' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        const current = text;
+        setChatMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: 'ai', text: current };
+          return msgs;
+        });
+      }
+      setChatDone(true);
+    } catch {
+      setAiTyping(false);
+      setChatMessages(prev => [...prev, {
+        role: 'ai',
+        text: "Oups j'ai eu un petit bug! Mais clique sur 'Planifier mon voyage' et je vais te preparer quelque chose de malade!",
+      }]);
+      setChatDone(true);
+    }
+  }, [allDeals]);
+
+  const resetChat = useCallback(() => {
+    setChatStarted(false);
+    setChatMessages([]);
+    setChatStep(0);
+    setAiTyping(false);
+    setShowReplies(false);
+    setChatDone(false);
+    answersRef.current = [];
   }, []);
 
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
@@ -332,188 +459,101 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
       </section>
 
-      {/* ═══ DESTINATION TINDER — Swipe card deck ═══ */}
-      {swipeCards.length > 0 && (
-        <section className="lp-swipe-section">
-          <div className="lp-swipe-glow" />
-          <div className="lp-swipe-container">
-            <div className="lp-swipe-badge">✨ Trouve ta destination</div>
-            <h2 className="lp-swipe-title">
-              Swipe tes vacances.{' '}
-              <span>Decouvre ton profil voyageur.</span>
-            </h2>
-            <p className="lp-swipe-subtitle">
-              Comme Tinder, mais pour tes vacances. Swipe a droite si ca te fait tripper, a gauche sinon.
-            </p>
+      {/* ═══ GEAIAI CHAT — Interactive AI travel buddy ═══ */}
+      {allDeals.length > 0 && (
+        <section className="lp-chat-section">
+          <div className="lp-chat-glow" />
+          <div className="lp-chat-outer">
+            <div className="lp-chat-label-row">
+              <span className="lp-chat-badge">✨ Mini-jeu IA</span>
+              <h2 className="lp-chat-heading">
+                Parle avec GeaiAI.{' '}
+                <span>Trouve ta destination.</span>
+              </h2>
+              <p className="lp-chat-subheading">
+                Notre IA te pose 5 questions et te genere un profil voyageur personnalise avec des recommandations.
+              </p>
+            </div>
 
-            {!swipeDone ? (
-              <>
-                {/* Counter */}
-                <div className="lp-swipe-counter">
-                  <div className="lp-swipe-counter-bar">
-                    <div className="lp-swipe-counter-fill" style={{ width: `${((swipeIdx) / swipeCards.length) * 100}%` }} />
+            {/* Phone-style chat container */}
+            <div className="lp-chat-phone">
+              {/* Header bar */}
+              <div className="lp-chat-header">
+                <div className="lp-chat-header-avatar">🐦</div>
+                <div>
+                  <div className="lp-chat-header-name">GeaiAI</div>
+                  <div className="lp-chat-header-status">
+                    <span className="lp-chat-online-dot" />
+                    En ligne
                   </div>
-                  <span className="lp-swipe-counter-text">{swipeIdx + 1} / {swipeCards.length}</span>
                 </div>
-
-                {/* Card stack */}
-                <div className="lp-swipe-stage">
-                  {/* Background cards (2 behind) */}
-                  {swipeCards.slice(swipeIdx + 1, swipeIdx + 3).map((deal, i) => {
-                    const depth = i + 1;
-                    return (
-                      <div
-                        key={deal.code + 'bg' + i}
-                        className="lp-swipe-card lp-swipe-card-bg"
-                        style={{
-                          transform: `scale(${1 - depth * 0.045}) translateY(${depth * 14}px)`,
-                          zIndex: 10 - depth,
-                          opacity: 1 - depth * 0.15,
-                        }}
-                      >
-                        <div className="lp-swipe-card-img" style={{ backgroundImage: `url(${deal.image})` }} />
-                        <div className="lp-swipe-card-gradient" />
-                      </div>
-                    );
-                  })}
-
-                  {/* Top card — draggable */}
-                  {swipeIdx < swipeCards.length && (() => {
-                    const card = swipeCards[swipeIdx];
-                    const level = DEAL_LEVELS[card.dealLevel];
-                    const flag = COUNTRY_FLAGS[CITY_COUNTRY[card.city] || ''] || '';
-                    const likeOpacity = Math.min(1, Math.max(0, dragX / 120));
-                    const nopeOpacity = Math.min(1, Math.max(0, -dragX / 120));
-                    return (
-                      <div
-                        className={`lp-swipe-card lp-swipe-card-top ${flyDir ? `fly-${flyDir}` : ''} ${!dragActive && !flyDir ? 'spring' : ''}`}
-                        style={{
-                          transform: flyDir ? undefined : `translateX(${dragX}px) rotate(${dragX * 0.06}deg)`,
-                          zIndex: 20,
-                          touchAction: 'none',
-                          cursor: 'grab',
-                        }}
-                        onPointerDown={onCardPointerDown}
-                        onPointerMove={onCardPointerMove}
-                        onPointerUp={onCardPointerUp}
-                        onPointerCancel={() => { isDragging.current = false; setDragActive(false); setDragX(0); }}
-                      >
-                        <div className="lp-swipe-card-img" style={{ backgroundImage: `url(${card.image})` }} />
-                        <div className="lp-swipe-card-gradient" />
-
-                        {/* LIKE stamp */}
-                        <div className="lp-swipe-stamp lp-swipe-stamp-like" style={{ opacity: likeOpacity }}>
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-                          LIKE
-                        </div>
-                        {/* NOPE stamp */}
-                        <div className="lp-swipe-stamp lp-swipe-stamp-nope" style={{ opacity: nopeOpacity }}>
-                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                          NOPE
-                        </div>
-
-                        {/* Card info */}
-                        <div className="lp-swipe-card-info">
-                          <div className="lp-swipe-card-city">{flag} {card.city}</div>
-                          <div className="lp-swipe-card-country">{CITY_COUNTRY[card.city] || card.country}</div>
-                          <div className="lp-swipe-card-price-row">
-                            <span className="lp-swipe-card-price">{Math.round(card.price)}$</span>
-                            <span className="lp-swipe-card-ar">A/R</span>
-                            {card.discount > 0 && level && (
-                              <span className="lp-swipe-card-deal" style={{ background: level.bg }}>
-                                {level.icon} -{card.discount}%
-                              </span>
-                            )}
-                          </div>
-                          {card.airline && (
-                            <div className="lp-swipe-card-airline">
-                              {card.airline}{card.stops === 0 ? ' · Direct' : ''}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Like / Nope buttons */}
-                <div className="lp-swipe-btns">
-                  <button
-                    className="lp-swipe-btn lp-swipe-btn-nope"
-                    onClick={() => !flyDir && advanceCard('left')}
-                    aria-label="Passer"
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                  </button>
-                  <button
-                    className="lp-swipe-btn lp-swipe-btn-like"
-                    onClick={() => !flyDir && advanceCard('right')}
-                    aria-label="J'aime"
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-                  </button>
-                </div>
-
-                <p className="lp-swipe-hint">Glisse la carte ou clique les boutons</p>
-              </>
-            ) : (
-              /* ── RESULTS: Personality reveal + liked deals ── */
-              <div className="lp-swipe-results">
-                {personality && (
-                  <div className="lp-personality">
-                    <div className="lp-personality-emoji">{personality.emoji}</div>
-                    <h3 className="lp-personality-name">{personality.name}</h3>
-                    <p className="lp-personality-desc">{personality.desc}</p>
-                  </div>
+                {chatStep > 0 && !chatDone && (
+                  <div className="lp-chat-step-indicator">{chatStep}/{QUIZ.length}</div>
                 )}
-
-                {liked.length > 0 && (
-                  <>
-                    <div className="lp-swipe-results-label">
-                      Tes coups de coeur ({liked.length})
-                    </div>
-                    <div className="lp-swipe-liked-grid">
-                      {liked.map((deal, i) => {
-                        const level = DEAL_LEVELS[deal.dealLevel];
-                        const flag = COUNTRY_FLAGS[CITY_COUNTRY[deal.city] || ''] || '';
-                        return (
-                          <div key={deal.code + i} className="lp-swipe-liked-card">
-                            <div className="lp-swipe-liked-img" style={{ backgroundImage: `url(${deal.image})` }}>
-                              <div className="lp-swipe-liked-ov" />
-                            </div>
-                            <div className="lp-swipe-liked-body">
-                              <div className="lp-swipe-liked-city">{flag} {deal.city}</div>
-                              <div className="lp-swipe-liked-row">
-                                <span className="lp-swipe-liked-price">{Math.round(deal.price)}$</span>
-                                {deal.discount > 0 && level && (
-                                  <span className="lp-swipe-liked-tag" style={{ background: level.bg, color: level.textColor || '#fff' }}>
-                                    -{deal.discount}%
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-
-                {liked.length === 0 && (
-                  <p className="lp-swipe-no-likes">T&apos;as rien like! Recommence et ouvre tes horizons.</p>
-                )}
-
-                <div className="lp-swipe-actions">
-                  <Link href="/planifier" className="lp-swipe-cta-main">
-                    Planifier mon voyage
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-                  </Link>
-                  <button className="lp-swipe-cta-reset" onClick={resetSwipe}>
-                    Recommencer
-                  </button>
-                </div>
               </div>
-            )}
+
+              {/* Message area */}
+              <div className="lp-chat-body" ref={chatBodyRef}>
+                {!chatStarted ? (
+                  <div className="lp-chat-start">
+                    <div className="lp-chat-start-avatar">🐦</div>
+                    <h3 className="lp-chat-start-title">Salut! Moi c&apos;est GeaiAI</h3>
+                    <p className="lp-chat-start-desc">
+                      En 5 questions, je trouve ta destination de reve parmi {allDeals.length}+ deals au depart de Montreal.
+                    </p>
+                    <button className="lp-chat-start-btn" onClick={startChat}>
+                      Commencer le quiz
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="lp-chat-messages">
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} className={`lp-chat-msg ${msg.role === 'ai' ? 'lp-chat-msg-ai' : 'lp-chat-msg-user'}`}>
+                        {msg.role === 'ai' && <div className="lp-chat-msg-avatar">🐦</div>}
+                        <div className={`lp-chat-bubble ${msg.role === 'ai' ? 'lp-chat-bubble-ai' : 'lp-chat-bubble-user'}`}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    ))}
+                    {aiTyping && (
+                      <div className="lp-chat-msg lp-chat-msg-ai">
+                        <div className="lp-chat-msg-avatar">🐦</div>
+                        <div className="lp-chat-bubble lp-chat-bubble-ai lp-chat-typing">
+                          <span className="lp-chat-dot" />
+                          <span className="lp-chat-dot" />
+                          <span className="lp-chat-dot" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick replies / Actions */}
+              {chatStarted && (
+                <div className="lp-chat-footer">
+                  {showReplies && chatStep < QUIZ.length && (
+                    <div className="lp-chat-replies">
+                      {QUIZ[chatStep].options.map(opt => (
+                        <button key={opt.value} className="lp-chat-reply-btn" onClick={() => pickAnswer(opt.value, opt.label)}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {chatDone && (
+                    <div className="lp-chat-done-actions">
+                      <Link href="/planifier" className="lp-chat-cta-main">
+                        Planifier mon voyage
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+                      </Link>
+                      <button className="lp-chat-cta-reset" onClick={resetChat}>Recommencer</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
