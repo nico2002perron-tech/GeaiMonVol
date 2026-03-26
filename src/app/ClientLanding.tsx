@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -10,7 +10,6 @@ import { CITY_COUNTRY, COUNTRY_FLAGS, mapPricesToDeals } from '@/lib/types/deals
 import type { DealItem } from '@/lib/types/deals';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import './landing.css';
-import './deals.css';
 
 const EMPTY_DEALS: any[] = [];
 
@@ -21,11 +20,6 @@ interface ClientLandingProps {
 export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const stableInitial = initialDeals && initialDeals.length > 0 ? initialDeals : EMPTY_DEALS;
   const allDeals = useMemo(() => mapPricesToDeals(stableInitial), [stableInitial]);
-
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
 
   const heroStats = useMemo(() => {
@@ -33,17 +27,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
     const avg = discounts.length > 0 ? Math.round(discounts.reduce((a, b) => a + b, 0) / discounts.length) : 30;
     return { count: allDeals.length || 40, avg };
   }, [allDeals]);
-
-  const handleSubscribe = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || submitting) return;
-    setSubmitting(true);
-    try {
-      await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-      setSubscribed(true);
-    } catch { setSubscribed(true); }
-    finally { setSubmitting(false); }
-  }, [email, submitting]);
 
   return (
     <div className="lp lp-dark">
@@ -86,7 +69,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
             </Link>
           </div>
 
-          {/* Stats row */}
           <div className="lp-stats-row">
             <div className="lp-stat-card">
               <span className="lp-stat-num">{heroStats.count}+</span>
@@ -151,7 +133,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
 
         <div className="lp-bento">
-          <div className="lp-glass-card lp-bento-item lp-bento-wide">
+          <div className="lp-glass-card lp-bento-item lp-bento-featured">
             <div className="lp-bento-icon">💬</div>
             <h3 className="lp-bento-title">Parle a ton agent</h3>
             <p className="lp-bento-desc">Dis a GeaiAI ou tu veux aller, ton budget, tes vibes. Il connait tous les deals en direct et te recommande les meilleures options.</p>
@@ -193,7 +175,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
             ))}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 36 }}>
+          <div className="lp-center-link">
             <Link href="/deals" className="lp-cta-ghost">
               Voir les {allDeals.length} deals
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
@@ -221,7 +203,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
                 </div>
               ))}
             </div>
-            <Link href="/auth" className="lp-cta-ghost" style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}>
+            <Link href="/auth" className="lp-cta-ghost lp-price-btn">
               Commencer
             </Link>
           </div>
@@ -229,8 +211,8 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
           <div className="lp-glass-card lp-price-card lp-price-card-pro">
             <div className="lp-price-card-pro-border" />
             <div className="lp-price-popular">Le + populaire</div>
-            <div className="lp-price-name" style={{ color: '#fff' }}>Premium</div>
-            <div className="lp-price-amount" style={{ color: '#0EA5E9' }}>{PREMIUM_PRICE}$<span>/mois CAD</span></div>
+            <div className="lp-price-name lp-price-name-pro">Premium</div>
+            <div className="lp-price-amount lp-price-amount-pro">{PREMIUM_PRICE}$<span>/mois CAD</span></div>
             <div className="lp-price-features">
               {['Itineraires IA illimites', 'Alertes quotidiennes', 'Tous les deals sans limite', 'Calendrier des prix', 'Watchlist illimitee', 'Analyse IA vol + hotel'].map((f, i) => (
                 <div key={i} className="lp-price-feat">
@@ -239,41 +221,27 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
                 </div>
               ))}
             </div>
-            <Link href="/pricing" className="lp-cta-glow" style={{ width: '100%', marginTop: 8 }}>
+            <Link href="/pricing" className="lp-cta-glow lp-price-btn">
               <span className="lp-cta-glow-border" />
-              <span className="lp-cta-glow-inner" style={{ justifyContent: 'center' }}>Passer Premium</span>
+              <span className="lp-cta-glow-inner lp-price-btn-inner">Passer Premium</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ═══ NEWSLETTER (subtle) ═══ */}
-      <section className="lp-section" style={{ paddingBottom: 40 }}>
-        <div className="lp-glass-card" style={{ maxWidth: 540, margin: '0 auto', padding: '32px 28px', textAlign: 'center' }}>
-          <h3 style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 20, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
-            Recois les deals par courriel
-          </h3>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 18, lineHeight: 1.5 }}>
-            Les meilleurs deals de la semaine, directement dans ta boite. Gratuit.
-          </p>
-          {!subscribed ? (
-            <form onSubmit={handleSubscribe} style={{ display: 'flex', gap: 8 }}>
-              <input
-                type="email" required value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ton@courriel.com"
-                className="lp-nl-input"
-              />
-              <button type="submit" disabled={submitting} className="lp-cta-glow lp-cta-glow-sm">
-                <span className="lp-cta-glow-border" />
-                <span className="lp-cta-glow-inner">{submitting ? '...' : "S'abonner"}</span>
-              </button>
-            </form>
-          ) : (
-            <div style={{ padding: '12px 20px', borderRadius: 12, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: '#10B981', fontSize: 14, fontWeight: 600 }}>
-              Tu vas recevoir ton premier courriel bientot!
-            </div>
-          )}
+      {/* ═══ FINAL CTA ═══ */}
+      <section className="lp-section lp-final">
+        <div className="lp-final-card">
+          <div className="lp-final-glow" />
+          <h2 className="lp-final-h2">Pret a trouver ton<br /><span className="lp-gradient-text">prochain vol?</span></h2>
+          <p className="lp-final-p">Parle a GeaiAI. Gratuit, pas de compte requis.</p>
+          <Link href="/agent" className="lp-cta-glow">
+            <span className="lp-cta-glow-border" />
+            <span className="lp-cta-glow-inner">
+              Lancer GeaiAI
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+            </span>
+          </Link>
         </div>
       </section>
 
