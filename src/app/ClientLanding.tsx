@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -13,15 +13,6 @@ import './landing.css';
 
 const EMPTY_DEALS: any[] = [];
 
-/* Gradient orbs — blurred color blobs that react to mouse with parallax */
-const ORBS = [
-  { color: '#FF6B2C', x: 8, y: 12, speed: 20, size: 300, blur: 80, opacity: 0.18 },
-  { color: '#1CB0F6', x: 78, y: 8, speed: 14, size: 360, blur: 90, opacity: 0.14 },
-  { color: '#58CC02', x: 88, y: 52, speed: 22, size: 260, blur: 70, opacity: 0.12 },
-  { color: '#CE82FF', x: 3, y: 58, speed: 12, size: 240, blur: 65, opacity: 0.14 },
-  { color: '#FF4B77', x: 65, y: 72, speed: 18, size: 280, blur: 80, opacity: 0.10 },
-  { color: '#FFC800', x: 42, y: 25, speed: 8, size: 400, blur: 100, opacity: 0.08 },
-];
 
 interface ClientLandingProps {
   initialDeals?: any[];
@@ -32,28 +23,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const allDeals = useMemo(() => mapPricesToDeals(stableInitial), [stableInitial]);
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
 
-  /* Mouse tracking with lerp — physics-like smooth follow */
-  useEffect(() => {
-    let targetX = 0, targetY = 0;
-    let currentX = 0, currentY = 0;
-    let raf: number;
-
-    const onMove = (e: MouseEvent) => {
-      targetX = (e.clientX / window.innerWidth - 0.5) * 2;
-      targetY = (e.clientY / window.innerHeight - 0.5) * 2;
-    };
-    const tick = () => {
-      currentX += (targetX - currentX) * 0.06;
-      currentY += (targetY - currentY) * 0.06;
-      document.documentElement.style.setProperty('--mx', String(currentX));
-      document.documentElement.style.setProperty('--my', String(currentY));
-      raf = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener('mousemove', onMove);
-    raf = requestAnimationFrame(tick);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf); };
-  }, []);
 
   return (
     <div className="lp">
@@ -61,26 +30,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
 
       {/* ═══ HERO ═══ */}
       <section className="lp-hero">
-        {/* Gradient orbs — blurred blobs that follow mouse */}
-        <div className="lp-orbs" aria-hidden="true">
-          {ORBS.map((orb, i) => (
-            <div
-              key={i}
-              className="lp-orb"
-              style={{
-                left: `${orb.x}%`,
-                top: `${orb.y}%`,
-                width: orb.size,
-                height: orb.size,
-                '--speed': orb.speed,
-                background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
-                filter: `blur(${orb.blur}px)`,
-                opacity: orb.opacity,
-              } as React.CSSProperties}
-            />
-          ))}
-        </div>
-
         <div className="lp-hero-inner">
           <div className="lp-badge">
             <span className="lp-badge-dot" />

@@ -423,31 +423,6 @@
 }
 
 
-/* ═══════════════════════════════════════════════
-   GRADIENT ORBS — Mouse-reactive blurred blobs
-   ═══════════════════════════════════════════════ */
-
-.lp-orbs {
-  position: absolute;
-  inset: -200px;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-}
-.lp-orb {
-  position: absolute;
-  border-radius: 50%;
-  transform: translate(
-    calc(var(--mx, 0) * var(--speed, 10) * 1px),
-    calc(var(--my, 0) * var(--speed, 10) * 1px)
-  );
-  will-change: transform;
-  transition: opacity 0.6s;
-}
-.lp-hero:hover .lp-orb {
-  opacity: 1 !important;
-}
-
 
 /* ═══════════════════════════════════════════════
    BADGES
@@ -1141,7 +1116,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-orb,
   .lp-badge, .lp-badge-dot,
   .lp-hero-h1, .lp-hero-p, .lp-hero-ctas {
     animation: none !important;
@@ -1174,8 +1148,6 @@
   .lp-hero-ctas { flex-direction: column; width: 100%; max-width: 320px; }
   .lp-btn-primary, .lp-btn-ghost { width: 100%; }
 
-  /* Reduce orbs on mobile */
-  .lp-orb:nth-child(n+4) { display: none; }
 
   .lp-section { padding: 48px 16px; }
   .lp-section-alt { padding-left: 16px; padding-right: 16px; }
