@@ -99,7 +99,7 @@ export default function LibraryPage() {
           <div className="lb-empty">
             <span className="lb-empty-icon">&#9992;</span>
             <p>Aucun guide encore. Génère ton premier itinéraire !</p>
-            <Link href="/explore" className="lb-cta">Créer un guide</Link>
+            <Link href="/agent" className="lb-cta">Créer un guide</Link>
           </div>
         )}
 

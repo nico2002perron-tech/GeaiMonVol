@@ -86,8 +86,8 @@ function buildEmailHtml(userName: string, deals: DealData[], isPremium: boolean)
 
           <!-- CTA -->
           <div style="padding:20px;text-align:center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://geaimonvol.com'}/explore" style="background:#0F172A;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;">
-              Voir les deals sur la carte
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://geaimonvol.com'}/deals" style="background:#0F172A;color:#fff;padding:14px 32px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;display:inline-block;">
+              Voir tous les deals
             </a>
           </div>
         </div>

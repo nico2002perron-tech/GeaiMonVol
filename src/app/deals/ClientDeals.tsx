@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import LandingHeader from '@/components/LandingHeader';
 import DealsFilterBar from '@/components/deals/DealsFilterBar';
 import DealsGrid from '@/components/deals/DealsGrid';
-import DestinationPopup from '@/components/map/DestinationPopup';
+
 import FooterWithNewsletter from '@/components/layout/FooterWithNewsletter';
 import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CITY_COUNTRY, mapPricesToDeals } from '@/lib/types/deals';
@@ -26,8 +26,6 @@ export default function ClientDeals({ initialDeals }: { initialDeals?: any[] }) 
   const [shareToast, setShareToast] = useState('');
   const [alertsEnabled, setAlertsEnabled] = useState(false);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [popupOpen, setPopupOpen] = useState(false);
-  const [popupDeal, setPopupDeal] = useState<DealItem | null>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,10 +84,7 @@ export default function ClientDeals({ initialDeals }: { initialDeals?: any[] }) 
     }
   }, []);
 
-  const openDealPopup = useCallback((deal: DealItem) => {
-    setPopupDeal(deal);
-    setPopupOpen(true);
-  }, []);
+  const openDealPopup = useCallback((_deal: DealItem) => {}, []);
 
   const ssrDeals = useMemo(() => mapPricesToDeals(stableInitial), [stableInitial]);
   const { prices: livePrices, isLive, lastUpdated } = useLivePrices();
@@ -208,13 +203,6 @@ export default function ClientDeals({ initialDeals }: { initialDeals?: any[] }) 
         </div>
       )}
 
-      <DestinationPopup
-        isOpen={popupOpen} onClose={() => setPopupOpen(false)}
-        destination={popupDeal?.city || ''} destinationCode={popupDeal?.code || ''}
-        bestPrice={popupDeal?.price} discount={popupDeal?.discount}
-        dealLevel={popupDeal?.dealLevel} medianPrice={popupDeal?.medianPrice}
-        avgPrice={popupDeal?.avgPrice} historyCount={popupDeal?.historyCount}
-      />
     </div>
   );
 }

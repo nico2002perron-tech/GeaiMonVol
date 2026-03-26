@@ -27,8 +27,8 @@ export default function Navbar({ dark }: NavbarProps) {
 
             {/* Desktop menu */}
             <ul className="nav-menu">
-                <li><Link href="/#deals">Deals</Link></li>
-                <li><Link href="/explore">Explorer</Link></li>
+                <li><Link href="/agent">GeaiAI</Link></li>
+                <li><Link href="/deals">Deals</Link></li>
                 <li><Link href="/pricing">Tarifs</Link></li>
                 {user && <li style={{ display: 'flex', alignItems: 'center' }}><NotificationBell /></li>}
                 {user ? (
@@ -52,8 +52,8 @@ export default function Navbar({ dark }: NavbarProps) {
             {/* Mobile menu */}
             {menuOpen && (
                 <div className="nav-mobile-menu">
-                    <Link href="/#deals" onClick={() => setMenuOpen(false)}>Deals</Link>
-                    <Link href="/explore" onClick={() => setMenuOpen(false)}>Explorer</Link>
+                    <Link href="/agent" onClick={() => setMenuOpen(false)}>GeaiAI</Link>
+                    <Link href="/deals" onClick={() => setMenuOpen(false)}>Deals</Link>
                     <Link href="/pricing" onClick={() => setMenuOpen(false)}>Tarifs</Link>
                     {user && <Link href="/inbox" onClick={() => setMenuOpen(false)}>Notifications</Link>}
                     {user ? (

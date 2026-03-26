@@ -69,17 +69,14 @@ export default function LandingHeader() {
                     </div>
                   </div>
                   <div className="lp-h-drop-sep" />
+                  <Link href="/agent" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
+                    GeaiAI
+                  </Link>
                   <Link href="/deals" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
                     Deals en direct
                   </Link>
-                  <Link href="/planifier" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Planifier un voyage
-                  </Link>
                   <Link href="/library" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
                     Mes guides
-                  </Link>
-                  <Link href="/pricing" className="lp-h-drop-link" onClick={() => setMenuOpen(false)}>
-                    Tarifs
                   </Link>
                   <div className="lp-h-drop-sep" />
                   <button className="lp-h-drop-link lp-h-drop-logout" onClick={handleSignOut}>Se deconnecter</button>

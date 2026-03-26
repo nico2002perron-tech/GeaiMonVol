@@ -85,13 +85,13 @@ export default function DealsGrid({
         <div style={{ fontSize: 15, color: '#64748B', maxWidth: 420, margin: '0 auto 24px' }}>
           Les prix sont scannes quotidiennement sur Skyscanner. Les deals apparaitront ici automatiquement.
         </div>
-        <Link href="/explore" style={{
+        <Link href="/agent" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '12px 28px', borderRadius: 14,
-          background: 'linear-gradient(135deg, #0EA5E9, #06B6D4)',
+          background: 'linear-gradient(135deg, #F97316, #EC4899)',
           color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none',
         }}>
-          Explorer le globe en attendant
+          Parler avec GeaiAI
         </Link>
       </div>
     );
@@ -156,9 +156,9 @@ export default function DealsGrid({
         </div>
       )}
 
-      {/* Globe CTA */}
+      {/* Agent CTA */}
       <div style={{ textAlign: 'center', marginTop: 48 }}>
-        <Link href="/explore" style={{
+        <Link href="/agent" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '14px 32px', borderRadius: 100,
           border: '2px solid #E2E8F0',
@@ -167,7 +167,7 @@ export default function DealsGrid({
           fontFamily: "'Outfit', sans-serif",
           textDecoration: 'none',
         }}>
-          Explorer sur le globe 3D
+          Demander a GeaiAI
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14m-6-6l6 6-6 6" />
           </svg>

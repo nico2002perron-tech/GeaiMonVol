@@ -216,7 +216,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
             <div className="lp-price-features">
               {['Itineraires IA illimites', 'Alertes quotidiennes', 'Tous les deals sans limite', 'Calendrier des prix', 'Watchlist illimitee', 'Analyse IA vol + hotel'].map((f, i) => (
                 <div key={i} className="lp-price-feat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   {f}
                 </div>
               ))}

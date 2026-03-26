@@ -11,9 +11,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1.0,
         },
         {
-            url: `${SITE_URL}/explore`,
+            url: `${SITE_URL}/agent`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
+            priority: 0.9,
+        },
+        {
+            url: `${SITE_URL}/deals`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
             priority: 0.8,
         },
         {

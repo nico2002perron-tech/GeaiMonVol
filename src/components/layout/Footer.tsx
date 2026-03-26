@@ -18,8 +18,8 @@ export default function Footer() {
                     </div>
                     <div className="lp-footer-col">
                         <div className="lp-footer-col-title">Produit</div>
-                        <Link href="/#deals">Deals en direct</Link>
-                        <Link href="/explore">Explorer la carte</Link>
+                        <Link href="/agent">GeaiAI</Link>
+                        <Link href="/deals">Deals en direct</Link>
                         <Link href="/pricing">Tarifs</Link>
                     </div>
                     <div className="lp-footer-col">
