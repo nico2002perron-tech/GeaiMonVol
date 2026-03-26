@@ -13,15 +13,14 @@ import './landing.css';
 
 const EMPTY_DEALS: any[] = [];
 
-/* Floating emojis — positioned around the hero, react to mouse */
-const FLOATERS = [
-  { emoji: '\u2708\uFE0F', x: 8, y: 18, speed: 25, size: 44, delay: 0 },
-  { emoji: '\uD83C\uDFD6\uFE0F', x: 86, y: 10, speed: 18, size: 40, delay: 0.5 },
-  { emoji: '\uD83C\uDF34', x: 91, y: 50, speed: 22, size: 46, delay: 1.0 },
-  { emoji: '\uD83D\uDDFA\uFE0F', x: 5, y: 62, speed: 16, size: 34, delay: 1.5 },
-  { emoji: '\uD83C\uDF1E', x: 80, y: 74, speed: 28, size: 32, delay: 2.0 },
-  { emoji: '\uD83C\uDF0A', x: 14, y: 80, speed: 20, size: 36, delay: 2.5 },
-  { emoji: '\uD83D\uDC26', x: 74, y: 32, speed: 10, size: 72, delay: 0.3 },
+/* Gradient orbs — blurred color blobs that react to mouse with parallax */
+const ORBS = [
+  { color: '#FF6B2C', x: 8, y: 12, speed: 20, size: 300, blur: 80, opacity: 0.18 },
+  { color: '#1CB0F6', x: 78, y: 8, speed: 14, size: 360, blur: 90, opacity: 0.14 },
+  { color: '#58CC02', x: 88, y: 52, speed: 22, size: 260, blur: 70, opacity: 0.12 },
+  { color: '#CE82FF', x: 3, y: 58, speed: 12, size: 240, blur: 65, opacity: 0.14 },
+  { color: '#FF4B77', x: 65, y: 72, speed: 18, size: 280, blur: 80, opacity: 0.10 },
+  { color: '#FFC800', x: 42, y: 25, speed: 8, size: 400, blur: 100, opacity: 0.08 },
 ];
 
 interface ClientLandingProps {
@@ -62,18 +61,23 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
 
       {/* ═══ HERO ═══ */}
       <section className="lp-hero">
-        {/* Floating emojis */}
-        <div className="lp-floaters" aria-hidden="true">
-          {FLOATERS.map((f, i) => (
+        {/* Gradient orbs — blurred blobs that follow mouse */}
+        <div className="lp-orbs" aria-hidden="true">
+          {ORBS.map((orb, i) => (
             <div
               key={i}
-              className="lp-floater"
-              style={{ left: `${f.x}%`, top: `${f.y}%`, '--speed': f.speed } as React.CSSProperties}
-            >
-              <span className="lp-floater-emoji" style={{ fontSize: f.size, animationDelay: `${f.delay}s` }}>
-                {f.emoji}
-              </span>
-            </div>
+              className="lp-orb"
+              style={{
+                left: `${orb.x}%`,
+                top: `${orb.y}%`,
+                width: orb.size,
+                height: orb.size,
+                '--speed': orb.speed,
+                background: `radial-gradient(circle, ${orb.color} 0%, transparent 70%)`,
+                filter: `blur(${orb.blur}px)`,
+                opacity: orb.opacity,
+              } as React.CSSProperties}
+            />
           ))}
         </div>
 

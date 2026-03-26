@@ -424,38 +424,28 @@
 
 
 /* ═══════════════════════════════════════════════
-   FLOATING EMOJIS — Mouse-reactive parallax
+   GRADIENT ORBS — Mouse-reactive blurred blobs
    ═══════════════════════════════════════════════ */
 
-.lp-floaters {
+.lp-orbs {
   position: absolute;
-  inset: 0;
+  inset: -200px;
   z-index: 1;
   pointer-events: none;
   overflow: hidden;
 }
-.lp-floater {
+.lp-orb {
   position: absolute;
+  border-radius: 50%;
   transform: translate(
     calc(var(--mx, 0) * var(--speed, 10) * 1px),
     calc(var(--my, 0) * var(--speed, 10) * 1px)
   );
   will-change: transform;
+  transition: opacity 0.6s;
 }
-.lp-floater-emoji {
-  display: block;
-  animation: floatBob 4s ease-in-out infinite;
-  opacity: 0.6;
-  filter: saturate(0.85);
-  transition: opacity 0.3s, filter 0.3s;
-}
-.lp-hero:hover .lp-floater-emoji {
-  opacity: 0.85;
-  filter: saturate(1);
-}
-@keyframes floatBob {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-14px) rotate(3deg); }
+.lp-hero:hover .lp-orb {
+  opacity: 1 !important;
 }
 
 
@@ -1151,7 +1141,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lp-floater, .lp-floater-emoji,
+  .lp-orb,
   .lp-badge, .lp-badge-dot,
   .lp-hero-h1, .lp-hero-p, .lp-hero-ctas {
     animation: none !important;
@@ -1184,9 +1174,8 @@
   .lp-hero-ctas { flex-direction: column; width: 100%; max-width: 320px; }
   .lp-btn-primary, .lp-btn-ghost { width: 100%; }
 
-  /* Reduce floaters on mobile */
-  .lp-floater:nth-child(n+5) { display: none; }
-  .lp-floater-emoji { opacity: 0.35; }
+  /* Reduce orbs on mobile */
+  .lp-orb:nth-child(n+4) { display: none; }
 
   .lp-section { padding: 48px 16px; }
   .lp-section-alt { padding-left: 16px; padding-right: 16px; }
