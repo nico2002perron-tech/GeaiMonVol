@@ -16,6 +16,7 @@ import { useLivePrices } from '@/lib/hooks/useLivePrices';
 import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CODES, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
+import { computeVerdict, VERDICT_STYLES } from '@/lib/services/verdicts';
 import './landing.css';
 
 // ── City → Country mapping ──
@@ -977,9 +978,176 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
       })()}
 
       {/* ══════════════════════════════════════════════════════
-          ─── DEALS — LA SECTION PRINCIPALE ───
+          ─── TOP 5 DEALS DU JOUR ───
           ══════════════════════════════════════════════════════ */}
-      <section className="lp-deals" id="deals" style={{ background: '#F8FAFC', padding: '80px 24px 96px' }}>
+      {dealsWithImages.length > 0 && (() => {
+        const top5 = dealsWithImages
+          .filter(d => d.discount >= 10)
+          .sort((a, b) => {
+            const order: Record<string, number> = { lowest_ever: 0, incredible: 1, great: 2, good: 3, slight: 4, normal: 5 };
+            const d = (order[a.dealLevel] ?? 5) - (order[b.dealLevel] ?? 5);
+            return d !== 0 ? d : b.discount - a.discount;
+          })
+          .slice(0, 5);
+        if (top5.length === 0) return null;
+
+        return (
+          <section id="deals" style={{ background: '#F8FAFC', padding: '60px 24px 20px' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '6px 16px', borderRadius: 100,
+                  background: 'rgba(124,58,237,0.08)',
+                  marginBottom: 12,
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: 13, fontWeight: 700, color: '#6D28D9',
+                }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: '#7C3AED',
+                    animation: 'dealPulse 2s ease-in-out infinite',
+                    boxShadow: '0 0 8px rgba(124,58,237,0.5)',
+                  }} />
+                  Analyse IA en direct
+                </div>
+                <h2 style={{
+                  fontFamily: "'Fredoka', sans-serif",
+                  fontSize: 'clamp(24px, 4vw, 36px)',
+                  fontWeight: 700, color: '#0F172A',
+                  margin: '0 0 6px', lineHeight: 1.15,
+                }}>
+                  Top deals du jour
+                </h2>
+                <p style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: 14, color: '#64748B', margin: 0,
+                }}>
+                  Notre IA analyse chaque deal et te dit quoi faire
+                </p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 14,
+              }}>
+                {top5.map((deal, idx) => {
+                  const v = computeVerdict(deal.dealLevel, deal.discount, deal.price, deal.avgPrice, deal.medianPrice, deal.historyCount);
+                  const vs = VERDICT_STYLES[v.verdict];
+                  const country = CITY_COUNTRY[deal.city] || '';
+                  const flag = COUNTRY_FLAGS[country] || '';
+
+                  return (
+                    <div
+                      key={deal.code}
+                      onClick={() => openDealPopup(deal)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDealPopup(deal); } }}
+                      style={{
+                        background: '#fff', borderRadius: 18, overflow: 'hidden',
+                        border: `2px solid ${vs.color}30`,
+                        cursor: 'pointer', transition: 'all 0.3s',
+                        animation: `dealFadeIn 0.5s ease-out ${idx * 0.08}s both`,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-6px)';
+                        e.currentTarget.style.boxShadow = `0 12px 32px ${vs.color}20`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'none';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {/* Image */}
+                      <div style={{ position: 'relative', height: 110, overflow: 'hidden' }}>
+                        <img src={deal.image} alt={deal.city} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)',
+                        }} />
+                        {/* Verdict badge */}
+                        <div style={{
+                          position: 'absolute', top: 8, right: 8,
+                          padding: '4px 10px', borderRadius: 8,
+                          background: vs.gradient, color: '#fff',
+                          fontSize: 10, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                          letterSpacing: 0.5,
+                          boxShadow: `0 2px 8px ${vs.color}40`,
+                        }}>
+                          {vs.emoji} {vs.label}
+                        </div>
+                        {/* Discount */}
+                        {deal.discount > 0 && (
+                          <div style={{
+                            position: 'absolute', top: 8, left: 8,
+                            padding: '3px 8px', borderRadius: 6,
+                            background: 'rgba(0,0,0,0.6)', color: '#fff',
+                            fontSize: 11, fontWeight: 800, fontFamily: "'Fredoka', sans-serif",
+                          }}>
+                            -{deal.discount}%
+                          </div>
+                        )}
+                        {/* City on image */}
+                        <div style={{
+                          position: 'absolute', bottom: 8, left: 10,
+                          color: '#fff', fontFamily: "'Fredoka', sans-serif",
+                        }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}>
+                            {flag} {deal.city}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ padding: '12px 14px 14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', fontFamily: "'Fredoka', sans-serif" }}>
+                            {Math.round(deal.price)}$
+                          </span>
+                          {deal.oldPrice > deal.price && (
+                            <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through', fontFamily: "'Outfit', sans-serif" }}>
+                              {Math.round(deal.oldPrice)}$
+                            </span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontSize: 11, color: vs.color, fontWeight: 600,
+                          fontFamily: "'Outfit', sans-serif", lineHeight: 1.3,
+                        }}>
+                          {v.oneLiner}
+                        </div>
+                        <div style={{
+                          marginTop: 8, display: 'flex', alignItems: 'center', gap: 6,
+                        }}>
+                          <div style={{
+                            flex: 1, height: 4, borderRadius: 2, background: '#F1F5F9',
+                            overflow: 'hidden',
+                          }}>
+                            <div style={{
+                              width: `${v.confidence}%`, height: '100%', borderRadius: 2,
+                              background: vs.gradient,
+                            }} />
+                          </div>
+                          <span style={{ fontSize: 10, color: '#94A3B8', fontWeight: 600, fontFamily: "'Outfit', sans-serif" }}>
+                            {v.confidence}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ══════════════════════════════════════════════════════
+          ─── DEALS — TOUS LES DEALS ───
+          ══════════════════════════════════════════════════════ */}
+      <section className="lp-deals" style={{ background: '#F8FAFC', padding: '40px 24px 96px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
           {/* ── Header ── */}
