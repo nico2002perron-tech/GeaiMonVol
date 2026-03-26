@@ -1,104 +1,18 @@
 'use client';
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
 import FooterWithNewsletter from '@/components/layout/FooterWithNewsletter';
 import { DEAL_LEVELS } from '@/lib/constants/deals';
-import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import { CITY_COUNTRY, COUNTRY_FLAGS, mapPricesToDeals } from '@/lib/types/deals';
 import type { DealItem } from '@/lib/types/deals';
+import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import './landing.css';
 import './deals.css';
 
 const EMPTY_DEALS: any[] = [];
-
-interface QuizStep {
-  intro?: string;
-  q: string;
-  options: { label: string; value: string }[];
-  reactions: Record<string, string>;
-}
-
-const QUIZ: QuizStep[] = [
-  {
-    intro: "Salut! Moi c'est GeaiAI, ton buddy de voyage. En 5 petites questions, j'te trouve LA destination de tes reves. Let's go!",
-    q: "C'est quoi ton mood vacances en ce moment?",
-    options: [
-      { label: '🏖️ Plage & chill', value: 'plage' },
-      { label: '🏛️ Ville & culture', value: 'ville' },
-      { label: '🧗 Aventure & nature', value: 'aventure' },
-      { label: '🎲 Surprise-moi!', value: 'surprise' },
-    ],
-    reactions: {
-      plage: "Ohhh les orteils dans le sable, un drink a la main! J'te comprends tellement!",
-      ville: "Un(e) urbain(e)! Genre tu marches 25km par jour en vacances et tu trouves ca relax",
-      aventure: "YESSS! T'es du genre a sauter en parachute avant le dejeuner!",
-      surprise: "Oooh tu me fais confiance les yeux fermes? Bold move, j'aime ca",
-    },
-  },
-  {
-    q: "Le matin en vacances, tu fais quoi?",
-    options: [
-      { label: '😴 J\'dors jusqu\'a midi', value: 'dodo' },
-      { label: '☀️ Sunrise + cafe', value: 'sunrise' },
-      { label: '🏃 Run + explore', value: 'actif' },
-      { label: '🎉 J\'me couche a 6h du mat', value: 'party' },
-    ],
-    reactions: {
-      dodo: "Le roi/la reine du hamac! Zero jugement, des fois faut juste decrocher",
-      sunrise: "Aww cute! Y'a rien de mieux qu'un cafe avec un view de malade au lever du soleil",
-      actif: "T'es une MACHINE! Genre tu planifies 47 activites par jour et tu les fais TOUTES",
-      party: "HAHAHA le genre qui decouvre la ville de nuit! Les meilleurs souvenirs se font apres minuit, c'est connu",
-    },
-  },
-  {
-    q: "On parle bouffe. T'es comment?",
-    options: [
-      { label: '🌮 Street food a 3$', value: 'street' },
-      { label: '🍽️ Bon resto de temps en temps', value: 'modere' },
-      { label: '👨‍🍳 Full gastronomie', value: 'gastro' },
-      { label: '🏨 All-inclusive, open bar', value: 'allinc' },
-    ],
-    reactions: {
-      street: "LES VRAIS SAVENT! Les meilleurs repas de ma vie c'etait dans des stands de rue a 3$",
-      modere: "Smart! Le pad thai a 2$ le midi, le resto fancy le soir. Equilibre parfait",
-      gastro: "Un(e) gourmet! Genre tu reserves au resto avant de reserver ton vol??",
-      allinc: "Le bracelet au poignet pis tu stress pu! Y'a zero honte la-dedans",
-    },
-  },
-  {
-    q: "Tu voyages avec qui?",
-    options: [
-      { label: '🎒 Solo, just me', value: 'solo' },
-      { label: '💑 En couple', value: 'couple' },
-      { label: '🎉 Gang d\'amis', value: 'amis' },
-      { label: '👨‍👩‍👧‍👦 Famille', value: 'famille' },
-    ],
-    reactions: {
-      solo: "Main character energy! Voyager solo c'est la meilleure facon de se connaitre (et de faire ce qu'on veut)",
-      couple: "Awww! Rien de mieux que decouvrir le monde a deux. Y'a-tu un anniversaire a feter?",
-      amis: "ROAD TRIP ENERGY! Ca va etre chaotique, ca va etre drole, pis quelqu'un va se perdre garanti",
-      famille: "Les meilleurs souvenirs! Faut juste trouver un spot qui plait a tout le monde (le vrai defi)",
-    },
-  },
-  {
-    q: "Derniere question (la plus importante): t'arrives a l'aeroport...",
-    options: [
-      { label: '⏰ 4h d\'avance, lounge VIP', value: 'early' },
-      { label: '😎 Pile a l\'heure', value: 'ontime' },
-      { label: '🏃 En courant, gate ferme', value: 'late' },
-      { label: '🛒 Pas encore fait ma valise', value: 'chaos' },
-    ],
-    reactions: {
-      early: "Hahaha le genre organise! Tu dois avoir un spreadsheet Excel pour tes vacances, avoue",
-      ontime: "Efficace! Pas de temps perdu, juste... du stress modere. Respire",
-      late: "AH NON! Genre tu cours en flip-flops dans le terminal avec ton passeport entre les dents??",
-      chaos: "HAHAHA t'es mon genre de personne! \"On verra rendu la\" c'est ta philosophie de vie!",
-    },
-  },
-];
 
 interface ClientLandingProps {
   initialDeals?: any[];
@@ -111,135 +25,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // ── GeaiAI Chat state ──
-  type ChatMsg = { role: 'ai' | 'user'; text: string };
-  const [chatStarted, setChatStarted] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
-  const [chatStep, setChatStep] = useState(0);
-  const [aiTyping, setAiTyping] = useState(false);
-  const [showReplies, setShowReplies] = useState(false);
-  const [chatDone, setChatDone] = useState(false);
-  const answersRef = useRef<{ q: string; a: string }[]>([]);
-  const chatBodyRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    if (chatBodyRef.current) {
-      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-    }
-  }, [chatMessages, aiTyping]);
-
-  const startChat = useCallback(() => {
-    setChatStarted(true);
-    setAiTyping(true);
-    setTimeout(() => {
-      setAiTyping(false);
-      setChatMessages([{ role: 'ai', text: QUIZ[0].intro! }]);
-    }, 900);
-    setTimeout(() => setAiTyping(true), 1200);
-    setTimeout(() => {
-      setAiTyping(false);
-      setChatMessages(prev => [...prev, { role: 'ai', text: QUIZ[0].q }]);
-    }, 1900);
-    setTimeout(() => setShowReplies(true), 2100);
-  }, []);
-
-  const pickAnswer = useCallback((value: string, label: string) => {
-    const step = chatStep;
-    const currentQ = QUIZ[step];
-
-    // User message instantly
-    setChatMessages(prev => [...prev, { role: 'user', text: label }]);
-    answersRef.current = [...answersRef.current, { q: currentQ.q, a: label }];
-    setShowReplies(false);
-
-    // AI reaction with typing delay
-    setTimeout(() => setAiTyping(true), 250);
-    setTimeout(() => {
-      setAiTyping(false);
-      setChatMessages(prev => [...prev, { role: 'ai', text: currentQ.reactions[value] || "Nice!" }]);
-    }, 1000);
-
-    if (step < QUIZ.length - 1) {
-      // Next question
-      setTimeout(() => setAiTyping(true), 1400);
-      setTimeout(() => {
-        const next = step + 1;
-        setChatStep(next);
-        setAiTyping(false);
-        setChatMessages(prev => [...prev, { role: 'ai', text: QUIZ[next].q }]);
-      }, 2100);
-      setTimeout(() => setShowReplies(true), 2300);
-    } else {
-      // Final — AI personality reveal
-      setTimeout(() => setAiTyping(true), 1400);
-      setTimeout(() => {
-        setAiTyping(false);
-        setChatMessages(prev => [...prev, { role: 'ai', text: "Hmm attends 2 sec, j'analyse ton profil voyageur..." }]);
-      }, 2200);
-      setTimeout(() => {
-        setAiTyping(true);
-        fetchReveal();
-      }, 3000);
-    }
-  }, [chatStep]);
-
-  const fetchReveal = useCallback(async () => {
-    try {
-      const res = await fetch('/api/geai-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          answers: answersRef.current,
-          deals: allDeals.slice(0, 20).map(d => ({
-            city: d.city, country: d.country, price: Math.round(d.price),
-            discount: d.discount, dealLevel: d.dealLevel,
-          })),
-        }),
-      });
-
-      setAiTyping(false);
-
-      if (!res.ok || !res.body) throw new Error();
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = '';
-
-      setChatMessages(prev => [...prev, { role: 'ai', text: '' }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-        const current = text;
-        setChatMessages(prev => {
-          const msgs = [...prev];
-          msgs[msgs.length - 1] = { role: 'ai', text: current };
-          return msgs;
-        });
-      }
-      setChatDone(true);
-    } catch {
-      setAiTyping(false);
-      setChatMessages(prev => [...prev, {
-        role: 'ai',
-        text: "Oups j'ai eu un petit bug! Mais clique sur 'Planifier mon voyage' et je vais te preparer quelque chose de malade!",
-      }]);
-      setChatDone(true);
-    }
-  }, [allDeals]);
-
-  const resetChat = useCallback(() => {
-    setChatStarted(false);
-    setChatMessages([]);
-    setChatStep(0);
-    setAiTyping(false);
-    setShowReplies(false);
-    setChatDone(false);
-    answersRef.current = [];
-  }, []);
 
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
 
@@ -271,7 +56,7 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
     <div className="lp">
       <LandingHeader />
 
-      {/* ═══ HERO — EMAIL SIGNUP ═══ */}
+      {/* ═══ HERO ═══ */}
       <section className="lp-hero" style={{ minHeight: '85vh', display: 'flex', alignItems: 'center' }}>
         <div className="lp-ocean">
           <div className="lp-ocean-gradient" />
@@ -292,7 +77,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
               Chaque semaine, on scanne les prix et on t&apos;envoie les deals les plus fous au depart de Montreal. <strong>Gratuit.</strong>
             </p>
 
-            {/* ── Email signup form ── */}
             {!subscribed ? (
               <form onSubmit={handleSubscribe} style={{
                 display: 'flex', gap: 8, maxWidth: 460, margin: '0 auto 16px',
@@ -344,7 +128,6 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
               Pas de spam. Desabonnement en 1 clic.
             </p>
 
-            {/* Stats */}
             <div className="lp-hero-proof" style={{ justifyContent: 'center' }}>
               <div className="lp-hero-proof-item">
                 <span className="lp-hero-proof-icon">📡</span>
@@ -459,104 +242,93 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
       </section>
 
-      {/* ═══ GEAIAI CHAT — Interactive AI travel buddy ═══ */}
-      {allDeals.length > 0 && (
-        <section className="lp-chat-section">
-          <div className="lp-chat-glow" />
-          <div className="lp-chat-outer">
-            <div className="lp-chat-label-row">
-              <span className="lp-chat-badge">✨ Mini-jeu IA</span>
-              <h2 className="lp-chat-heading">
-                Parle avec GeaiAI.{' '}
-                <span>Trouve ta destination.</span>
-              </h2>
-              <p className="lp-chat-subheading">
-                Notre IA te pose 5 questions et te genere un profil voyageur personnalise avec des recommandations.
-              </p>
-            </div>
-
-            {/* Phone-style chat container */}
-            <div className="lp-chat-phone">
-              {/* Header bar */}
-              <div className="lp-chat-header">
-                <div className="lp-chat-header-avatar">🐦</div>
+      {/* ═══ AI PLANNER SHOWCASE ═══ */}
+      <section className="lp-ai-section">
+        <div className="lp-ai-inner">
+          <div className="lp-ai-text">
+            <span className="lp-section-label">Planificateur IA</span>
+            <h2 className="lp-ai-title">
+              Ton itineraire complet.{' '}
+              <span>En 30 secondes.</span>
+            </h2>
+            <p className="lp-ai-desc">
+              Choisis ta destination, dis-nous tes vibes, et notre IA te genere un guide sur mesure : activites, restos, budget et horaire jour par jour.
+            </p>
+            <div className="lp-ai-features">
+              <div className="lp-ai-feat">
+                <span>🎯</span>
                 <div>
-                  <div className="lp-chat-header-name">GeaiAI</div>
-                  <div className="lp-chat-header-status">
-                    <span className="lp-chat-online-dot" />
-                    En ligne
+                  <strong>Personnalise</strong>
+                  <span>Adapte a ton style, ton budget et tes dates</span>
+                </div>
+              </div>
+              <div className="lp-ai-feat">
+                <span>⚡</span>
+                <div>
+                  <strong>Instantane</strong>
+                  <span>Guide complet genere en moins de 30 secondes</span>
+                </div>
+              </div>
+              <div className="lp-ai-feat">
+                <span>🌍</span>
+                <div>
+                  <strong>Monde entier</strong>
+                  <span>{heroStats.count}+ destinations couvertes</span>
+                </div>
+              </div>
+            </div>
+            <Link href="/planifier" className="lp-btn-ocean" style={{ marginTop: 8 }}>
+              <span className="lp-btn-ocean-glow" />
+              Essayer le planificateur
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+            </Link>
+          </div>
+
+          {/* Static mockup of the planner */}
+          <div className="lp-ai-mockup">
+            <div className="lp-ai-phone">
+              <div className="lp-ai-phone-bar">
+                <div className="lp-ai-phone-dot" />
+                <span>GeaiMonVol — Guide IA</span>
+              </div>
+              <div className="lp-ai-phone-body">
+                <div className="lp-ai-mock-dest">
+                  <span className="lp-ai-mock-flag">🇪🇸</span>
+                  <div>
+                    <strong>Barcelone</strong>
+                    <span>5 jours · Couple · Gastronomie</span>
+                  </div>
+                  <span className="lp-ai-mock-price">489$</span>
+                </div>
+                <div className="lp-ai-mock-day">
+                  <div className="lp-ai-mock-day-num">Jour 1</div>
+                  <div className="lp-ai-mock-item">
+                    <span>🏛️</span> Sagrada Familia + Park Guell
+                  </div>
+                  <div className="lp-ai-mock-item">
+                    <span>🍽️</span> Tapas au Mercat de la Boqueria
+                  </div>
+                  <div className="lp-ai-mock-item">
+                    <span>🌅</span> Sunset au Bunkers del Carmel
                   </div>
                 </div>
-                {chatStep > 0 && !chatDone && (
-                  <div className="lp-chat-step-indicator">{chatStep}/{QUIZ.length}</div>
-                )}
-              </div>
-
-              {/* Message area */}
-              <div className="lp-chat-body" ref={chatBodyRef}>
-                {!chatStarted ? (
-                  <div className="lp-chat-start">
-                    <div className="lp-chat-start-avatar">🐦</div>
-                    <h3 className="lp-chat-start-title">Salut! Moi c&apos;est GeaiAI</h3>
-                    <p className="lp-chat-start-desc">
-                      En 5 questions, je trouve ta destination de reve parmi {allDeals.length}+ deals au depart de Montreal.
-                    </p>
-                    <button className="lp-chat-start-btn" onClick={startChat}>
-                      Commencer le quiz
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-                    </button>
+                <div className="lp-ai-mock-day">
+                  <div className="lp-ai-mock-day-num">Jour 2</div>
+                  <div className="lp-ai-mock-item">
+                    <span>🏖️</span> Matinee a la Barceloneta
                   </div>
-                ) : (
-                  <div className="lp-chat-messages">
-                    {chatMessages.map((msg, i) => (
-                      <div key={i} className={`lp-chat-msg ${msg.role === 'ai' ? 'lp-chat-msg-ai' : 'lp-chat-msg-user'}`}>
-                        {msg.role === 'ai' && <div className="lp-chat-msg-avatar">🐦</div>}
-                        <div className={`lp-chat-bubble ${msg.role === 'ai' ? 'lp-chat-bubble-ai' : 'lp-chat-bubble-user'}`}>
-                          {msg.text}
-                        </div>
-                      </div>
-                    ))}
-                    {aiTyping && (
-                      <div className="lp-chat-msg lp-chat-msg-ai">
-                        <div className="lp-chat-msg-avatar">🐦</div>
-                        <div className="lp-chat-bubble lp-chat-bubble-ai lp-chat-typing">
-                          <span className="lp-chat-dot" />
-                          <span className="lp-chat-dot" />
-                          <span className="lp-chat-dot" />
-                        </div>
-                      </div>
-                    )}
+                  <div className="lp-ai-mock-item">
+                    <span>🎨</span> Musee Picasso + El Born
                   </div>
-                )}
-              </div>
-
-              {/* Quick replies / Actions */}
-              {chatStarted && (
-                <div className="lp-chat-footer">
-                  {showReplies && chatStep < QUIZ.length && (
-                    <div className="lp-chat-replies">
-                      {QUIZ[chatStep].options.map(opt => (
-                        <button key={opt.value} className="lp-chat-reply-btn" onClick={() => pickAnswer(opt.value, opt.label)}>
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {chatDone && (
-                    <div className="lp-chat-done-actions">
-                      <Link href="/planifier" className="lp-chat-cta-main">
-                        Planifier mon voyage
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-                      </Link>
-                      <button className="lp-chat-cta-reset" onClick={resetChat}>Recommencer</button>
-                    </div>
-                  )}
+                  <div className="lp-ai-mock-item lp-ai-mock-fade">
+                    <span>🍷</span> Soiree au quartier Gracia...
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* ═══ PRICING ═══ */}
       <section style={{ background: '#F8FAFC', padding: '96px 24px' }}>
@@ -664,7 +436,6 @@ function DealPreviewCard({ deal }: { deal: DealItem }) {
       border: topColor ? `2px solid ${topColor}30` : '1px solid #E2E8F0',
       transition: 'all 0.25s',
     }}>
-      {/* Image */}
       <div style={{ position: 'relative', height: 140, overflow: 'hidden' }}>
         <Image src={deal.image} alt={deal.city} fill sizes="(max-width: 640px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
@@ -693,7 +464,6 @@ function DealPreviewCard({ deal }: { deal: DealItem }) {
         </div>
       </div>
 
-      {/* Body */}
       <div style={{ padding: '14px 16px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <span style={{ fontSize: 12, color: '#94A3B8', fontFamily: "'Outfit', sans-serif" }}>
