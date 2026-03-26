@@ -40,8 +40,8 @@ export default function LandingHeader() {
 
         <nav className="lp-nav">
           <div className="lp-nav-pill">
+            <Link href="/agent" className="lp-nav-link">GeaiAI</Link>
             <Link href="/deals" className="lp-nav-link">Deals</Link>
-            <Link href="/planifier" className="lp-nav-link">Planifier</Link>
             <Link href="/pricing" className="lp-nav-link">Tarifs</Link>
           </div>
         </nav>
@@ -95,8 +95,8 @@ export default function LandingHeader() {
 
       {mobileMenuOpen && (
         <div className="lp-mob">
+          <Link href="/agent" onClick={() => setMobileMenuOpen(false)}>GeaiAI</Link>
           <Link href="/deals" onClick={() => setMobileMenuOpen(false)}>Deals</Link>
-          <Link href="/planifier" onClick={() => setMobileMenuOpen(false)}>Planifier</Link>
           <Link href="/pricing" onClick={() => setMobileMenuOpen(false)}>Tarifs</Link>
           {user && <Link href="/library" onClick={() => setMobileMenuOpen(false)}>Mes guides</Link>}
           <div className="lp-mob-sep" />
