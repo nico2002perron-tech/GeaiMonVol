@@ -20,12 +20,12 @@ export async function GET(request: Request) {
     try {
         const supabase = await createServerSupabase();
 
-        // 1. Récupérer les derniers prix (dernières 2 heures)
-        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+        // 1. Récupérer les derniers prix (dernières 24 heures — cron quotidien)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: latestPrices } = await supabase
             .from('price_history')
             .select('*')
-            .gte('scanned_at', twoHoursAgo)
+            .gte('scanned_at', oneDayAgo)
             .order('price', { ascending: true });
 
         if (!latestPrices || latestPrices.length === 0) {
