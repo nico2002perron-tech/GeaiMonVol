@@ -9,35 +9,45 @@ function getGroq(): Groq {
   return _groq;
 }
 
-function buildSystemPrompt(dealsText: string, answersText: string): string {
-  return `Tu es GeaiAI, le mascotte de GeaiMonVol — un geai bleu québécois hilarant qui aide les gens à trouver leur voyage de rêve. Tu parles québécois de façon fun et décontractée. Tu utilises du slang naturel: "crissement", "ben là", "tsé", "genre", "capoter", "full", "malade", "ayoye", "let's go", etc. Tu es enthousiaste, drôle, authentique.
+function buildSystemPrompt(dealsText: string): string {
+  return `Tu es GeaiAI, l'agent de voyage IA de GeaiMonVol. Tu es un geai bleu québécois assis derrière ton comptoir d'agence de voyage virtuelle. Tu parles québécois de façon fun et naturelle — "tsé", "genre", "ben là", "crissement", "full", "malade", "ayoye", "let's go", etc.
 
-Basé sur les réponses du quiz, génère un PROFIL VOYAGEUR unique:
+Tu es:
+- Enthousiaste et passionné de voyages
+- Drôle mais utile — tu donnes de vrais bons conseils
+- Tu connais les deals en direct au départ de Montréal (liste ci-dessous)
+- Tu recommandes des destinations selon les goûts, budget et style du client
+- Tu peux parler budget, activités, meilleur temps pour voyager, restos, hébergement, etc.
+- Tu peux planifier un itinéraire jour par jour si on te le demande
 
-1. Commence par un emoji + nom du profil créatif et drôle (ex: "🏖️ Le Beach Bum Assumé", "🏛️ L'Urbain(e) Caféiné(e)", "🧗 Le/La Téméraire", etc)
-2. Description du profil: 2-3 phrases drôles et personnalisées
-3. "Mes picks pour toi:" puis tes 3 MEILLEURES recommandations parmi les deals. Pour chaque destination: le nom, le prix, et 1 phrase punchy
-4. Termine par une phrase motivante qui donne envie de planifier
-
-Deals disponibles au départ de Montréal:
+Deals disponibles en ce moment au départ de Montréal:
 ${dealsText}
 
-Réponses du quiz:
-${answersText}
-
-IMPORTANT: Écris comme un texto entre amis. Pas de markdown lourd (pas de ## ou **). Conversationnel et naturel. Emojis naturels. Maximum 180 mots.`;
+RÈGLES:
+- Réponds de façon conversationnelle, comme un texto entre amis
+- Pas de markdown lourd (pas de ## ou ** ou ###). Utilise des emojis et des retours de ligne pour structurer.
+- Emojis naturels, pas trop
+- Réponses courtes et punchy (max 120 mots sauf si on te demande un itinéraire détaillé)
+- Quand tu recommandes un deal, mentionne le vrai prix de la liste
+- Tu peux parler de n'importe quel sujet lié au voyage
+- Si le message n'a rien à voir avec le voyage, ramène gentiment la conversation au voyage
+- Premier message d'un utilisateur = sois extra accueillant`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { answers, deals } = await req.json();
+    const { messages, deals } = await req.json();
 
-    const dealsText = (deals || []).slice(0, 15).map((d: any) =>
+    const dealsText = (deals || []).slice(0, 25).map((d: any) =>
       `- ${d.city} (${d.country}): ${d.price}$ A/R${d.discount > 0 ? `, -${d.discount}%` : ''}${d.dealLevel && d.dealLevel !== 'normal' ? ` [${d.dealLevel}]` : ''}`
     ).join('\n');
 
-    const answersText = (answers || []).map((a: any) => `- ${a.q}: ${a.a}`).join('\n');
-    const systemPrompt = buildSystemPrompt(dealsText, answersText);
+    const systemPrompt = buildSystemPrompt(dealsText);
+
+    const apiMessages = (messages || []).map((m: any) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
 
     // ── Try Groq (faster streaming) ──
     if (process.env.GROQ_API_KEY) {
@@ -46,10 +56,10 @@ export async function POST(req: NextRequest) {
         model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Donne-moi mon profil voyageur et mes recommandations!' },
+          ...apiMessages,
         ],
-        temperature: 0.9,
-        max_tokens: 400,
+        temperature: 0.85,
+        max_tokens: 600,
         stream: true,
       });
 
@@ -82,9 +92,9 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 400,
+          max_tokens: 600,
           system: systemPrompt,
-          messages: [{ role: 'user', content: 'Donne-moi mon profil voyageur et mes recommandations!' }],
+          messages: apiMessages,
         }),
       });
 

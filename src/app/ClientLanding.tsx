@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -25,6 +25,90 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // ── GeaiAI Agent Chat ──
+  type ChatMsg = { role: 'user' | 'assistant'; content: string };
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (chatBodyRef.current) {
+      chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
+    }
+  }, [chatMessages, isStreaming]);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+    const userMsg: ChatMsg = { role: 'user', content: text.trim() };
+    const newMessages = [...chatMessages, userMsg];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setIsStreaming(true);
+
+    try {
+      const res = await fetch('/api/geai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          deals: allDeals.slice(0, 25).map(d => ({
+            city: d.city, country: d.country, price: Math.round(d.price),
+            discount: d.discount, dealLevel: d.dealLevel,
+          })),
+        }),
+      });
+
+      if (!res.ok || !res.body) throw new Error();
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let aiText = '';
+
+      setChatMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        aiText += decoder.decode(value, { stream: true });
+        const current = aiText;
+        setChatMessages(prev => {
+          const msgs = [...prev];
+          msgs[msgs.length - 1] = { role: 'assistant', content: current };
+          return msgs;
+        });
+      }
+    } catch {
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "Oups, j'ai eu un petit bug! Reessaie dans quelques secondes 😅",
+      }]);
+    } finally {
+      setIsStreaming(false);
+      setTimeout(() => chatInputRef.current?.focus(), 100);
+    }
+  }, [chatMessages, isStreaming, allDeals]);
+
+  const handleChatSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(chatInput);
+  }, [chatInput, sendMessage]);
+
+  const handleChatKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(chatInput);
+    }
+  }, [chatInput, sendMessage]);
+
+  const SUGGESTIONS = [
+    "Ou aller pour pas cher en ce moment?",
+    "Je veux du beach, budget 600$",
+    "Meilleur deal cette semaine?",
+    "Weekend en Europe, c'est possible?",
+  ];
 
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
 
@@ -242,90 +326,109 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
       </section>
 
-      {/* ═══ AI PLANNER SHOWCASE ═══ */}
-      <section className="lp-ai-section">
-        <div className="lp-ai-inner">
-          <div className="lp-ai-text">
-            <span className="lp-section-label">Planificateur IA</span>
-            <h2 className="lp-ai-title">
-              Ton itineraire complet.{' '}
-              <span>En 30 secondes.</span>
+      {/* ═══ GEAIAI AGENT — Live Chat ═══ */}
+      <section className="lp-agent-section">
+        <div className="lp-agent-glow" />
+        <div className="lp-agent-outer">
+          <div className="lp-agent-label-row">
+            <span className="lp-agent-badge">
+              <span className="lp-agent-badge-dot" />
+              Agent IA en ligne
+            </span>
+            <h2 className="lp-agent-heading">
+              Parle avec ton agent de voyage.{' '}
+              <span>En direct.</span>
             </h2>
-            <p className="lp-ai-desc">
-              Choisis ta destination, dis-nous tes vibes, et notre IA te genere un guide sur mesure : activites, restos, budget et horaire jour par jour.
+            <p className="lp-agent-subheading">
+              GeaiAI connait tous les deals en direct. Demande-lui ou aller, quoi faire, combien ca coute.
             </p>
-            <div className="lp-ai-features">
-              <div className="lp-ai-feat">
-                <span>🎯</span>
-                <div>
-                  <strong>Personnalise</strong>
-                  <span>Adapte a ton style, ton budget et tes dates</span>
-                </div>
-              </div>
-              <div className="lp-ai-feat">
-                <span>⚡</span>
-                <div>
-                  <strong>Instantane</strong>
-                  <span>Guide complet genere en moins de 30 secondes</span>
-                </div>
-              </div>
-              <div className="lp-ai-feat">
-                <span>🌍</span>
-                <div>
-                  <strong>Monde entier</strong>
-                  <span>{heroStats.count}+ destinations couvertes</span>
-                </div>
-              </div>
-            </div>
-            <Link href="/planifier" className="lp-btn-ocean" style={{ marginTop: 8 }}>
-              <span className="lp-btn-ocean-glow" />
-              Essayer le planificateur
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-            </Link>
           </div>
 
-          {/* Static mockup of the planner */}
-          <div className="lp-ai-mockup">
-            <div className="lp-ai-phone">
-              <div className="lp-ai-phone-bar">
-                <div className="lp-ai-phone-dot" />
-                <span>GeaiMonVol — Guide IA</span>
-              </div>
-              <div className="lp-ai-phone-body">
-                <div className="lp-ai-mock-dest">
-                  <span className="lp-ai-mock-flag">🇪🇸</span>
-                  <div>
-                    <strong>Barcelone</strong>
-                    <span>5 jours · Couple · Gastronomie</span>
-                  </div>
-                  <span className="lp-ai-mock-price">489$</span>
-                </div>
-                <div className="lp-ai-mock-day">
-                  <div className="lp-ai-mock-day-num">Jour 1</div>
-                  <div className="lp-ai-mock-item">
-                    <span>🏛️</span> Sagrada Familia + Park Guell
-                  </div>
-                  <div className="lp-ai-mock-item">
-                    <span>🍽️</span> Tapas au Mercat de la Boqueria
-                  </div>
-                  <div className="lp-ai-mock-item">
-                    <span>🌅</span> Sunset au Bunkers del Carmel
-                  </div>
-                </div>
-                <div className="lp-ai-mock-day">
-                  <div className="lp-ai-mock-day-num">Jour 2</div>
-                  <div className="lp-ai-mock-item">
-                    <span>🏖️</span> Matinee a la Barceloneta
-                  </div>
-                  <div className="lp-ai-mock-item">
-                    <span>🎨</span> Musee Picasso + El Born
-                  </div>
-                  <div className="lp-ai-mock-item lp-ai-mock-fade">
-                    <span>🍷</span> Soiree au quartier Gracia...
-                  </div>
+          <div className="lp-agent-container">
+            {/* Header */}
+            <div className="lp-agent-header">
+              <div className="lp-agent-avatar">🐦</div>
+              <div>
+                <div className="lp-agent-name">GeaiAI</div>
+                <div className="lp-agent-status">
+                  <span className="lp-agent-online" />
+                  Agent de voyage IA
                 </div>
               </div>
+              {chatMessages.length > 0 && (
+                <button
+                  className="lp-agent-clear"
+                  onClick={() => { setChatMessages([]); setChatInput(''); }}
+                  title="Nouvelle conversation"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                </button>
+              )}
             </div>
+
+            {/* Messages */}
+            <div className="lp-agent-body" ref={chatBodyRef}>
+              {chatMessages.length === 0 ? (
+                <div className="lp-agent-welcome">
+                  <div className="lp-agent-welcome-avatar">🐦</div>
+                  <h3 className="lp-agent-welcome-title">Salut! Moi c&apos;est GeaiAI</h3>
+                  <p className="lp-agent-welcome-desc">
+                    Ton agent de voyage IA. Dis-moi ce que tu cherches et je vais te trouver le deal parfait parmi {allDeals.length}+ destinations.
+                  </p>
+                  <div className="lp-agent-suggestions">
+                    {SUGGESTIONS.map((s, i) => (
+                      <button key={i} className="lp-agent-suggestion" onClick={() => sendMessage(s)}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="lp-agent-messages">
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`lp-agent-msg ${msg.role === 'assistant' ? 'lp-agent-msg-ai' : 'lp-agent-msg-user'}`}>
+                      {msg.role === 'assistant' && <div className="lp-agent-msg-avatar">🐦</div>}
+                      <div className={`lp-agent-bubble ${msg.role === 'assistant' ? 'lp-agent-bubble-ai' : 'lp-agent-bubble-user'}`}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isStreaming && chatMessages[chatMessages.length - 1]?.role !== 'assistant' && (
+                    <div className="lp-agent-msg lp-agent-msg-ai">
+                      <div className="lp-agent-msg-avatar">🐦</div>
+                      <div className="lp-agent-bubble lp-agent-bubble-ai lp-agent-typing">
+                        <span className="lp-agent-dot" />
+                        <span className="lp-agent-dot" />
+                        <span className="lp-agent-dot" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <form className="lp-agent-input-bar" onSubmit={handleChatSubmit}>
+              <textarea
+                ref={chatInputRef}
+                className="lp-agent-input"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={handleChatKeyDown}
+                placeholder="Ecris ton message..."
+                rows={1}
+                disabled={isStreaming}
+              />
+              <button
+                type="submit"
+                className="lp-agent-send"
+                disabled={!chatInput.trim() || isStreaming}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 2L11 13" /><path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                </svg>
+              </button>
+            </form>
           </div>
         </div>
       </section>
