@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import LandingHeader from '@/components/LandingHeader';
@@ -14,32 +14,19 @@ import './deals.css';
 
 const EMPTY_DEALS: any[] = [];
 
-const LANDING_VIBES = [
-  {
-    q: "Qu'est-ce qui te fait tripper?",
-    a: { id: 'plage', label: 'Plage & soleil', icon: '🏖️', img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&h=600&fit=crop' },
-    b: { id: 'ville', label: 'Ville & culture', icon: '🏛️', img: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=900&h=600&fit=crop' },
-  },
-  {
-    q: 'Ton energie en voyage?',
-    a: { id: 'aventure', label: 'Aventure', icon: '🧗', img: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=900&h=600&fit=crop' },
-    b: { id: 'detente', label: 'Relax & zen', icon: '🧘', img: 'https://images.unsplash.com/photo-1540555700478-4be289fbec6e?w=900&h=600&fit=crop' },
-  },
-  {
-    q: 'Ta priorite #1?',
-    a: { id: 'gastronomie', label: 'Gastronomie', icon: '🍽️', img: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900&h=600&fit=crop' },
-    b: { id: 'nightlife', label: 'Nightlife', icon: '🎶', img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=900&h=600&fit=crop' },
-  },
-];
-
-const LANDING_DEST_VIBES: Record<string, string[]> = {
-  plage: ['Cancún', 'Cancun', 'Punta Cana', 'Varadero', 'Bali', 'Montego Bay', 'Nassau', 'Fort Lauderdale', 'Miami', 'Phuket', 'Bridgetown', 'Freeport', 'Cuba (Varadero)'],
-  ville: ['Paris', 'Barcelone', 'New York', 'Tokyo', 'Rome', 'Londres', 'Berlin', 'Amsterdam', 'Madrid', 'Lisbonne', 'Istanbul', 'Seoul', 'Bogota', 'Buenos Aires', 'Porto'],
-  aventure: ['Reykjavik', 'Cusco', 'Lima', 'San Jose', 'San José', 'Medellin', 'Guatemala City', 'Marrakech', 'Ho Chi Minh', 'Hanoi', 'Belize City', 'Cartagena'],
-  detente: ['Bali', 'Phuket', 'Bangkok', 'Cancún', 'Cancun', 'Punta Cana', 'Nassau', 'Bridgetown', 'Porto', 'Lisbonne', 'Varadero', 'Fort Lauderdale'],
-  gastronomie: ['Paris', 'Rome', 'Tokyo', 'Osaka', 'Barcelone', 'Lisbonne', 'Porto', 'Lima', 'Bangkok', 'Marrakech', 'Istanbul', 'Buenos Aires'],
-  nightlife: ['Barcelone', 'Berlin', 'Amsterdam', 'New York', 'Bogota', 'Buenos Aires', 'Bangkok', 'Cancún', 'Las Vegas', 'Montego Bay'],
+const DEST_CATS: Record<string, string[]> = {
+  beach: ['Cancún', 'Cancun', 'Punta Cana', 'Varadero', 'Bali', 'Montego Bay', 'Nassau', 'Fort Lauderdale', 'Miami', 'Phuket', 'Bridgetown', 'Freeport'],
+  city: ['Paris', 'Barcelone', 'New York', 'Tokyo', 'Rome', 'Londres', 'Berlin', 'Amsterdam', 'Madrid', 'Lisbonne', 'Istanbul', 'Seoul', 'Bogota', 'Buenos Aires', 'Porto'],
+  adventure: ['Reykjavik', 'Cusco', 'Lima', 'San Jose', 'San José', 'Medellin', 'Guatemala City', 'Marrakech', 'Ho Chi Minh', 'Hanoi', 'Cartagena', 'Belize City'],
+  tropical: ['Bali', 'Phuket', 'Bangkok', 'Cancún', 'Cancun', 'Punta Cana', 'Nassau', 'Bridgetown', 'Varadero', 'Fort Lauderdale'],
 };
+
+const TRAVEL_PERSONALITIES = [
+  { cats: ['beach', 'tropical'], emoji: '🏖️', name: 'Le Beach Bum Assume', desc: "Soleil, sable, cocktail. T'as besoin de la mer pour etre heureux. Et on te comprend." },
+  { cats: ['city'], emoji: '🏛️', name: "L'Explorateur Urbain", desc: "Ruelles, cafes, musees, rooftops. Tu vis pour la decouverte culturelle et les villes qui bougent." },
+  { cats: ['adventure'], emoji: '🧗', name: "L'Aventurier Sans Limites", desc: "Jungle, volcans, treks... t'es pas du genre a rester au bord de la piscine. Le monde est ton terrain de jeu." },
+  { cats: [] as string[], emoji: '🌍', name: 'Le Voyageur Eclectique', desc: "Impossible de te mettre dans une boite. Tu veux tout voir, tout gouter, tout vivre. Chaque destination est une nouvelle aventure." },
+];
 
 interface ClientLandingProps {
   initialDeals?: any[];
@@ -53,43 +40,78 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
   const [subscribed, setSubscribed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Vibe widget state
-  const [vibeIdx, setVibeIdx] = useState(0);
-  const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
-  const [vibeAnimating, setVibeAnimating] = useState(false);
-  const vibeDone = selectedVibes.length >= LANDING_VIBES.length;
+  // ── Swipe Tinder state ──
+  const [swipeIdx, setSwipeIdx] = useState(0);
+  const [liked, setLiked] = useState<DealItem[]>([]);
+  const [dragX, setDragX] = useState(0);
+  const [dragActive, setDragActive] = useState(false);
+  const [flyDir, setFlyDir] = useState<'left' | 'right' | null>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragXRef = useRef(0);
 
-  const vibeMatches = useMemo(() => {
-    if (!vibeDone) return [];
-    const scored = allDeals.map(deal => {
-      let s = 0;
-      for (const v of selectedVibes) {
-        if ((LANDING_DEST_VIBES[v] || []).some(c => deal.city.includes(c) || c.includes(deal.city))) s++;
+  const swipeCards = useMemo(() => allDeals.slice(0, 8), [allDeals]);
+  const swipeDone = swipeIdx >= swipeCards.length;
+
+  const personality = useMemo(() => {
+    if (!swipeDone) return null;
+    if (liked.length === 0) return TRAVEL_PERSONALITIES[3];
+    const counts: Record<string, number> = { beach: 0, city: 0, adventure: 0, tropical: 0 };
+    for (const d of liked) {
+      for (const [cat, cities] of Object.entries(DEST_CATS)) {
+        if (cities.some(c => d.city.includes(c) || c.includes(d.city))) counts[cat]++;
       }
-      if (deal.dealLevel === 'lowest_ever') s += 2;
-      else if (deal.dealLevel === 'incredible') s += 1.5;
-      else if (deal.dealLevel === 'great') s += 1;
-      else if (deal.dealLevel === 'good') s += 0.5;
-      return { deal, s };
-    });
-    return scored.filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 3)
-      .map(x => ({ ...x, pct: Math.min(97, Math.round(52 + x.s * 14)) }));
-  }, [selectedVibes, allDeals, vibeDone]);
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    if (!top || top[1] === 0) return TRAVEL_PERSONALITIES[3];
+    return TRAVEL_PERSONALITIES.find(p => p.cats.includes(top[0])) || TRAVEL_PERSONALITIES[3];
+  }, [liked, swipeDone]);
 
-  const pickLandingVibe = useCallback((id: string) => {
-    if (vibeAnimating) return;
-    setVibeAnimating(true);
-    setSelectedVibes(prev => [...prev, id]);
+  const advanceCard = useCallback((dir: 'left' | 'right') => {
+    setFlyDir(dir);
+    setDragX(0);
+    if (dir === 'right') {
+      setLiked(prev => [...prev, swipeCards[swipeIdx]]);
+    }
     setTimeout(() => {
-      setVibeIdx(prev => prev + 1);
-      setVibeAnimating(false);
-    }, 350);
-  }, [vibeAnimating]);
+      setSwipeIdx(prev => prev + 1);
+      setFlyDir(null);
+    }, 380);
+  }, [swipeIdx, swipeCards]);
 
-  const resetVibes = useCallback(() => {
-    setVibeIdx(0);
-    setSelectedVibes([]);
-    setVibeAnimating(false);
+  const onCardPointerDown = useCallback((e: React.PointerEvent) => {
+    if (flyDir) return;
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragXRef.current = 0;
+    setDragX(0);
+    setDragActive(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [flyDir]);
+
+  const onCardPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - dragStartX.current;
+    dragXRef.current = dx;
+    setDragX(dx);
+  }, []);
+
+  const onCardPointerUp = useCallback(() => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    setDragActive(false);
+    const dx = dragXRef.current;
+    if (dx > 80) advanceCard('right');
+    else if (dx < -80) advanceCard('left');
+    else setDragX(0);
+  }, [advanceCard]);
+
+  const resetSwipe = useCallback(() => {
+    setSwipeIdx(0);
+    setLiked([]);
+    setDragX(0);
+    setFlyDir(null);
+    setDragActive(false);
   }, []);
 
   const topDeals = useMemo(() => allDeals.slice(0, 6), [allDeals]);
@@ -310,125 +332,191 @@ export default function ClientLanding({ initialDeals }: ClientLandingProps) {
         </div>
       </section>
 
-      {/* ═══ VIBE TINDER — Interactive trip planner teaser ═══ */}
-      <section className="lp-vibe-section">
-        <div className="lp-vibe-glow" />
-        <div className="lp-vibe-container">
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '6px 16px', borderRadius: 100,
-            background: 'rgba(14,165,233,0.1)', border: '1px solid rgba(14,165,233,0.2)',
-            marginBottom: 20,
-            fontFamily: "'Outfit', sans-serif", fontSize: 13, fontWeight: 700, color: '#0EA5E9',
-          }}>
-            ✨ Essaie maintenant
-          </div>
-          <h2 className="lp-vibe-title">
-            Trouve ta destination ideale{' '}
-            <span style={{ color: '#0EA5E9' }}>en 3 clics.</span>
-          </h2>
-          <p className="lp-vibe-subtitle">
-            Choisis un cote a chaque question. Notre IA te matche avec les meilleurs deals.
-          </p>
+      {/* ═══ DESTINATION TINDER — Swipe card deck ═══ */}
+      {swipeCards.length > 0 && (
+        <section className="lp-swipe-section">
+          <div className="lp-swipe-glow" />
+          <div className="lp-swipe-container">
+            <div className="lp-swipe-badge">✨ Trouve ta destination</div>
+            <h2 className="lp-swipe-title">
+              Swipe tes vacances.{' '}
+              <span>Decouvre ton profil voyageur.</span>
+            </h2>
+            <p className="lp-swipe-subtitle">
+              Comme Tinder, mais pour tes vacances. Swipe a droite si ca te fait tripper, a gauche sinon.
+            </p>
 
-          {/* Vibe picker widget */}
-          {!vibeDone ? (
-            <div className="lp-vibe-widget" key={`lv${vibeIdx}`}>
-              {/* Progress dots */}
-              <div className="lp-vibe-dots">
-                {LANDING_VIBES.map((_, i) => (
-                  <div key={i} className={`lp-vibe-dot ${i < vibeIdx ? 'done' : ''} ${i === vibeIdx ? 'active' : ''}`} />
-                ))}
-              </div>
-
-              {vibeIdx < LANDING_VIBES.length && (
-                <>
-                  <div className="lp-vibe-question">{LANDING_VIBES[vibeIdx].q}</div>
-
-                  <div className="lp-vibe-split">
-                    {[LANDING_VIBES[vibeIdx].a, LANDING_VIBES[vibeIdx].b].map((opt, oi) => (
-                      <button
-                        key={opt.id}
-                        className={`lp-vibe-card ${vibeAnimating ? 'animating' : ''}`}
-                        onClick={() => pickLandingVibe(opt.id)}
-                        style={{ animationDelay: `${oi * 0.08}s` }}
-                      >
-                        <div className="lp-vibe-card-img" style={{ backgroundImage: `url(${opt.img})` }} />
-                        <div className="lp-vibe-card-overlay" />
-                        <div className="lp-vibe-card-content">
-                          <span className="lp-vibe-card-icon">{opt.icon}</span>
-                          <span className="lp-vibe-card-label">{opt.label}</span>
-                        </div>
-                      </button>
-                    ))}
-                    <div className="lp-vibe-or">ou</div>
+            {!swipeDone ? (
+              <>
+                {/* Counter */}
+                <div className="lp-swipe-counter">
+                  <div className="lp-swipe-counter-bar">
+                    <div className="lp-swipe-counter-fill" style={{ width: `${((swipeIdx) / swipeCards.length) * 100}%` }} />
                   </div>
-                </>
-              )}
-            </div>
-          ) : (
-            /* Results after 3 picks */
-            <div className="lp-vibe-results">
-              <div className="lp-vibe-picks">
-                {selectedVibes.map((v, i) => {
-                  const choice = LANDING_VIBES[i];
-                  const picked = choice.a.id === v ? choice.a : choice.b;
-                  return (
-                    <span key={v} className="lp-vibe-pick-tag">{picked.icon} {picked.label}</span>
-                  );
-                })}
-              </div>
+                  <span className="lp-swipe-counter-text">{swipeIdx + 1} / {swipeCards.length}</span>
+                </div>
 
-              {vibeMatches.length > 0 ? (
-                <>
-                  <h3 className="lp-vibe-results-title">
-                    Tes matchs parfaits
-                  </h3>
-                  <div className="lp-vibe-match-grid">
-                    {vibeMatches.map(({ deal, pct }, i) => {
-                      const level = DEAL_LEVELS[deal.dealLevel];
-                      const flag = COUNTRY_FLAGS[CITY_COUNTRY[deal.city] || ''] || '';
-                      return (
-                        <div key={deal.code + i} className="lp-vibe-match-card">
-                          <div className="lp-vibe-match-img" style={{ backgroundImage: `url(${deal.image})` }}>
-                            <div className="lp-vibe-match-img-overlay" />
-                            <span className="lp-vibe-match-pct">{pct}% match</span>
+                {/* Card stack */}
+                <div className="lp-swipe-stage">
+                  {/* Background cards (2 behind) */}
+                  {swipeCards.slice(swipeIdx + 1, swipeIdx + 3).map((deal, i) => {
+                    const depth = i + 1;
+                    return (
+                      <div
+                        key={deal.code + 'bg' + i}
+                        className="lp-swipe-card lp-swipe-card-bg"
+                        style={{
+                          transform: `scale(${1 - depth * 0.045}) translateY(${depth * 14}px)`,
+                          zIndex: 10 - depth,
+                          opacity: 1 - depth * 0.15,
+                        }}
+                      >
+                        <div className="lp-swipe-card-img" style={{ backgroundImage: `url(${deal.image})` }} />
+                        <div className="lp-swipe-card-gradient" />
+                      </div>
+                    );
+                  })}
+
+                  {/* Top card — draggable */}
+                  {swipeIdx < swipeCards.length && (() => {
+                    const card = swipeCards[swipeIdx];
+                    const level = DEAL_LEVELS[card.dealLevel];
+                    const flag = COUNTRY_FLAGS[CITY_COUNTRY[card.city] || ''] || '';
+                    const likeOpacity = Math.min(1, Math.max(0, dragX / 120));
+                    const nopeOpacity = Math.min(1, Math.max(0, -dragX / 120));
+                    return (
+                      <div
+                        className={`lp-swipe-card lp-swipe-card-top ${flyDir ? `fly-${flyDir}` : ''} ${!dragActive && !flyDir ? 'spring' : ''}`}
+                        style={{
+                          transform: flyDir ? undefined : `translateX(${dragX}px) rotate(${dragX * 0.06}deg)`,
+                          zIndex: 20,
+                          touchAction: 'none',
+                          cursor: 'grab',
+                        }}
+                        onPointerDown={onCardPointerDown}
+                        onPointerMove={onCardPointerMove}
+                        onPointerUp={onCardPointerUp}
+                        onPointerCancel={() => { isDragging.current = false; setDragActive(false); setDragX(0); }}
+                      >
+                        <div className="lp-swipe-card-img" style={{ backgroundImage: `url(${card.image})` }} />
+                        <div className="lp-swipe-card-gradient" />
+
+                        {/* LIKE stamp */}
+                        <div className="lp-swipe-stamp lp-swipe-stamp-like" style={{ opacity: likeOpacity }}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                          LIKE
+                        </div>
+                        {/* NOPE stamp */}
+                        <div className="lp-swipe-stamp lp-swipe-stamp-nope" style={{ opacity: nopeOpacity }}>
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                          NOPE
+                        </div>
+
+                        {/* Card info */}
+                        <div className="lp-swipe-card-info">
+                          <div className="lp-swipe-card-city">{flag} {card.city}</div>
+                          <div className="lp-swipe-card-country">{CITY_COUNTRY[card.city] || card.country}</div>
+                          <div className="lp-swipe-card-price-row">
+                            <span className="lp-swipe-card-price">{Math.round(card.price)}$</span>
+                            <span className="lp-swipe-card-ar">A/R</span>
+                            {card.discount > 0 && level && (
+                              <span className="lp-swipe-card-deal" style={{ background: level.bg }}>
+                                {level.icon} -{card.discount}%
+                              </span>
+                            )}
                           </div>
-                          <div className="lp-vibe-match-body">
-                            <div className="lp-vibe-match-city">{flag} {deal.city}</div>
-                            <div className="lp-vibe-match-price-row">
-                              <span className="lp-vibe-match-price">{Math.round(deal.price)}$</span>
-                              {deal.discount > 0 && level && (
-                                <span className="lp-vibe-match-tag" style={{ background: level.bg, color: level.textColor || '#fff' }}>
-                                  {level.icon} -{deal.discount}%
-                                </span>
-                              )}
+                          {card.airline && (
+                            <div className="lp-swipe-card-airline">
+                              {card.airline}{card.stops === 0 ? ' · Direct' : ''}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Like / Nope buttons */}
+                <div className="lp-swipe-btns">
+                  <button
+                    className="lp-swipe-btn lp-swipe-btn-nope"
+                    onClick={() => !flyDir && advanceCard('left')}
+                    aria-label="Passer"
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
+                  <button
+                    className="lp-swipe-btn lp-swipe-btn-like"
+                    onClick={() => !flyDir && advanceCard('right')}
+                    aria-label="J'aime"
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                  </button>
+                </div>
+
+                <p className="lp-swipe-hint">Glisse la carte ou clique les boutons</p>
+              </>
+            ) : (
+              /* ── RESULTS: Personality reveal + liked deals ── */
+              <div className="lp-swipe-results">
+                {personality && (
+                  <div className="lp-personality">
+                    <div className="lp-personality-emoji">{personality.emoji}</div>
+                    <h3 className="lp-personality-name">{personality.name}</h3>
+                    <p className="lp-personality-desc">{personality.desc}</p>
+                  </div>
+                )}
+
+                {liked.length > 0 && (
+                  <>
+                    <div className="lp-swipe-results-label">
+                      Tes coups de coeur ({liked.length})
+                    </div>
+                    <div className="lp-swipe-liked-grid">
+                      {liked.map((deal, i) => {
+                        const level = DEAL_LEVELS[deal.dealLevel];
+                        const flag = COUNTRY_FLAGS[CITY_COUNTRY[deal.city] || ''] || '';
+                        return (
+                          <div key={deal.code + i} className="lp-swipe-liked-card">
+                            <div className="lp-swipe-liked-img" style={{ backgroundImage: `url(${deal.image})` }}>
+                              <div className="lp-swipe-liked-ov" />
+                            </div>
+                            <div className="lp-swipe-liked-body">
+                              <div className="lp-swipe-liked-city">{flag} {deal.city}</div>
+                              <div className="lp-swipe-liked-row">
+                                <span className="lp-swipe-liked-price">{Math.round(deal.price)}$</span>
+                                {deal.discount > 0 && level && (
+                                  <span className="lp-swipe-liked-tag" style={{ background: level.bg, color: level.textColor || '#fff' }}>
+                                    -{deal.discount}%
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Outfit', sans-serif", fontSize: 15, marginBottom: 16 }}>
-                  Aucun match pour cette combinaison — essaie le planificateur complet!
-                </p>
-              )}
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
 
-              <div className="lp-vibe-actions">
-                <Link href={`/planifier?vibes=${selectedVibes.join(',')}`} className="lp-vibe-cta-main">
-                  Planifier mon voyage
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
-                </Link>
-                <button className="lp-vibe-cta-reset" onClick={resetVibes}>
-                  Recommencer
-                </button>
+                {liked.length === 0 && (
+                  <p className="lp-swipe-no-likes">T&apos;as rien like! Recommence et ouvre tes horizons.</p>
+                )}
+
+                <div className="lp-swipe-actions">
+                  <Link href="/planifier" className="lp-swipe-cta-main">
+                    Planifier mon voyage
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14m-6-6l6 6-6 6" /></svg>
+                  </Link>
+                  <button className="lp-swipe-cta-reset" onClick={resetSwipe}>
+                    Recommencer
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </section>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ═══ PRICING ═══ */}
       <section style={{ background: '#F8FAFC', padding: '96px 24px' }}>

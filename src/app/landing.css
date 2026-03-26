@@ -3455,322 +3455,473 @@
 }
 
 /* ═══════════════════════════════════════════════
-   VIBE TINDER WIDGET — Landing page
+   DESTINATION TINDER — Swipe card deck
    ═══════════════════════════════════════════════ */
 
-.lp-vibe-section {
-  background: linear-gradient(135deg, #0F172A, #1E293B);
-  padding: 96px 24px;
+.lp-swipe-section {
+  background: linear-gradient(160deg, #0B1120 0%, #0F172A 40%, #1a1f3a 100%);
+  padding: 96px 24px 80px;
   position: relative;
   overflow: hidden;
 }
 
-.lp-vibe-glow {
+.lp-swipe-glow {
   position: absolute;
-  top: 50%;
+  top: 30%;
   left: 50%;
-  width: 700px;
-  height: 700px;
+  width: 800px;
+  height: 800px;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(14,165,233,0.07) 0%, transparent 65%);
   pointer-events: none;
 }
 
-.lp-vibe-container {
-  max-width: 900px;
+.lp-swipe-container {
+  max-width: 600px;
   margin: 0 auto;
   position: relative;
   text-align: center;
 }
 
-.lp-vibe-title {
+.lp-swipe-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px;
+  border-radius: 100px;
+  background: rgba(14,165,233,0.1);
+  border: 1px solid rgba(14,165,233,0.2);
+  margin-bottom: 20px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0EA5E9;
+}
+
+.lp-swipe-title {
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(28px, 5vw, 42px);
+  font-size: clamp(26px, 5vw, 40px);
   font-weight: 700;
   color: #fff;
   margin: 0 0 12px;
   line-height: 1.15;
 }
 
-.lp-vibe-subtitle {
+.lp-swipe-title span {
+  color: #0EA5E9;
+}
+
+.lp-swipe-subtitle {
   font-family: 'Outfit', sans-serif;
-  font-size: 17px;
-  color: rgba(255,255,255,0.55);
-  max-width: 480px;
-  margin: 0 auto 40px;
+  font-size: 16px;
+  color: rgba(255,255,255,0.5);
+  max-width: 440px;
+  margin: 0 auto 32px;
   line-height: 1.6;
 }
 
-/* ── Progress dots ── */
-.lp-vibe-dots {
+/* ── Progress counter ── */
+.lp-swipe-counter {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+  margin: 0 auto 28px;
 }
 
-.lp-vibe-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.12);
-  transition: all 0.3s;
-}
-
-.lp-vibe-dot.active {
-  background: #0EA5E9;
-  box-shadow: 0 0 12px rgba(14,165,233,0.5);
-  transform: scale(1.2);
-}
-
-.lp-vibe-dot.done {
-  background: #10B981;
-}
-
-/* ── Question ── */
-.lp-vibe-question {
-  font-family: 'Fredoka', sans-serif;
-  font-size: clamp(20px, 3.5vw, 28px);
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 24px;
-  animation: lpVibeFadeIn 0.35s ease-out;
-}
-
-@keyframes lpVibeFadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Split cards ── */
-.lp-vibe-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  max-width: 700px;
-  margin: 0 auto;
-  position: relative;
-  animation: lpVibeFadeIn 0.35s ease-out;
-}
-
-.lp-vibe-card {
-  position: relative;
-  border-radius: 20px;
+.lp-swipe-counter-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.08);
   overflow: hidden;
-  height: 280px;
-  cursor: pointer;
-  border: 2px solid rgba(255,255,255,0.08);
-  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.lp-swipe-counter-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #0EA5E9, #06B6D4);
+  transition: width 0.4s ease;
+}
+
+.lp-swipe-counter-text {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
+
+/* ── Card stack stage ── */
+.lp-swipe-stage {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  height: 480px;
+  margin: 0 auto 28px;
+  perspective: 1000px;
+}
+
+/* ── Individual card ── */
+.lp-swipe-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  overflow: hidden;
   background: #1E293B;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.lp-vibe-card:hover {
-  transform: scale(1.02);
-  border-color: rgba(14,165,233,0.4);
-  box-shadow: 0 8px 40px rgba(14,165,233,0.15);
-}
-
-.lp-vibe-card:active {
-  transform: scale(0.98);
-}
-
-.lp-vibe-card.animating {
+.lp-swipe-card-bg {
   pointer-events: none;
+  transition: transform 0.35s, opacity 0.35s;
 }
 
-.lp-vibe-card-img {
+.lp-swipe-card-img {
   position: absolute;
   inset: 0;
   background-size: cover;
   background-position: center;
-  transition: transform 0.4s;
 }
 
-.lp-vibe-card:hover .lp-vibe-card-img {
-  transform: scale(1.06);
-}
-
-.lp-vibe-card-overlay {
+.lp-swipe-card-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.85) 0%,
+    rgba(0,0,0,0.4) 35%,
+    rgba(0,0,0,0.05) 60%,
+    rgba(0,0,0,0) 100%
+  );
 }
 
-.lp-vibe-card-content {
+/* ── Top card transitions ── */
+.lp-swipe-card-top.spring {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.lp-swipe-card-top.fly-right {
+  transition: transform 0.38s ease-in, opacity 0.38s;
+  transform: translateX(1200px) rotate(25deg) !important;
+  opacity: 0;
+}
+
+.lp-swipe-card-top.fly-left {
+  transition: transform 0.38s ease-in, opacity 0.38s;
+  transform: translateX(-1200px) rotate(-25deg) !important;
+  opacity: 0;
+}
+
+/* ── LIKE / NOPE stamps ── */
+.lp-swipe-stamp {
+  position: absolute;
+  top: 28px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.1s;
+}
+
+.lp-swipe-stamp-like {
+  left: 20px;
+  color: #10B981;
+  border: 3px solid #10B981;
+  background: rgba(16,185,129,0.12);
+  transform: rotate(-12deg);
+}
+
+.lp-swipe-stamp-nope {
+  right: 20px;
+  color: #EF4444;
+  border: 3px solid #EF4444;
+  background: rgba(239,68,68,0.12);
+  transform: rotate(12deg);
+}
+
+/* ── Card info overlay ── */
+.lp-swipe-card-info {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  padding: 24px 28px 28px;
+  z-index: 3;
 }
 
-.lp-vibe-card-icon {
-  font-size: 40px;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
-}
-
-.lp-vibe-card-label {
+.lp-swipe-card-city {
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  line-height: 1.1;
 }
 
-/* ── "ou" divider ── */
-.lp-vibe-or {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1E293B, #334155);
-  border: 2px solid rgba(255,255,255,0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Fredoka', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.6);
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* ── Results ── */
-.lp-vibe-results {
-  animation: lpVibeFadeIn 0.5s ease-out;
-}
-
-.lp-vibe-picks {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.lp-vibe-pick-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 16px;
-  border-radius: 100px;
-  background: rgba(14,165,233,0.12);
-  border: 1px solid rgba(14,165,233,0.25);
-  color: #0EA5E9;
+.lp-swipe-card-country {
   font-family: 'Outfit', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  margin-top: 2px;
 }
 
-.lp-vibe-results-title {
+.lp-swipe-card-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lp-swipe-card-price {
   font-family: 'Fredoka', sans-serif;
-  font-size: clamp(22px, 4vw, 32px);
+  font-size: 28px;
+  font-weight: 700;
+  color: #0EA5E9;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+
+.lp-swipe-card-ar {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 6px;
+}
+
+.lp-swipe-card-deal {
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
-  margin: 0 0 24px;
 }
 
-.lp-vibe-match-grid {
+.lp-swipe-card-airline {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 4px;
+}
+
+/* ── Like / Nope buttons ── */
+.lp-swipe-btns {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.lp-swipe-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.lp-swipe-btn:active {
+  transform: scale(0.9);
+}
+
+.lp-swipe-btn-nope {
+  background: rgba(239,68,68,0.1);
+  border: 2px solid rgba(239,68,68,0.3);
+  color: #EF4444;
+}
+
+.lp-swipe-btn-nope:hover {
+  background: rgba(239,68,68,0.2);
+  box-shadow: 0 0 24px rgba(239,68,68,0.2);
+  transform: scale(1.08);
+}
+
+.lp-swipe-btn-like {
+  background: rgba(16,185,129,0.1);
+  border: 2px solid rgba(16,185,129,0.3);
+  color: #10B981;
+}
+
+.lp-swipe-btn-like:hover {
+  background: rgba(16,185,129,0.2);
+  box-shadow: 0 0 24px rgba(16,185,129,0.2);
+  transform: scale(1.08);
+}
+
+.lp-swipe-hint {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.2);
+  margin: 0;
+}
+
+/* ═══ RESULTS SECTION ═══ */
+.lp-swipe-results {
+  animation: lpSwipeFadeIn 0.6s ease-out;
+}
+
+@keyframes lpSwipeFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Personality reveal ── */
+.lp-personality {
+  padding: 40px 32px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 32px;
+  backdrop-filter: blur(12px);
+  animation: lpPersonalityPop 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+  animation-delay: 0.15s;
+}
+
+@keyframes lpPersonalityPop {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.lp-personality-emoji {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: lpEmojiFloat 3s ease-in-out infinite;
+}
+
+@keyframes lpEmojiFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.lp-personality-name {
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.lp-personality-desc {
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.6;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* ── Liked deals grid ── */
+.lp-swipe-results-label {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 16px;
+}
+
+.lp-swipe-liked-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  max-width: 700px;
-  margin: 0 auto 32px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
-.lp-vibe-match-card {
-  border-radius: 16px;
+.lp-swipe-liked-card {
+  border-radius: 14px;
   overflow: hidden;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   transition: transform 0.25s, border-color 0.25s;
-  animation: lpVibeCardUp 0.5s ease-out backwards;
+  animation: lpLikedCardUp 0.5s ease-out backwards;
 }
 
-.lp-vibe-match-card:nth-child(1) { animation-delay: 0s; }
-.lp-vibe-match-card:nth-child(2) { animation-delay: 0.12s; }
-.lp-vibe-match-card:nth-child(3) { animation-delay: 0.24s; }
+.lp-swipe-liked-card:nth-child(1) { animation-delay: 0.2s; }
+.lp-swipe-liked-card:nth-child(2) { animation-delay: 0.32s; }
+.lp-swipe-liked-card:nth-child(3) { animation-delay: 0.44s; }
+.lp-swipe-liked-card:nth-child(4) { animation-delay: 0.56s; }
+.lp-swipe-liked-card:nth-child(5) { animation-delay: 0.68s; }
+.lp-swipe-liked-card:nth-child(6) { animation-delay: 0.80s; }
+.lp-swipe-liked-card:nth-child(7) { animation-delay: 0.92s; }
+.lp-swipe-liked-card:nth-child(8) { animation-delay: 1.04s; }
 
-@keyframes lpVibeCardUp {
-  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+@keyframes lpLikedCardUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.9); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.lp-vibe-match-card:hover {
-  transform: translateY(-4px);
+.lp-swipe-liked-card:hover {
+  transform: translateY(-3px);
   border-color: rgba(14,165,233,0.3);
 }
 
-.lp-vibe-match-img {
+.lp-swipe-liked-img {
   position: relative;
-  height: 130px;
+  height: 100px;
   background-size: cover;
   background-position: center;
 }
 
-.lp-vibe-match-img-overlay {
+.lp-swipe-liked-ov {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
+  background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%);
 }
 
-.lp-vibe-match-pct {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 3px 10px;
-  border-radius: 100px;
-  background: rgba(14,165,233,0.85);
-  color: #fff;
+.lp-swipe-liked-body {
+  padding: 10px 12px 12px;
+}
+
+.lp-swipe-liked-city {
   font-family: 'Fredoka', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-
-.lp-vibe-match-body {
-  padding: 12px 14px 14px;
-}
-
-.lp-vibe-match-city {
-  font-family: 'Fredoka', sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-.lp-vibe-match-price-row {
+.lp-swipe-liked-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.lp-vibe-match-price {
+.lp-swipe-liked-price {
   font-family: 'Fredoka', sans-serif;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: #0EA5E9;
 }
 
-.lp-vibe-match-tag {
-  padding: 2px 8px;
-  border-radius: 6px;
+.lp-swipe-liked-tag {
+  padding: 2px 7px;
+  border-radius: 5px;
   font-size: 10px;
   font-weight: 700;
   font-family: 'Outfit', sans-serif;
 }
 
+.lp-swipe-no-likes {
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  color: rgba(255,255,255,0.4);
+  margin: 0 0 24px;
+}
+
 /* ── CTA buttons ── */
-.lp-vibe-actions {
+.lp-swipe-actions {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3778,11 +3929,11 @@
   flex-wrap: wrap;
 }
 
-.lp-vibe-cta-main {
+.lp-swipe-cta-main {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 16px 32px;
+  padding: 16px 36px;
   border-radius: 14px;
   background: linear-gradient(135deg, #0EA5E9, #06B6D4);
   color: #fff;
@@ -3797,12 +3948,12 @@
   cursor: pointer;
 }
 
-.lp-vibe-cta-main:hover {
+.lp-swipe-cta-main:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(14,165,233,0.4);
+  box-shadow: 0 12px 44px rgba(14,165,233,0.4);
 }
 
-.lp-vibe-cta-reset {
+.lp-swipe-cta-reset {
   padding: 14px 24px;
   border-radius: 14px;
   background: rgba(255,255,255,0.06);
@@ -3815,45 +3966,58 @@
   transition: all 0.2s;
 }
 
-.lp-vibe-cta-reset:hover {
+.lp-swipe-cta-reset:hover {
   background: rgba(255,255,255,0.1);
   color: rgba(255,255,255,0.8);
 }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
-  .lp-vibe-section {
-    padding: 64px 16px;
+  .lp-swipe-section {
+    padding: 64px 16px 56px;
   }
 
-  .lp-vibe-split {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .lp-swipe-stage {
+    max-width: 320px;
+    height: 420px;
   }
 
-  .lp-vibe-card {
-    height: 180px;
+  .lp-swipe-card-city {
+    font-size: 24px;
   }
 
-  .lp-vibe-or {
-    display: none;
+  .lp-swipe-card-price {
+    font-size: 24px;
   }
 
-  .lp-vibe-match-grid {
-    grid-template-columns: 1fr;
-    max-width: 340px;
+  .lp-swipe-stamp {
+    font-size: 18px;
+    padding: 8px 14px;
   }
 
-  .lp-vibe-match-img {
-    height: 100px;
+  .lp-swipe-btn {
+    width: 56px;
+    height: 56px;
   }
 
-  .lp-vibe-actions {
+  .lp-swipe-liked-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lp-swipe-actions {
     flex-direction: column;
   }
 
-  .lp-vibe-cta-main {
+  .lp-swipe-cta-main {
     width: 100%;
     justify-content: center;
+  }
+
+  .lp-personality {
+    padding: 28px 20px;
+  }
+
+  .lp-personality-emoji {
+    font-size: 48px;
   }
 }
