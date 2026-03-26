@@ -17,6 +17,7 @@ import { CITY_IMAGES, COUNTRY_IMAGES, DEFAULT_CITY_IMAGE, DEAL_LEVELS, CANADA_CO
 import { AIRLINE_BAGGAGE } from '@/lib/constants/airlines';
 import { PREMIUM_PRICE } from '@/lib/constants/premium';
 import { computeVerdict, VERDICT_STYLES } from '@/lib/services/verdicts';
+import { HomePremiumBanner, StickyPremiumBar } from '@/components/ui/PremiumNudge';
 import './landing.css';
 
 // ── City → Country mapping ──
@@ -1143,6 +1144,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
           </section>
         );
       })()}
+
+      {/* ─── PREMIUM CONVERSION BANNER ─── */}
+      <HomePremiumBanner />
 
       {/* ══════════════════════════════════════════════════════
           ─── DEALS — TOUS LES DEALS ───
@@ -3168,6 +3172,9 @@ export default function ClientHome({ initialDeals }: ClientHomeProps) {
         }).filter(Boolean) as any[]}
         onRemove={(dest) => setCompareList(prev => prev.filter(d => d !== dest))}
       />
+
+      {/* Sticky premium bar */}
+      <StickyPremiumBar />
     </div>
   );
 }

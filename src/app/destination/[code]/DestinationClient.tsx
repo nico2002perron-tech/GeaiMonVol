@@ -14,6 +14,7 @@ import { FlightDeal, HotelInfo, TravelIntel, MonthStats, PackAnalysis } from '@/
 import { getTripNights } from '@/components/destination/helpers';
 import { CITY_IMAGES, DEFAULT_CITY_IMAGE, ALL_INCLUSIVE_CODES } from '@/lib/constants/deals';
 import { usePremium } from '@/lib/hooks/usePremium';
+import { PostAnalysisNudge } from '@/components/ui/PremiumNudge';
 
 interface DestinationClientProps {
     code: string;
@@ -284,6 +285,11 @@ export default function DestinationClient({ code, city, country }: DestinationCl
                 {/* ═══ AI ANALYSIS — AGENT DE VOYAGE (gratuit) ═══ */}
                 {(aiAnalysisLoading || aiAnalysis) && (
                     <AIAnalysisCard analysis={aiAnalysis} loading={aiAnalysisLoading} city={city} />
+                )}
+
+                {/* ─── Post-analysis premium nudge ─── */}
+                {aiAnalysis && !showPremiumContent && (
+                    <PostAnalysisNudge city={city} />
                 )}
 
                 {/* ═══ TRAVEL INTELLIGENCE ═══ */}
