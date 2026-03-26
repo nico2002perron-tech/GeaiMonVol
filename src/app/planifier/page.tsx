@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { getDeals } from '@/lib/services/getDeals';
 import { mapPricesToDeals } from '@/lib/types/deals';
@@ -12,5 +13,9 @@ export const metadata: Metadata = {
 export default async function PlanifierPage() {
   const raw = await getDeals();
   const deals = mapPricesToDeals(raw);
-  return <PlanifierClient deals={deals} />;
+  return (
+    <Suspense>
+      <PlanifierClient deals={deals} />
+    </Suspense>
+  );
 }

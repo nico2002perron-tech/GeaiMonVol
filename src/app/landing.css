@@ -3453,3 +3453,407 @@
     opacity: 0.5 !important;
   }
 }
+
+/* ═══════════════════════════════════════════════
+   VIBE TINDER WIDGET — Landing page
+   ═══════════════════════════════════════════════ */
+
+.lp-vibe-section {
+  background: linear-gradient(135deg, #0F172A, #1E293B);
+  padding: 96px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lp-vibe-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 700px;
+  height: 700px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(14,165,233,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.lp-vibe-container {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  text-align: center;
+}
+
+.lp-vibe-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(28px, 5vw, 42px);
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 12px;
+  line-height: 1.15;
+}
+
+.lp-vibe-subtitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 17px;
+  color: rgba(255,255,255,0.55);
+  max-width: 480px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+/* ── Progress dots ── */
+.lp-vibe-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.lp-vibe-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  transition: all 0.3s;
+}
+
+.lp-vibe-dot.active {
+  background: #0EA5E9;
+  box-shadow: 0 0 12px rgba(14,165,233,0.5);
+  transform: scale(1.2);
+}
+
+.lp-vibe-dot.done {
+  background: #10B981;
+}
+
+/* ── Question ── */
+.lp-vibe-question {
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(20px, 3.5vw, 28px);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 24px;
+  animation: lpVibeFadeIn 0.35s ease-out;
+}
+
+@keyframes lpVibeFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Split cards ── */
+.lp-vibe-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  animation: lpVibeFadeIn 0.35s ease-out;
+}
+
+.lp-vibe-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 280px;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.08);
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+  background: #1E293B;
+}
+
+.lp-vibe-card:hover {
+  transform: scale(1.02);
+  border-color: rgba(14,165,233,0.4);
+  box-shadow: 0 8px 40px rgba(14,165,233,0.15);
+}
+
+.lp-vibe-card:active {
+  transform: scale(0.98);
+}
+
+.lp-vibe-card.animating {
+  pointer-events: none;
+}
+
+.lp-vibe-card-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.4s;
+}
+
+.lp-vibe-card:hover .lp-vibe-card-img {
+  transform: scale(1.06);
+}
+
+.lp-vibe-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.05) 100%);
+}
+
+.lp-vibe-card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lp-vibe-card-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+.lp-vibe-card-label {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* ── "ou" divider ── */
+.lp-vibe-or {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1E293B, #334155);
+  border: 2px solid rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Results ── */
+.lp-vibe-results {
+  animation: lpVibeFadeIn 0.5s ease-out;
+}
+
+.lp-vibe-picks {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.lp-vibe-pick-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  background: rgba(14,165,233,0.12);
+  border: 1px solid rgba(14,165,233,0.25);
+  color: #0EA5E9;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lp-vibe-results-title {
+  font-family: 'Fredoka', sans-serif;
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 24px;
+}
+
+.lp-vibe-match-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto 32px;
+}
+
+.lp-vibe-match-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: transform 0.25s, border-color 0.25s;
+  animation: lpVibeCardUp 0.5s ease-out backwards;
+}
+
+.lp-vibe-match-card:nth-child(1) { animation-delay: 0s; }
+.lp-vibe-match-card:nth-child(2) { animation-delay: 0.12s; }
+.lp-vibe-match-card:nth-child(3) { animation-delay: 0.24s; }
+
+@keyframes lpVibeCardUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lp-vibe-match-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(14,165,233,0.3);
+}
+
+.lp-vibe-match-img {
+  position: relative;
+  height: 130px;
+  background-size: cover;
+  background-position: center;
+}
+
+.lp-vibe-match-img-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%);
+}
+
+.lp-vibe-match-pct {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: rgba(14,165,233,0.85);
+  color: #fff;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.lp-vibe-match-body {
+  padding: 12px 14px 14px;
+}
+
+.lp-vibe-match-city {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.lp-vibe-match-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-vibe-match-price {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0EA5E9;
+}
+
+.lp-vibe-match-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ── CTA buttons ── */
+.lp-vibe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lp-vibe-cta-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0EA5E9, #06B6D4);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  text-decoration: none;
+  box-shadow: 0 8px 32px rgba(14,165,233,0.3);
+  transition: all 0.2s;
+  min-height: 52px;
+  border: none;
+  cursor: pointer;
+}
+
+.lp-vibe-cta-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(14,165,233,0.4);
+}
+
+.lp-vibe-cta-reset {
+  padding: 14px 24px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.5);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lp-vibe-cta-reset:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .lp-vibe-section {
+    padding: 64px 16px;
+  }
+
+  .lp-vibe-split {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .lp-vibe-card {
+    height: 180px;
+  }
+
+  .lp-vibe-or {
+    display: none;
+  }
+
+  .lp-vibe-match-grid {
+    grid-template-columns: 1fr;
+    max-width: 340px;
+  }
+
+  .lp-vibe-match-img {
+    height: 100px;
+  }
+
+  .lp-vibe-actions {
+    flex-direction: column;
+  }
+
+  .lp-vibe-cta-main {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { DealItem, COUNTRY_FLAGS } from '@/lib/types/deals';
 import { DEAL_LEVELS } from '@/lib/constants/deals';
 import { useAuth } from '@/lib/auth/AuthProvider';
@@ -68,6 +68,7 @@ type Step = 'entry' | 'vibes' | 'when' | 'who' | 'reveal' | 'detail' | 'loading'
 
 export default function PlanifierClient({ deals }: { deals: DealItem[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { isPremium } = usePremium();
 
@@ -76,6 +77,19 @@ export default function PlanifierClient({ deals }: { deals: DealItem[] }) {
   // Inspire
   const [vi, setVi] = useState(0);
   const [vibes, setVibes] = useState<string[]>([]);
+
+  // Pre-fill vibes from URL params (from landing page)
+  useEffect(() => {
+    const v = searchParams.get('vibes');
+    if (v) {
+      const arr = v.split(',').filter(Boolean);
+      if (arr.length > 0) {
+        setVibes(arr);
+        setVi(VIBE_CHOICES.length);
+        setStep('when');
+      }
+    }
+  }, [searchParams]);
   const [month, setMonth] = useState<number | null>(null);
   const [group, setGroup] = useState('couple');
   const [budget, setBudget] = useState(1200);
