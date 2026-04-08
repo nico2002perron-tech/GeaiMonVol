@@ -338,6 +338,196 @@
   margin: 10px 0 0;
 }
 
+/* ── Capabilities badges (welcome screen) ── */
+.agent-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.agent-capability {
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: #FFF0E6;
+  color: #CC4A10;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid rgba(255,107,44,0.15);
+}
+
+/* ── Message content wrapper ── */
+.agent-msg-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 75%;
+}
+
+/* ── Tool Call Cards ── */
+.agent-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-tool-card {
+  border-radius: 14px;
+  border: 1.5px solid #E8E4DC;
+  background: #FAFAF7;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.agent-tool-running {
+  border-color: #FF6B2C;
+  animation: toolPulse 1.5s ease-in-out infinite;
+}
+@keyframes toolPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,44,0); }
+  50% { box-shadow: 0 0 0 4px rgba(255,107,44,0.1); }
+}
+.agent-tool-done {
+  border-color: #D1FAE5;
+}
+
+.agent-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1A1A2E;
+  text-align: left;
+}
+.agent-tool-icon {
+  font-size: 15px;
+}
+.agent-tool-label {
+  flex: 1;
+}
+
+/* Spinner */
+.agent-tool-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #E8E4DC;
+  border-top-color: #FF6B2C;
+  border-radius: 50%;
+  animation: toolSpin 0.7s linear infinite;
+}
+@keyframes toolSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Chevron */
+.agent-tool-chevron {
+  transition: transform 0.2s;
+  color: #6B7280;
+}
+.agent-tool-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Details panel */
+.agent-tool-details {
+  padding: 0 14px 12px;
+  font-size: 13px;
+  color: #4B5563;
+  line-height: 1.5;
+  border-top: 1px solid #F0EDE6;
+  animation: detailSlide 0.2s ease-out;
+}
+@keyframes detailSlide {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 400px; }
+}
+
+.agent-tool-count {
+  font-weight: 700;
+  color: #1A1A2E;
+  margin: 8px 0 6px;
+}
+
+.agent-tool-deal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #F5F3EE;
+  gap: 8px;
+}
+.agent-tool-deal-dest {
+  font-weight: 600;
+  color: #1A1A2E;
+  flex: 1;
+}
+.agent-tool-deal-price {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  color: #FF6B2C;
+  white-space: nowrap;
+}
+.agent-tool-deal-info {
+  font-size: 11px;
+  color: #9CA3AF;
+  white-space: nowrap;
+}
+.agent-tool-more {
+  color: #9CA3AF;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.agent-tool-history-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  margin: 8px 0;
+}
+.agent-tool-verdict {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  margin-top: 6px;
+  text-align: center;
+}
+.agent-verdict-good {
+  background: #D1FAE5;
+  color: #065F46;
+}
+.agent-verdict-high {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.agent-tool-success { color: #059669; font-weight: 600; margin: 6px 0; }
+.agent-tool-error { color: #DC2626; font-weight: 600; margin: 6px 0; }
+
+.agent-tool-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.agent-tool-raw {
+  font-size: 11px;
+  background: #F5F3EE;
+  padding: 8px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .agent-topbar { padding: 10px 14px; }
@@ -354,4 +544,7 @@
   .agent-input-area { padding: 12px 12px 16px; }
   .agent-input-bar { padding: 6px 6px 6px 16px; border-radius: 18px; }
   .agent-send { width: 40px; height: 40px; border-radius: 12px; }
+  .agent-msg-content { max-width: 85%; }
+  .agent-capabilities { gap: 6px; }
+  .agent-capability { font-size: 11px; padding: 5px 10px; }
 }
